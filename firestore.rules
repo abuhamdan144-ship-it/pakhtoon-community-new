@@ -22,12 +22,12 @@ service cloud.firestore {
 
     // Hardened ID validation to protect against injection attacks
     function isValidId(id) {
-      return id is string && size(id) <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     // Validates basic string properties
     function isValidString(val, minLen, maxLen) {
-      return val is string && size(val) >= minLen && size(val) <= maxLen;
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
     }
 
     // --- ENTITY VALIDATION BLUEPRINTS ---
