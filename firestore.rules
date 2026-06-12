@@ -93,7 +93,7 @@ service cloud.firestore {
     // Members Collection Rules
     match /members/{memberId} {
       allow create: if isValidMember(request.resource.data) && request.resource.data.status == 'pending';
-      allow get: if isAdmin() || (resource != null && resource.data.status == 'approved');
+      allow get: if isAdmin() || (resource == null || resource.data.status == 'approved');
       allow list: if isAdmin() || (resource != null && resource.data.status == 'approved');
       allow update, delete: if isAdmin();
     }
@@ -121,7 +121,7 @@ service cloud.firestore {
     // Incidents Collection Rules
     match /incidents/{incidentId} {
       allow create: if isValidIncident(request.resource.data) && request.resource.data.status == 'pending';
-      allow get: if isAdmin() || (resource != null && resource.data.status == 'published');
+      allow get: if isAdmin() || (resource == null || resource.data.status == 'published');
       allow list: if isAdmin() || (resource != null && resource.data.status == 'published');
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -149,7 +149,7 @@ service cloud.firestore {
     // Votes Collection Rules
     match /votes/{voteId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
     }
 
     // Ads Collection Rules
