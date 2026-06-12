@@ -204,7 +204,7 @@ export default function App() {
     // Auth Listener
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (user && (user.email === 'abuhamdan144@gmail.com' || user.providerData.some(p => p.providerId === 'password'))) {
+      if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.providerData.some(p => p.providerId === 'password'))) {
         setAdminUser(user);
       } else {
         setAdminUser(null);

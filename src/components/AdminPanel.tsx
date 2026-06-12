@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { 
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp 
 } from 'firebase/firestore';
@@ -102,6 +102,28 @@ export default function AdminPanel({
       await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
     } catch (err: any) {
       setLoginError(err.message || 'Incorrect credentials.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // Handle Google Admin Sign-In
+  const handleGoogleAdminSignIn = async () => {
+    setLoginError('');
+    setLoginLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const email = result.user?.email;
+      if (email === 'abuhamdan144@gmail.com' || email === 'admin@opc.org') {
+        // Logged in successfully as designated system administrator
+      } else {
+        // Not a designated administrator, sign out from Auth instance
+        await signOut(auth);
+        setLoginError('Your Google account is not configured as an administrator. Please sign in with an authorized administrator account like abuhamdan144@gmail.com.');
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'Google Sign-In failed.');
     } finally {
       setLoginLoading(false);
     }
@@ -518,8 +540,32 @@ export default function AdminPanel({
           </div>
 
           {loginError && (
-            <div className="bg-red-50 text-red-700 text-xs p-3 rounded mb-4 font-medium border border-red-200">
-              {loginError}
+            <div className="bg-red-50 text-red-700 text-xs p-4 rounded-lg mb-4 font-medium border border-red-200 space-y-2">
+              <p className="font-bold">{loginError}</p>
+              {loginError.includes('operation-not-allowed') && (
+                <div className="mt-2 text-slate-700 font-normal leading-relaxed border-t border-red-200 pt-2 space-y-2">
+                  <p className="font-semibold text-red-850">How to fix this in 30 seconds:</p>
+                  <p>
+                    On newly created Firebase projects, the <strong>Email/Password</strong> sign-in provider is disabled by default.
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-600">
+                    <li>
+                      Go to the {" "}
+                      <a 
+                        href={`https://console.firebase.google.com/project/${auth.app.options.projectId}/authentication/providers`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-emerald-800 hover:text-emerald-950 font-semibold underline underline-offset-2"
+                      >
+                        Firebase Console Auth Providers Settings
+                      </a>
+                    </li>
+                    <li>Click the <strong>Add new provider</strong> button.</li>
+                    <li>Select <strong>Email/Password</strong>, toggle <strong>Enable</strong>, and click <strong>Save</strong>.</li>
+                    <li>Come back to this page and click <strong>Secure Authorization</strong> again!</li>
+                  </ol>
+                </div>
+              )}
             </div>
           )}
 
@@ -534,7 +580,7 @@ export default function AdminPanel({
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="email@example.com"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-slate-800"
               />
             </div>
 
@@ -548,7 +594,7 @@ export default function AdminPanel({
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-slate-800"
               />
             </div>
 
@@ -560,6 +606,42 @@ export default function AdminPanel({
               {loginLoading ? 'Authenticating...' : 'Secure Authorization'}
             </button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-slate-200"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-slate-400 font-medium">Or Use 1-Click Access</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleAdminSignIn}
+            disabled={loginLoading}
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 px-4 rounded-md border border-slate-300 shadow-sm transition cursor-pointer disabled:opacity-50"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12 5.04c1.66 0 3.2.57 4.4 1.71l3.24-3.24C17.6 1.7 14.97 1 12 1 7.37 1 3.4 3.67 1.45 7.55l3.81 2.95C6.18 7.33 8.87 5.04 12 5.04z"
+              />
+              <path
+                fill="#4285F4"
+                d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.12 2.73-2.38 3.58l3.71 2.88c2.16-1.99 3.4-4.91 3.4-8.61z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.26 14.75a7.16 7.16 0 0 1 0-4.5l-3.81-2.95a11.96 11.96 0 0 0 0 10.4l3.81-2.95z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.71-2.88c-1.03.69-2.35 1.1-4.25 1.1-3.13 0-5.82-2.29-6.74-5.46L1.45 15.8C3.4 19.67 7.37 23 12 23z"
+              />
+            </svg>
+            <span>Sign in with Google</span>
+          </button>
 
           <p className="text-[11px] text-slate-400 mt-5 text-center leading-relaxed">
             System credentials:<br />
