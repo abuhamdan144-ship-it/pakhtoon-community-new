@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp 
 } from 'firebase/firestore';
@@ -98,9 +98,34 @@ export default function AdminPanel({
     e.preventDefault();
     setLoginError('');
     setLoginLoading(true);
+    const trimmedEmail = loginEmail.trim();
     try {
-      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
+      await signInWithEmailAndPassword(auth, trimmedEmail, loginPassword);
     } catch (err: any) {
+      // Self-healing fallback: if sign in fails with invalid credentials but they supplied the correct default email/password,
+      // try to register them in real-time. This covers cases where the default account creation failed at bootstrap time.
+      if (
+        trimmedEmail === 'admin@opc.org' &&
+        loginPassword === 'admin123' &&
+        (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password')
+      ) {
+        try {
+          await createUserWithEmailAndPassword(auth, 'admin@opc.org', 'admin123');
+          // Successfully created and automatically signed in by Firebase
+          setLoginLoading(false);
+          return;
+        } catch (createErr: any) {
+          if (createErr.code === 'auth/operation-not-allowed') {
+            setLoginError('Error (operation-not-allowed): The Email/Password provider is disabled in your Firebase Console. Please click the link below to allow 1-click credential setup.');
+            setLoginLoading(false);
+            return;
+          } else {
+            setLoginError(`Admin registration fallback failed: ${createErr.message}`);
+            setLoginLoading(false);
+            return;
+          }
+        }
+      }
       setLoginError(err.message || 'Incorrect credentials.');
     } finally {
       setLoginLoading(false);
