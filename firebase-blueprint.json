@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "Member": {
+      "title": "Member",
+      "description": "Represents an individual community member application or registered profile.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the member." },
+        "father": { "type": "string", "description": "Father's name of the member." },
+        "cnic": { "type": "string", "description": "CNIC or Passport number." },
+        "district": { "type": "string", "description": "Pakhtoonkhwa district or tribe." },
+        "phone": { "type": "string", "description": "Oman contact number." },
+        "whatsapp": { "type": "string", "description": "Optional WhatsApp contact number." },
+        "address": { "type": "string", "description": "Contact address in Oman." },
+        "occupation": { "type": "string", "description": "Occupation." },
+        "emergency": { "type": "string", "description": "Emergency contact number in Pakistan." },
+        "photo": { "type": "string", "description": "Base64 format photo data URL." },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "Status of membership application."
+        },
+        "membershipId": { "type": "string", "description": "Generated lifetime ID on approval." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Submission timestamp." },
+        "approvedAt": { "type": "string", "format": "date-time", "description": "Approval timestamp." }
+      },
+      "required": ["name", "father", "cnic", "district", "phone", "address", "status", "createdAt"]
+    },
+    "Donation": {
+      "title": "Donation",
+      "description": "Represents a physical transfer of support to the OPC community fund.",
+      "type": "object",
+      "properties": {
+        "donor": { "type": "string", "description": "Name of the donor." },
+        "amount": { "type": "number", "description": "Amount donated in OMR." },
+        "date": { "type": "string", "format": "date", "description": "Date of the donation." },
+        "method": {
+          "type": "string",
+          "enum": ["Bank Transfer", "Cash", "Mobile Wallet"],
+          "description": "Donation payment method."
+        },
+        "note": { "type": "string", "description": "Support message or specific purpose note." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["donor", "amount", "date", "method", "createdAt"]
+    },
+    "CabinetMember": {
+      "title": "Cabinet Member",
+      "description": "Represents an office bearer in the official OPC executive cabinet.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name." },
+        "position": { "type": "string", "description": "Assigned office position." },
+        "phone": { "type": "string", "description": "Contact phone." },
+        "photo": { "type": "string", "description": "Base64 format profile photo." }
+      },
+      "required": ["name", "position"]
+    },
+    "NewsAnnouncement": {
+      "title": "News Announcement",
+      "description": "Community news, updates, or alerts published on the main page.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the announcement." },
+        "content": { "type": "string", "description": "Paragraph contents." },
+        "image": { "type": "string", "description": "Base64 banner visual." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "createdAt"]
+    },
+    "IncidentReport": {
+      "title": "Incident Report",
+      "description": "Welfare incidents or emergency support requests reported by members.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["death", "injury", "loss"],
+          "description": "Nature of incident."
+        },
+        "name": { "type": "string", "description": "Full name of the affected person(s)." },
+        "description": { "type": "string", "description": "Elaborate description or details." },
+        "date": { "type": "string", "format": "date" },
+        "contact": { "type": "string", "description": "Contact number of submitter." },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "published", "closed"],
+          "description": "Internal status of the report."
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "name", "description", "date", "contact", "status", "createdAt"]
+    },
+    "EmbassySetting": {
+      "title": "Embassy Setting",
+      "description": "Contact coordinates and details of the Embassy of Pakistan in Muscat.",
+      "type": "object",
+      "properties": {
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "emergency": { "type": "string" },
+        "email": { "type": "string" },
+        "hours": { "type": "string" },
+        "website": { "type": "string" }
+      }
+    },
+    "CounterSetting": {
+      "title": "Counter Setting",
+      "description": "Counter doc tracking sequential member registration numbers.",
+      "type": "object",
+      "properties": {
+        "lastMemberNumber": { "type": "integer" }
+      },
+      "required": ["lastMemberNumber"]
+    },
+    "Election": {
+      "title": "Election",
+      "description": "Active community voting election category.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Position title." },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "candidates": {
+          "type": "array",
+          "description": "List of candidates and current vote counts."
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "status", "candidates", "createdAt"]
+    },
+    "SponsoredAd": {
+      "title": "Sponsored Ad",
+      "description": "Commercial ad published on the OPC homepage hero slider.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Advertiser name." },
+        "phone": { "type": "string" },
+        "caption": { "type": "string" },
+        "link": { "type": "string" },
+        "amount": { "type": "number", "description": "Amount paid in OMR." },
+        "method": { "type": "string" },
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" },
+        "image": { "type": "string", "description": "Base64 banner data." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "link", "amount", "start", "end", "image", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/members/{memberId}": {
+      "schema": "Member",
+      "description": "Registered OPC membership applications and records."
+    },
+    "/donations/{donationId}": {
+      "schema": "Donation",
+      "description": "Donations submitted to support families."
+    },
+    "/cabinet/{cabinetId}": {
+      "schema": "CabinetMember",
+      "description": "OPC operational cabinet officers."
+    },
+    "/news/{newsId}": {
+      "schema": "NewsAnnouncement",
+      "description": "News feeds and official notices."
+    },
+    "/incidents/{incidentId}": {
+      "schema": "IncidentReport",
+      "description": "Support requests, reviewed and actioned by admin."
+    },
+    "/settings/embassy": {
+      "schema": "EmbassySetting",
+      "description": "Consulate and Embassy contacts."
+    },
+    "/settings/counters": {
+      "schema": "CounterSetting",
+      "description": "Application numeric tracking."
+    },
+    "/elections/{electionId}": {
+      "schema": "Election",
+      "description": "Election tracking."
+    },
+    "/ads/{adId}": {
+      "schema": "SponsoredAd",
+      "description": "Advertisers and billboard sliders."
+    }
+  }
+}
