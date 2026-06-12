@@ -8,8 +8,21 @@ import {
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
 } from '../types';
 import { 
-  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet 
+  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, X 
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 
 interface AdminPanelProps {
   user: User | null;
@@ -92,6 +105,81 @@ export default function AdminPanel({
   const [adStart, setAdStart] = useState('');
   const [adEnd, setAdEnd] = useState('');
   const [adImage, setAdImage] = useState('');
+
+  // Edit member modal state
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editFather, setEditFather] = useState('');
+  const [editCnic, setEditCnic] = useState('');
+  const [editDistrict, setEditDistrict] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editOccupation, setEditOccupation] = useState('');
+  const [editEmergency, setEditEmergency] = useState('');
+  const [editStatus, setEditStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [editMembershipId, setEditMembershipId] = useState('');
+  const [updatingMemberState, setUpdatingMemberState] = useState(false);
+
+  const openEditModal = (member: Member) => {
+    setEditingMember(member);
+    setEditName(member.name || '');
+    setEditFather(member.father || '');
+    setEditCnic(member.cnic || '');
+    setEditDistrict(member.district || '');
+    setEditPhone(member.phone || '');
+    setEditWhatsapp(member.whatsapp || '');
+    setEditAddress(member.address || '');
+    setEditOccupation(member.occupation || '');
+    setEditEmergency(member.emergency || '');
+    setEditStatus(member.status || 'pending');
+    setEditMembershipId(member.membershipId || '');
+  };
+
+  const handleUpdateMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember || !editingMember.id) return;
+    setUpdatingMemberState(true);
+    try {
+      let finalMembershipId = editMembershipId;
+      let extraUpdate: any = {};
+
+      // If status is transitioning to approved and they do not have a membershipId, issue one!
+      if (editStatus === 'approved' && (!editingMember.membershipId && !editMembershipId)) {
+        const counterRef = doc(db, 'settings', 'counters');
+        await runTransaction(db, async (transaction) => {
+          const snap = await transaction.get(counterRef);
+          const last = snap.exists() ? (snap.data().lastMemberNumber || 0) : 0;
+          const next = last + 1;
+          finalMembershipId = `OPC-OM-${new Date().getFullYear()}-${String(next).padStart(4, '0')}`;
+          transaction.set(counterRef, { lastMemberNumber: next }, { merge: true });
+        });
+        extraUpdate.approvedAt = Timestamp.now();
+      }
+
+      await updateDoc(doc(db, 'members', editingMember.id), {
+        name: editName.trim(),
+        father: editFather.trim(),
+        cnic: editCnic.trim(),
+        district: editDistrict.trim(),
+        phone: editPhone.trim(),
+        whatsapp: editWhatsapp.trim(),
+        address: editAddress.trim(),
+        occupation: editOccupation.trim(),
+        emergency: editEmergency.trim(),
+        status: editStatus,
+        membershipId: finalMembershipId,
+        ...extraUpdate
+      });
+
+      alert('Member profile updated successfully!');
+      setEditingMember(null);
+    } catch (err: any) {
+      alert('Error updating member: ' + err.message);
+    } finally {
+      setUpdatingMemberState(false);
+    }
+  };
 
   // Handle Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -761,6 +849,241 @@ export default function AdminPanel({
               </div>
             </div>
 
+            {/* MEMBERSHIP PROCESSING STATUS CHARTS */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                    <Users size={16} className="text-emerald-800" /> Membership Operations Insights
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">Real-time status tracking, processing efficiency, and enrollment backlogs across districts</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-850">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Feed
+                  </span>
+                </div>
+              </div>
+
+              {members.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 font-medium">
+                  <Users size={32} className="mx-auto mb-2 text-slate-300 animate-bounce" />
+                  No member profiles loaded in the database yet. New sign-ups will show up here.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Status Composition Pie Chart */}
+                  <div className="lg:col-span-5 bg-white border border-slate-200 p-4 md:p-5 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">Processing Queue Status</h5>
+                      <p className="text-[11px] text-slate-400">Distribution of pending, approved and rejected memberships</p>
+                    </div>
+
+                    <div className="h-64 relative flex items-center justify-center my-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Approved', value: approvedMembers.length, color: '#047857' },
+                              { name: 'Pending', value: pendingMembers.length, color: '#d97706' },
+                              { name: 'Rejected', value: members.filter(m => m.status === 'rejected').length, color: '#ef4444' }
+                            ].filter(item => item.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={65}
+                            outerRadius={85}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {[
+                              { name: 'Approved', value: approvedMembers.length, color: '#047857' },
+                              { name: 'Pending', value: pendingMembers.length, color: '#d97706' },
+                              { name: 'Rejected', value: members.filter(m => m.status === 'rejected').length, color: '#ef4444' }
+                            ].filter(item => item.value > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ 
+                              background: '#1e293b', 
+                              border: 'none', 
+                              borderRadius: '8px', 
+                              color: '#fff',
+                              fontSize: '11px',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }} 
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      {/* Doughnut Middle Stats Overlay */}
+                      <div className="absolute text-center flex flex-col justify-center items-center">
+                        <p className="text-3xl font-serif font-bold text-slate-800 leading-none">
+                          {members.length}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-1">
+                          Total Profiles
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                      {[
+                        { name: 'Approved Members', count: approvedMembers.length, color: 'bg-emerald-700', text: 'text-emerald-700', percentage: ((approvedMembers.length / (members.length || 1)) * 100).toFixed(0) },
+                        { name: 'Applications Pending', count: pendingMembers.length, color: 'bg-amber-600', text: 'text-amber-600', percentage: ((pendingMembers.length / (members.length || 1)) * 100).toFixed(0) },
+                        { name: 'Rejected Entries', count: members.filter(m => m.status === 'rejected').length, color: 'bg-red-500', text: 'text-red-500', percentage: ((members.filter(m => m.status === 'rejected').length / (members.length || 1)) * 100).toFixed(0) }
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                            <span className="font-semibold text-slate-700">{item.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500 font-medium">({item.percentage}%)</span>
+                            <span className={`font-bold ${item.text}`}>{item.count}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* District Breakdown Stacked Bar Chart */}
+                  <div className="lg:col-span-7 bg-white border border-slate-200 p-4 md:p-5 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">Enrollment Heatmap by District</h5>
+                      <p className="text-[11px] text-slate-400">Comparative density of approved and pending memberships across high-participation areas</p>
+                    </div>
+
+                    <div className="h-64 mt-4 mb-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={(() => {
+                            const districtMap: { [key: string]: { approved: number; pending: number; rejected: number; total: number } } = {};
+                            members.forEach(m => {
+                              const dist = m.district || 'Other';
+                              if (!districtMap[dist]) {
+                                districtMap[dist] = { approved: 0, pending: 0, rejected: 0, total: 0 };
+                              }
+                              districtMap[dist][m.status]++;
+                              districtMap[dist].total++;
+                            });
+                            return Object.entries(districtMap)
+                              .map(([name, stats]) => ({
+                                name,
+                                Approved: stats.approved,
+                                Pending: stats.pending,
+                                Rejected: stats.rejected,
+                                Total: stats.total
+                              }))
+                              .sort((a, b) => b.Total - a.Total)
+                              .slice(0, 6);
+                          })()}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis 
+                            dataKey="name" 
+                            stroke="#64748b" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                          />
+                          <YAxis 
+                            stroke="#64748b" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#1e293b',
+                              border: 'none',
+                              borderRadius: '8px',
+                              color: '#fff',
+                              fontSize: '11px',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                          />
+                          <Legend 
+                            verticalAlign="top" 
+                            height={32} 
+                            iconType="circle"
+                            iconSize={8}
+                            wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                          />
+                          <Bar dataKey="Approved" stackId="status" fill="#047857" radius={[0, 0, 0, 0]} />
+                          <Bar dataKey="Pending" stackId="status" fill="#d97706" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 mt-2 flex justify-between bg-slate-50 p-2 rounded-lg leading-relaxed border border-slate-100">
+                      <span>💡 <strong>Tip for Administrators:</strong> Click on &quot;Member Queue&quot; tab above to start assessing the pending applicants.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* QUICK ACTIONS & EXPORTS SECTION */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Community Record Keeping &amp; Exports</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border border-slate-200 rounded-xl p-5 flex flex-col justify-between bg-slate-50/50 hover:border-emerald-200 transition duration-150">
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                      <Users size={16} className="text-emerald-850" /> Member Registry
+                    </h5>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Download the complete directory of community members including system-issued Membership IDs, contact info, and registration status.
+                    </p>
+                  </div>
+                  <button
+                    onClick={exportMembers}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-1.5 bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2.5 px-3 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
+                  >
+                    <FileSpreadsheet size={14} /> Export Member Registry CSV
+                  </button>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl p-5 flex flex-col justify-between bg-slate-50/50 hover:border-emerald-200 transition duration-150">
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                      <DollarSign size={16} className="text-emerald-850" /> Donation Ledgers
+                    </h5>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Download full historical audit records of charity collections, community development funds, and custom ledger notes.
+                    </p>
+                  </div>
+                  <button
+                    onClick={exportDonations}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold py-2.5 px-3 rounded-md text-xs border border-slate-200 transition duration-150 cursor-pointer shadow-sm"
+                  >
+                    <FileSpreadsheet size={14} /> Export Donations CSV
+                  </button>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl p-5 flex flex-col justify-between bg-slate-50/50 hover:border-emerald-200 transition duration-150">
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                      <AlertTriangle size={16} className="text-emerald-850" /> Welfare Claims
+                    </h5>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Retrieve community welfare flags, emergency travel assistance requests, and legal coordination tracking records.
+                    </p>
+                  </div>
+                  <button
+                    onClick={exportIncidents}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold py-2.5 px-3 rounded-md text-xs border border-slate-200 transition duration-150 cursor-pointer shadow-sm"
+                  >
+                    <FileSpreadsheet size={14} /> Export Claims CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="p-4 bg-emerald-50 text-emerald-900 border border-emerald-100 rounded-lg">
               <h4 className="font-bold text-sm mb-1">Operational Directives &amp; Help</h4>
               <ul className="list-disc pl-5 mt-2 space-y-1.5 text-xs">
@@ -842,9 +1165,18 @@ export default function AdminPanel({
 
             {/* ALL MEMBERS TABLE */}
             <div>
-              <span className="text-sm font-bold text-slate-700 block border-b pb-1.5 mb-3">
-                All Registry Records ({members.length})
-              </span>
+              <div className="flex justify-between items-center border-b pb-1.5 mb-3">
+                <span className="text-sm font-bold text-slate-700">
+                  All Registry Records ({members.length})
+                </span>
+                <button
+                  onClick={exportMembers}
+                  className="inline-flex items-center gap-1 bg-emerald-850 hover:bg-emerald-950 text-emerald-850 hover:text-white border border-emerald-200 hover:border-emerald-950 px-2.5 py-1 rounded-md text-[11px] font-semibold transition duration-150 cursor-pointer"
+                  title="Export full registry log to CSV"
+                >
+                  <FileSpreadsheet size={12} /> Export CSV
+                </button>
+              </div>
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-slate-100 text-slate-700 font-semibold border-b">
@@ -881,14 +1213,22 @@ export default function AdminPanel({
                             {m.status === 'approved' && (
                               <button 
                                 onClick={() => onViewDocuments(m)}
-                                className="bg-amber-500 hover:bg-amber-600 text-emerald-950 px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer"
+                                className="bg-amber-500 hover:bg-amber-600 text-emerald-950 px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer inline-block align-middle"
                               >
                                 View ID/Cert
                               </button>
                             )}
                             <button 
+                              onClick={() => openEditModal(m)}
+                              className="text-emerald-800 hover:text-emerald-950 p-1.5 rounded hover:bg-emerald-50 inline-block align-middle transition cursor-pointer"
+                              title="Edit Member Profile"
+                            >
+                              <Edit2 size={15} />
+                            </button>
+                            <button 
                               onClick={() => handleDeleteMember(m.id!)}
                               className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-50 inline-block align-middle transition cursor-pointer"
+                              title="Delete Member"
                             >
                               <Trash2 size={15} />
                             </button>
@@ -1684,6 +2024,175 @@ export default function AdminPanel({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Member Profile Modal */}
+        {editingMember && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative">
+              <button 
+                onClick={() => setEditingMember(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                type="button"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-5">
+                <Users size={22} className="text-emerald-800" />
+                <div>
+                  <h3 className="text-lg font-serif text-emerald-950 font-bold">
+                    Edit Member Profile
+                  </h3>
+                  <p className="text-xs text-slate-400">Modify demographic, contact, and administrative details</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUpdateMemberSubmit} className="space-y-4 text-left">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={editName} 
+                      onChange={e => setEditName(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Father's Name *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={editFather} 
+                      onChange={e => setEditFather(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">CNIC / Identity Card *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={editCnic} 
+                      onChange={e => setEditCnic(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">District / Tribe *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={editDistrict} 
+                      onChange={e => setEditDistrict(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={editPhone} 
+                      onChange={e => setEditPhone(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={editWhatsapp} 
+                      onChange={e => setEditWhatsapp(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Occupation (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={editOccupation} 
+                      onChange={e => setEditOccupation(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">Emergency Contact (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={editEmergency} 
+                      onChange={e => setEditEmergency(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Residential Address *</label>
+                  <textarea 
+                    required 
+                    value={editAddress} 
+                    rows={2}
+                    onChange={e => setEditAddress(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Processing Status</label>
+                    <select 
+                      value={editStatus} 
+                      onChange={e => setEditStatus(e.target.value as any)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-white"
+                    >
+                      <option value="pending">⏳ Pending Queue</option>
+                      <option value="approved">✅ Approved</option>
+                      <option value="rejected">❌ Rejected / Void</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Membership ID (Optional/System Issued)</label>
+                    <input 
+                      type="text" 
+                      value={editMembershipId} 
+                      onChange={e => setEditMembershipId(e.target.value)}
+                      placeholder="e.g. OPC-OM-2026-0001"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Leave blank to let the system generate automatically if status is changed to Approved.</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMember(null)}
+                    className="px-4 py-2 bg-slate-150 hover:bg-slate-200 text-slate-700 font-semibold rounded-md text-xs transition duration-150 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingMemberState}
+                    className="px-4 py-2 bg-emerald-800 hover:bg-emerald-950 text-white font-bold rounded-md text-xs transition duration-150 cursor-pointer disabled:opacity-50"
+                  >
+                    {updatingMemberState ? 'Saving Updates...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
