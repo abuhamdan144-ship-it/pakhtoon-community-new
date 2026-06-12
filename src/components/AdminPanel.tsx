@@ -193,12 +193,12 @@ export default function AdminPanel({
       // Self-healing fallback: if sign in fails with invalid credentials but they supplied the correct default email/password,
       // try to register them in real-time. This covers cases where the default account creation failed at bootstrap time.
       if (
-        trimmedEmail === 'admin@opc.org' &&
+        (trimmedEmail === 'admin@opc.org' || trimmedEmail === 'admin@opc.com') &&
         loginPassword === 'admin123' &&
         (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password')
       ) {
         try {
-          await createUserWithEmailAndPassword(auth, 'admin@opc.org', 'admin123');
+          await createUserWithEmailAndPassword(auth, trimmedEmail, 'admin123');
           // Successfully created and automatically signed in by Firebase
           setLoginLoading(false);
           return;
@@ -228,7 +228,7 @@ export default function AdminPanel({
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const email = result.user?.email;
-      if (email === 'abuhamdan144@gmail.com' || email === 'admin@opc.org') {
+      if (email === 'abuhamdan144@gmail.com' || email === 'admin@opc.org' || email === 'admin@opc.com') {
         // Logged in successfully as designated system administrator
       } else {
         // Not a designated administrator, sign out from Auth instance
@@ -758,7 +758,7 @@ export default function AdminPanel({
 
           <p className="text-[11px] text-slate-400 mt-5 text-center leading-relaxed">
             System credentials:<br />
-            Email: <strong className="text-emerald-800">admin@opc.org</strong><br />
+            Email: <strong className="text-emerald-800">admin@opc.com</strong><br />
             Password: <strong className="text-emerald-800">admin123</strong>
           </p>
         </div>

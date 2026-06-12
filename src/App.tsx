@@ -185,14 +185,16 @@ export default function App() {
   // Auto-bootstrap default administrator account if it doesn't already exist
   useEffect(() => {
     const bootstrapRegisterAdmin = async () => {
-      try {
-        await createUserWithEmailAndPassword(auth, 'admin@opc.org', 'admin123');
-        console.log('Successfully bootstrapped admin account: admin@opc.org');
-      } catch (err: any) {
-        if (err.code === 'auth/email-already-in-use') {
-          console.log('Admin account already exists in authentication registry.');
-        } else {
-          console.error('Error bootstrapping admin account: ', err);
+      for (const email of ['admin@opc.org', 'admin@opc.com']) {
+        try {
+          await createUserWithEmailAndPassword(auth, email, 'admin123');
+          console.log(`Successfully bootstrapped admin account: ${email}`);
+        } catch (err: any) {
+          if (err.code === 'auth/email-already-in-use') {
+            console.log(`Admin account ${email} already exists in authentication registry.`);
+          } else {
+            console.error(`Error bootstrapping admin account ${email}: `, err);
+          }
         }
       }
     };
@@ -204,7 +206,7 @@ export default function App() {
     // Auth Listener
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.providerData.some(p => p.providerId === 'password'))) {
+      if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.email === 'admin@opc.com' || user.providerData.some(p => p.providerId === 'password'))) {
         setAdminUser(user);
       } else {
         setAdminUser(null);

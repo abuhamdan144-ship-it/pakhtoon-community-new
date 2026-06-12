@@ -17,7 +17,7 @@ service cloud.firestore {
     // Verifies that the signed-in user is the bootstrapped Admin
     function isAdmin() {
       return isSignedIn() && 
-             (request.auth.token.email == 'abuhamdan144@gmail.com' || request.auth.token.email == 'admin@opc.org');
+             (request.auth.token.email == 'abuhamdan144@gmail.com' || request.auth.token.email == 'admin@opc.org' || request.auth.token.email == 'admin@opc.com');
     }
 
     // Hardened ID validation to protect against injection attacks
