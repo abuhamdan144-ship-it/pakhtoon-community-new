@@ -14,6 +14,12 @@ export interface Member {
   membershipId?: string;
   createdAt: any; // Firestore Timestamp
   approvedAt?: any; // Firestore Timestamp
+  feeAmount?: number;
+  paymentMethod?: string;
+  paymentReference?: string;
+  receiptNumber?: string;
+  isDispatched?: boolean;
+  dispatchedAt?: any; // Firestore Timestamp
 }
 
 export interface Donation {

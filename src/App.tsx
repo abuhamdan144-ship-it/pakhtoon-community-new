@@ -127,6 +127,9 @@ export default function App() {
   const [rOccupation, setROccupation] = useState('');
   const [rEmergency, setREmergency] = useState('');
   const [rPhoto, setRPhoto] = useState('');
+  const [rFeeAmount, setRFeeAmount] = useState('5');
+  const [rPayMethod, setRPayMethod] = useState('Bank Transfer');
+  const [rPayRef, setRPayRef] = useState('');
   const [rSuccess, setRSuccess] = useState(false);
   const [rLoading, setRLoading] = useState(false);
 
@@ -388,6 +391,9 @@ export default function App() {
           photo: rPhoto,
           status: 'pending',
           membershipId: '',
+          feeAmount: Number(rFeeAmount) || 5,
+          paymentMethod: rPayMethod,
+          paymentReference: rPayRef.trim(),
           createdAt: Timestamp.now()
         });
       } catch (fErr) {
@@ -405,6 +411,9 @@ export default function App() {
       setROccupation('');
       setREmergency('');
       setRPhoto('');
+      setRFeeAmount('5');
+      setRPayMethod('Bank Transfer');
+      setRPayRef('');
     } catch (err: any) {
       alert('Error registering: ' + err.message);
     } finally {
@@ -1087,6 +1096,60 @@ export default function App() {
                     placeholder="e.g. +92 312 XXXXXXX"
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
                   />
+                </div>
+              </div>
+
+              {/* Payment Receipt / Verification Info */}
+              <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-4">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block border-b border-emerald-100 pb-2">
+                  Registration Fee Verification (Lifetime Membership)
+                </span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                      Fee Paid (OMR) *
+                    </label>
+                    <select
+                      value={rFeeAmount}
+                      onChange={(e) => setRFeeAmount(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white"
+                    >
+                      <option value="5">5.000 OMR (Standard)</option>
+                      <option value="10">10.000 OMR (Premium / Supporter)</option>
+                      <option value="3">3.000 OMR (Concessionary)</option>
+                      <option value="0">0.000 OMR (Fee Waiver / Free)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                      Payment Method *
+                    </label>
+                    <select
+                      value={rPayMethod}
+                      onChange={(e) => setRPayMethod(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-sans"
+                    >
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Mobile Wallet">Mobile Wallet / Pay</option>
+                      <option value="Cash">Paid Cash to Representative</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 font-sans">
+                      Ref No. / Mobile No. *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={rPayRef}
+                      onChange={(e) => setRPayRef(e.target.value)}
+                      placeholder="e.g. Txn ID or Sender No."
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 

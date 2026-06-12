@@ -119,6 +119,9 @@ export default function AdminPanel({
   const [editEmergency, setEditEmergency] = useState('');
   const [editStatus, setEditStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [editMembershipId, setEditMembershipId] = useState('');
+  const [editFeeAmount, setEditFeeAmount] = useState('5');
+  const [editPaymentMethod, setEditPaymentMethod] = useState('Bank Transfer');
+  const [editPaymentReference, setEditPaymentReference] = useState('');
   const [updatingMemberState, setUpdatingMemberState] = useState(false);
 
   const openEditModal = (member: Member) => {
@@ -134,6 +137,9 @@ export default function AdminPanel({
     setEditEmergency(member.emergency || '');
     setEditStatus(member.status || 'pending');
     setEditMembershipId(member.membershipId || '');
+    setEditFeeAmount(member.feeAmount?.toString() || '5');
+    setEditPaymentMethod(member.paymentMethod || 'Bank Transfer');
+    setEditPaymentReference(member.paymentReference || '');
   };
 
   const handleUpdateMemberSubmit = async (e: React.FormEvent) => {
@@ -169,6 +175,9 @@ export default function AdminPanel({
         emergency: editEmergency.trim(),
         status: editStatus,
         membershipId: finalMembershipId,
+        feeAmount: Number(editFeeAmount) || 5,
+        paymentMethod: editPaymentMethod,
+        paymentReference: editPaymentReference.trim(),
         ...extraUpdate
       });
 
@@ -1215,7 +1224,7 @@ export default function AdminPanel({
                                 onClick={() => onViewDocuments(m)}
                                 className="bg-amber-500 hover:bg-amber-600 text-emerald-950 px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer inline-block align-middle"
                               >
-                                View ID/Cert
+                                Cards &amp; Receipt
                               </button>
                             )}
                             <button 
@@ -2147,6 +2156,50 @@ export default function AdminPanel({
                     onChange={e => setEditAddress(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-emerald-800 text-xs text-slate-800 bg-slate-50/50"
                   />
+                </div>
+
+                {/* Edit Payment Receipt verification block */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                  <h6 className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Registration Payment Verification</h6>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1 font-sans">Fee Paid (OMR)</label>
+                      <select 
+                        value={editFeeAmount} 
+                        onChange={e => setEditFeeAmount(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-800 bg-white"
+                      >
+                        <option value="5">5.000 OMR (Standard)</option>
+                        <option value="10">10.000 OMR (Premium / Supporter)</option>
+                        <option value="3">3.050 OMR (Concessionary)</option>
+                        <option value="0">0.000 OMR (Waiver)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1 font-sans">Payment Method</label>
+                      <select 
+                        value={editPaymentMethod} 
+                        onChange={e => setEditPaymentMethod(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-800 bg-white"
+                      >
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Mobile Wallet">Mobile Wallet</option>
+                        <option value="Cash">Cash to Agent</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1 font-sans">Reference / Txn ID</label>
+                      <input 
+                        type="text" 
+                        value={editPaymentReference} 
+                        onChange={e => setEditPaymentReference(e.target.value)}
+                        placeholder="e.g. Reference string"
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-800 bg-white font-mono"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
