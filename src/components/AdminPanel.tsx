@@ -562,8 +562,9 @@ export default function AdminPanel({
           </form>
 
           <p className="text-[11px] text-slate-400 mt-5 text-center leading-relaxed">
-            Authorized administrator email accounts are configured in the Firebase Console under the 
-            <strong>Authentication</strong> panel. 
+            System credentials:<br />
+            Email: <strong className="text-emerald-800">admin@opc.org</strong><br />
+            Password: <strong className="text-emerald-800">admin123</strong>
           </p>
         </div>
       </div>

@@ -1,9 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction 
+  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where 
 } from 'firebase/firestore';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from './firebase';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 import { 
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
 } from './types';
@@ -12,9 +59,10 @@ import {
 import SponsoredBillboard from './components/SponsoredBillboard';
 import DocumentModal from './components/DocumentModal';
 import AdminPanel from './components/AdminPanel';
+import AIAssistant from './components/AIAssistant';
 
 import { 
-  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck 
+  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare 
 } from 'lucide-react';
 
 // Help helper for base64 image scaling
@@ -47,7 +95,7 @@ const getBase64Image = (file: File, maxSize: number): Promise<string> => {
 };
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'register' | 'elections' | 'report' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'register' | 'elections' | 'report' | 'chat' | 'admin'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // --- Realtime DB Collections State ---
@@ -60,7 +108,8 @@ export default function App() {
   const [elections, setElections] = useState<Election[]>([]);
   const [ads, setAds] = useState<SponsoredAd[]>([]);
 
-  // Auth User
+  // Auth Users
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [adminUser, setAdminUser] = useState<User | null>(null);
 
   // Active Doc Generation
@@ -93,18 +142,103 @@ export default function App() {
   // Tracking devices election votes local
   const [userVotedElections, setUserVotedElections] = useState<{ [electionId: string]: boolean }>({});
 
+  // Google Sign-In & Sign-Out Helpers
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      // Save authenticated user record to Firestore /users/{uid} as requested:
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          displayName: user.displayName || '',
+          email: user.email || '',
+          photoURL: user.photoURL || '',
+          lastLogin: Timestamp.now()
+        }, { merge: true });
+      } catch (fErr) {
+        handleFirestoreError(fErr, OperationType.WRITE, `users/${user.uid}`);
+      }
+      
+      alert(`As-salamu alaykum, ${user.displayName || 'Brother'}! You are now securely signed in.`);
+    } catch (err: any) {
+      console.error("Google Authenticating error: ", err);
+      if (err.message?.includes('popup-blocked')) {
+        alert("Sign-In popup was blocked by your browser. Please enable popups or load this applet in a new tab.");
+      } else {
+        alert("Google Authentication failed: " + err.message);
+      }
+    }
+  };
+
+  const handleGoogleSignOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      alert("You have signed out successfully.");
+    } catch (err: any) {
+      alert("Sign out failed: " + err.message);
+    }
+  };
+
+  // Auto-bootstrap default administrator account if it doesn't already exist
+  useEffect(() => {
+    const bootstrapRegisterAdmin = async () => {
+      try {
+        await createUserWithEmailAndPassword(auth, 'admin@opc.org', 'admin123');
+        console.log('Successfully bootstrapped admin account: admin@opc.org');
+      } catch (err: any) {
+        if (err.code === 'auth/email-already-in-use') {
+          console.log('Admin account already exists in authentication registry.');
+        } else {
+          console.error('Error bootstrapping admin account: ', err);
+        }
+      }
+    };
+    bootstrapRegisterAdmin();
+  }, []);
+
   // --- Snapshot synchronizations ---
   useEffect(() => {
     // Auth Listener
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setAdminUser(user);
+      setCurrentUser(user);
+      if (user && (user.email === 'abuhamdan144@gmail.com' || user.providerData.some(p => p.providerId === 'password'))) {
+        setAdminUser(user);
+      } else {
+        setAdminUser(null);
+      }
     });
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    // Decide which query to run for members and incidents based on adminUser
+    const membersQuery = adminUser 
+      ? query(collection(db, 'members'), orderBy('createdAt', 'desc'))
+      : query(collection(db, 'members'), where('status', '==', 'approved'));
+
+    const incidentsQuery = adminUser
+      ? query(collection(db, 'incidents'), orderBy('createdAt', 'desc'))
+      : query(collection(db, 'incidents'), where('status', '==', 'published'));
 
     // Members snapshot
     const unsubscribeMembers = onSnapshot(
-      query(collection(db, 'members'), orderBy('createdAt', 'desc')),
+      membersQuery,
       (snapshot) => {
-        setMembers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Member })));
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Member }));
+        if (!adminUser) {
+          list.sort((a, b) => {
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+            return timeB - timeA;
+          });
+        }
+        setMembers(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'members');
       }
     );
 
@@ -113,6 +247,9 @@ export default function App() {
       collection(db, 'cabinet'),
       (snapshot) => {
         setCabinet(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMember })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'cabinet');
       }
     );
 
@@ -121,6 +258,9 @@ export default function App() {
       query(collection(db, 'donations'), orderBy('date', 'desc')),
       (snapshot) => {
         setDonations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Donation })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'donations');
       }
     );
 
@@ -129,14 +269,28 @@ export default function App() {
       query(collection(db, 'news'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as NewsAnnouncement })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'news');
       }
     );
 
     // Incidents snapshot
     const unsubscribeIncidents = onSnapshot(
-      query(collection(db, 'incidents'), orderBy('createdAt', 'desc')),
+      incidentsQuery,
       (snapshot) => {
-        setIncidents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as IncidentReport })));
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as IncidentReport }));
+        if (!adminUser) {
+          list.sort((a, b) => {
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+            return timeB - timeA;
+          });
+        }
+        setIncidents(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'incidents');
       }
     );
 
@@ -147,6 +301,9 @@ export default function App() {
         if (snapshot.exists()) {
           setEmbassy(snapshot.data() as EmbassySetting);
         }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/embassy');
       }
     );
 
@@ -155,6 +312,9 @@ export default function App() {
       query(collection(db, 'elections'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         setElections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Election })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'elections');
       }
     );
 
@@ -163,11 +323,13 @@ export default function App() {
       query(collection(db, 'ads'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as SponsoredAd })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'ads');
       }
     );
 
     return () => {
-      unsubscribeAuth();
       unsubscribeMembers();
       unsubscribeCabinet();
       unsubscribeDonations();
@@ -177,7 +339,7 @@ export default function App() {
       unsubscribeElections();
       unsubscribeAds();
     };
-  }, []);
+  }, [adminUser]);
 
   // Sync Voted Statuses
   useEffect(() => {
@@ -210,21 +372,25 @@ export default function App() {
     setRSuccess(false);
     setRLoading(true);
     try {
-      await addDoc(collection(db, 'members'), {
-        name: rName.trim(),
-        father: rFather.trim(),
-        cnic: rCnic.trim(),
-        district: rDistrict.trim(),
-        phone: rPhone.trim(),
-        whatsapp: rWhatsapp.trim(),
-        address: rAddress.trim(),
-        occupation: rOccupation.trim(),
-        emergency: rEmergency.trim(),
-        photo: rPhoto,
-        status: 'pending',
-        membershipId: '',
-        createdAt: Timestamp.now()
-      });
+      try {
+        await addDoc(collection(db, 'members'), {
+          name: rName.trim(),
+          father: rFather.trim(),
+          cnic: rCnic.trim(),
+          district: rDistrict.trim(),
+          phone: rPhone.trim(),
+          whatsapp: rWhatsapp.trim(),
+          address: rAddress.trim(),
+          occupation: rOccupation.trim(),
+          emergency: rEmergency.trim(),
+          photo: rPhoto,
+          status: 'pending',
+          membershipId: '',
+          createdAt: Timestamp.now()
+        });
+      } catch (fErr) {
+        handleFirestoreError(fErr, OperationType.CREATE, 'members');
+      }
       setRSuccess(true);
       // Reset
       setRName('');
@@ -247,18 +413,28 @@ export default function App() {
   // Submit Incidents Claim Form
   const handleIncidentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      alert('Authentication Required: Please sign in with Google to file an incident report.');
+      return;
+    }
     setISuccess(false);
     setILoading(true);
     try {
-      await addDoc(collection(db, 'incidents'), {
-        type: iType,
-        name: iName.trim(),
-        description: iDesc.trim(),
-        date: iDate,
-        contact: iContact.trim(),
-        status: 'pending',
-        createdAt: Timestamp.now()
-      });
+      try {
+        await addDoc(collection(db, 'incidents'), {
+          type: iType,
+          name: iName.trim(),
+          description: iDesc.trim(),
+          date: iDate,
+          contact: iContact.trim(),
+          status: 'pending',
+          reportedBy: currentUser.uid,
+          reporterEmail: currentUser.email || '',
+          createdAt: Timestamp.now()
+        });
+      } catch (fErr) {
+        handleFirestoreError(fErr, OperationType.CREATE, 'incidents');
+      }
       setISuccess(true);
       setIName('');
       setIDesc('');
@@ -273,30 +449,62 @@ export default function App() {
 
   // Public Poll Cast Vote
   const handlePublicVote = async (electionId: string, candidateId: string) => {
-    if (userVotedElections[electionId]) {
-      alert('You have already voted in this election category.');
+    if (!currentUser) {
+      alert('Authentication Required: Please sign in with Google to cast your ballot.');
       return;
     }
+
     try {
+      const voteDocId = `${currentUser.uid}_${electionId}`;
+      let voteSnap;
+      try {
+        voteSnap = await getDoc(doc(db, 'votes', voteDocId));
+      } catch (fErr) {
+        handleFirestoreError(fErr, OperationType.GET, `votes/${voteDocId}`);
+      }
+      if (voteSnap.exists() || userVotedElections[electionId]) {
+        alert('Ballot already Cast: You have already securely cast your ballot in this election category.');
+        setUserVotedElections(prev => ({ ...prev, [electionId]: true }));
+        return;
+      }
+
       const ref = doc(db, 'elections', electionId);
-      await runTransaction(db, async (transaction) => {
-        const snap = await transaction.get(ref);
-        if (!snap.exists()) throw new Error('Election profile not found');
-        const data = snap.data() as Election;
-        const candidates = (data.candidates || []).map((c) => {
-          if (c.id === candidateId) {
-            return { ...c, votes: (Number(c.votes) || 0) + 1 };
-          }
-          return c;
+      const voteRef = doc(db, 'votes', voteDocId);
+      
+      try {
+        await runTransaction(db, async (transaction) => {
+          const snap = await transaction.get(ref);
+          if (!snap.exists()) throw new Error('Election profile not found');
+          const data = snap.data() as Election;
+          
+          const candidates = (data.candidates || []).map((c) => {
+            if (c.id === candidateId) {
+              return { ...c, votes: (Number(c.votes) || 0) + 1 };
+            }
+            return c;
+          });
+
+          transaction.update(ref, { candidates });
+          
+          // Save the vote ledger securely
+          transaction.set(voteRef, {
+            userId: currentUser.uid,
+            userEmail: currentUser.email || '',
+            displayName: currentUser.displayName || '',
+            electionId,
+            candidateId,
+            createdAt: Timestamp.now()
+          });
         });
-        transaction.update(ref, { candidates });
-      });
+      } catch (fErr) {
+        handleFirestoreError(fErr, OperationType.WRITE, `elections/${electionId}`);
+      }
 
       localStorage.setItem(`voted_${electionId}`, 'true');
       setUserVotedElections(prev => ({ ...prev, [electionId]: true }));
-      alert('Vote cast successfully!');
+      alert('Alhamdulillah! Your vote has been cast and saved to secure Firestore ledgers.');
     } catch (err: any) {
-      alert('Voting failed: ' + err.message);
+      alert('Voting transaction failed: ' + err.message);
     }
   };
 
@@ -333,6 +541,7 @@ export default function App() {
               { id: 'register', label: 'Register Membership' },
               { id: 'elections', label: 'Cast Vote' },
               { id: 'report', label: 'Report Incident' },
+              { id: 'chat', label: 'AI Assistant' },
               { id: 'admin', label: 'Admin Terminal' },
             ].map(tab => (
               <button
@@ -348,6 +557,33 @@ export default function App() {
               </button>
             ))}
           </nav>
+
+          {/* Desktop User Auth Section (Google Sign-In) */}
+          <div className="hidden lg:flex items-center gap-3 border-l border-emerald-800/80 pl-4">
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                {currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt="User Avatar" className="w-8 h-8 rounded-full border border-amber-450" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-bold text-xs uppercase">
+                    {currentUser.displayName?.[0] || 'U'}
+                  </div>
+                )}
+                <div className="text-left">
+                  <span className="text-[11px] font-semibold text-amber-305 block max-w-[120px] truncate leading-none">{currentUser.displayName || 'Authorized User'}</span>
+                  <button onClick={handleGoogleSignOut} className="text-[9px] text-amber-140/80 hover:text-amber-300 font-bold tracking-wider uppercase block mt-1 hover:underline transition">Sign Out</button>
+                </div>
+              </div>
+            ) : (
+              <button 
+                onClick={handleGoogleSignIn}
+                className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 text-xs font-bold px-3 py-1.5 rounded-md shadow transition duration-150 cursor-pointer flex items-center gap-1.5"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google icon" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
+                Sign In
+              </button>
+            )}
+          </div>
 
           {/* Mobile hamburger toggle */}
           <button 
@@ -368,11 +604,44 @@ export default function App() {
         {/* Mobile menu panel */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-emerald-950/95 border-t border-emerald-800 py-3 px-4 flex flex-col gap-1 fade-in">
+            {/* Mobile Auth button at top */}
+            <div className="border-b border-emerald-800 pb-3 mb-2 pt-1 text-left">
+              {currentUser ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {currentUser.photoURL ? (
+                      <img src={currentUser.photoURL} alt="User Avatar" className="w-7 h-7 rounded-full border border-amber-450" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-bold text-xs">
+                        {currentUser.displayName?.[0] || 'U'}
+                      </div>
+                    )}
+                    <span className="text-xs font-bold text-amber-400">{currentUser.displayName || 'Authorized Member'}</span>
+                  </div>
+                  <button onClick={() => { handleGoogleSignOut(); setMobileMenuOpen(false); }} className="text-[10px] bg-emerald-850 hover:bg-emerald-800 text-amber-300 border border-emerald-700 font-bold px-2 py-1 rounded">
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    handleGoogleSignIn();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs py-2 rounded-md"
+                >
+                  <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
+                  Sign In with Google
+                </button>
+              )}
+            </div>
+
             {[
               { id: 'home', label: 'Homepage Dashboard' },
               { id: 'register', label: 'New Member Registry' },
               { id: 'elections', label: 'OPC Polls / Elections' },
               { id: 'report', label: 'Welfare Report Claim' },
+              { id: 'chat', label: 'AI assistant Chat' },
               { id: 'admin', label: 'Administrative Access' },
             ].map(tab => (
               <button
@@ -905,7 +1174,18 @@ export default function App() {
                       {/* Cast active ballot if open */}
                       {el.status === 'open' && (
                         <div className="border-t pt-4 mt-6">
-                          {hasVoted ? (
+                          {!currentUser ? (
+                            <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-5 text-center space-y-3">
+                              <span className="text-slate-700 text-xs font-semibold block">You must sign in with your Google account to cast a vote under current OPC guidelines.</span>
+                              <button 
+                                onClick={handleGoogleSignIn}
+                                className="inline-flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold py-2.5 px-4 rounded shadow transition active:scale-95 cursor-pointer"
+                              >
+                                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4 rounded-full bg-white p-0.5" />
+                                Verify Identity &amp; Sign in to Vote
+                              </button>
+                            </div>
+                          ) : hasVoted ? (
                             <div className="bg-green-50 text-green-850 p-4 border border-green-100 rounded text-xs font-semibold flex items-center justify-center gap-1.5">
                               <UserCheck size={16} /> Ballot Cast! Your vote is securely recorded for this election.
                             </div>
@@ -921,7 +1201,7 @@ export default function App() {
                                     onClick={() => handlePublicVote(el.id!, c.id)}
                                     className="w-full text-left p-3 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-emerald-800/40 transition flex items-center gap-2.5 font-semibold text-xs cursor-pointer group"
                                   >
-                                    <div className="w-4 h-4 rounded-full border border-slate-350 flex items-center justify-center group-hover:border-emerald-800 group-hover:bg-emerald-50">
+                                    <div className="w-4 h-4 rounded-full border border-slate-250 flex items-center justify-center group-hover:border-emerald-800 group-hover:bg-emerald-50">
                                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-800 opacity-0 group-hover:opacity-100" />
                                     </div>
                                     <span className="text-slate-800 font-medium">{c.name}</span>
@@ -951,97 +1231,128 @@ export default function App() {
               </p>
             </div>
 
-            {iSuccess && (
-              <div className="bg-emerald-50 text-emerald-900 border border-emerald-100 rounded-lg p-5 mb-6 text-center">
-                <span className="text-emerald-700 block font-bold text-lg mb-1">Claim Submitted Successfully</span>
-                <p className="text-xs text-slate-600">
-                  Your incident claim has been posted to our audit queue. OPC officers are reviewing contacts 
-                  to prioritize community help.
-                </p>
-              </div>
-            )}
-
-            <form onSubmit={handleIncidentSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                  Type of Welfare Case *
-                </label>
-                <select
-                  value={iType}
-                  onChange={(e) => setIType(e.target.value as any)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+            {!currentUser ? (
+              <div className="bg-white rounded-xl shadow-md p-8 border border-slate-200 text-center space-y-5 max-w-lg mx-auto">
+                <div className="w-12 h-12 bg-amber-100 text-emerald-900 rounded-full flex items-center justify-center mx-auto">
+                  <Shield size={24} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-serif font-bold text-lg text-emerald-950">Identity Verification Required</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    To prioritize legitimate emergencies, prevent duplicate fake reporting, and protect welfare funds, 
+                    users must securely sign in with Google before filing reports.
+                  </p>
+                </div>
+                <button 
+                  onClick={handleGoogleSignIn}
+                  className="inline-flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3 px-6 rounded-md shadow transition duration-155 cursor-pointer text-xs"
                 >
-                  <option value="death">Death / Body Repatriation Assistance</option>
-                  <option value="injury">Critical Medical / Body Injury Help</option>
-                  <option value="loss">Asset Damage / Financial Hardship Claim</option>
-                </select>
+                  <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-4 h-4 rounded-full bg-white p-0.5" />
+                  Sign In with Google
+                </button>
               </div>
+            ) : (
+              <>
+                {iSuccess && (
+                  <div className="bg-emerald-50 text-emerald-900 border border-emerald-100 rounded-lg p-5 mb-6 text-center">
+                    <span className="text-emerald-700 block font-bold text-lg mb-1">Claim Submitted Successfully</span>
+                    <p className="text-xs text-slate-600">
+                      Your incident claim has been posted to our audit queue. OPC officers are reviewing contacts 
+                      to prioritize community help.
+                    </p>
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                  Name of Affected Individual *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={iName}
-                  onChange={(e) => setIName(e.target.value)}
-                  placeholder="e.g. Mohammad Khan Swati"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                />
-              </div>
+                <form onSubmit={handleIncidentSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
+                      Type of Welfare Case *
+                    </label>
+                    <select
+                      value={iType}
+                      onChange={(e) => setIType(e.target.value as any)}
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                    >
+                      <option value="death">Death / Body Repatriation Assistance</option>
+                      <option value="injury">Critical Medical / Body Injury Help</option>
+                      <option value="loss">Asset Damage / Financial Hardship Claim</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                  Description of Incident (Include particulars &amp; required aid) *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={iDesc}
-                  onChange={(e) => setIDesc(e.target.value)}
-                  placeholder="Write details e.g. Deceased passed away due to cardiac arrest at Ruwi construction site. Relatives need aid for casket transport to Peshawar..."
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 leading-relaxed font-sans"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
+                      Name of Affected Individual *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={iName}
+                      onChange={(e) => setIName(e.target.value)}
+                      placeholder="e.g. Mohammad Khan Swati"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                    Date of Incident *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={iDate}
-                    onChange={(e) => setIDate(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                    Your Contact Mobile (Oman) *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={iContact}
-                    onChange={(e) => setIContact(e.target.value)}
-                    placeholder="+968 XXXXXXXX"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
+                      Description of Incident (Include particulars &amp; required aid) *
+                    </label>
+                    <textarea
+                      required
+                      rows={4}
+                      value={iDesc}
+                      onChange={(e) => setIDesc(e.target.value)}
+                      placeholder="Write details e.g. Deceased passed away due to cardiac arrest at Ruwi construction site. Relatives need aid for casket transport to Peshawar..."
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 leading-relaxed font-sans"
+                    />
+                  </div>
 
-              <button
-                type="submit"
-                disabled={iLoading}
-                className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-155 cursor-pointer shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
-              >
-                {iLoading ? 'Submitting Report Context...' : 'File Incident Report Request'}
-              </button>
-            </form>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
+                        Date of Incident *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={iDate}
+                        onChange={(e) => setIDate(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
+                        Your Contact Mobile (Oman) *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={iContact}
+                        onChange={(e) => setIContact(e.target.value)}
+                        placeholder="+968 XXXXXXXX"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={iLoading}
+                    className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-155 cursor-pointer shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {iLoading ? 'Submitting Report Context...' : 'File Incident Report Request'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* AI ASSISTANT CHATBOT */}
+        {currentPage === 'chat' && (
+          <div className="container mx-auto max-w-4xl px-4 py-8 fade-in">
+            <AIAssistant />
           </div>
         )}
 

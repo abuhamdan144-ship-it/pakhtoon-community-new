@@ -145,9 +145,42 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "link", "amount", "start", "end", "image", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Represents the verified Google sign-in user account profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "VoteRecord": {
+      "title": "VoteRecord",
+      "description": "Represents a cast vote by a verified user in an election.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "electionId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "electionId", "candidateId", "timestamp"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles for authenticated individuals."
+    },
+    "/votes/{voteId}": {
+      "schema": "VoteRecord",
+      "description": "Deterministic voting records (doc id user_election) preventing double voting."
+    },
     "/members/{memberId}": {
       "schema": "Member",
       "description": "Registered OPC membership applications and records."
