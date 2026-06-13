@@ -150,6 +150,7 @@ export default function AdminPanel({
   const [editFeeAmount, setEditFeeAmount] = useState('5');
   const [editPaymentMethod, setEditPaymentMethod] = useState('Bank Transfer');
   const [editPaymentReference, setEditPaymentReference] = useState('');
+  const [editReceiptImage, setEditReceiptImage] = useState('');
   const [updatingMemberState, setUpdatingMemberState] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [memberSortField, setMemberSortField] = useState<'name' | 'createdAt' | 'district' | null>(null);
@@ -188,6 +189,7 @@ export default function AdminPanel({
     setEditFeeAmount(member.feeAmount?.toString() || '5');
     setEditPaymentMethod(member.paymentMethod || 'Bank Transfer');
     setEditPaymentReference(member.paymentReference || '');
+    setEditReceiptImage(member.receiptImage || '');
   };
 
   const handleUpdateMemberSubmit = async (e: React.FormEvent) => {
@@ -226,6 +228,7 @@ export default function AdminPanel({
         feeAmount: Number(editFeeAmount) || 5,
         paymentMethod: editPaymentMethod,
         paymentReference: editPaymentReference.trim(),
+        receiptImage: editReceiptImage,
         ...extraUpdate
       });
 
@@ -3812,7 +3815,7 @@ export default function AdminPanel({
                 </div>
 
                 {/* Edit Payment Receipt verification block */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
                   <h6 className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Registration Payment Verification</h6>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
@@ -3851,6 +3854,61 @@ export default function AdminPanel({
                         placeholder="e.g. Reference string"
                         className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-800 bg-white font-mono"
                       />
+                    </div>
+                  </div>
+
+                  {/* Receipt Upload / View section */}
+                  <div className="pt-3 border-t border-slate-200">
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                      Uploaded Payment Receipt / Proof of Payment
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                      <div className="flex-1">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const b64 = await getBase64(file);
+                                setEditReceiptImage(b64);
+                              } catch (err) {
+                                alert('Error reading file.');
+                              }
+                            }
+                          }}
+                          className="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Upload a photo to replace or add a payment receipt for verification.</p>
+                      </div>
+
+                      {editReceiptImage ? (
+                        <div className="shrink-0 flex flex-col items-center">
+                          <img 
+                            src={editReceiptImage} 
+                            alt="Receipt proof" 
+                            className="w-20 h-20 object-contain border border-slate-200 rounded shadow-xs cursor-pointer hover:border-emerald-500 transition-all"
+                            onClick={() => {
+                              const w = window.open();
+                              if (w) {
+                                w.document.write(`<img src="${editReceiptImage}" style="max-width:100%; height:auto;" />`);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditReceiptImage('')}
+                            className="text-[9px] text-red-600 hover:text-red-800 font-bold mt-1 uppercase"
+                          >
+                            Remove Receipt
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-20 w-20 rounded border-2 border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 text-center uppercase p-1 shrink-0 font-medium">
+                          No receipt proof
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

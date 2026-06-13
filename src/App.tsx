@@ -178,6 +178,7 @@ export default function App() {
   const [rOccupation, setROccupation] = useState('');
   const [rEmergency, setREmergency] = useState('');
   const [rPhoto, setRPhoto] = useState('');
+  const [rReceiptImage, setRReceiptImage] = useState('');
   const [rFeeAmount, setRFeeAmount] = useState('5');
   const [rPayMethod, setRPayMethod] = useState('Bank Transfer');
   const [rPayRef, setRPayRef] = useState('');
@@ -469,6 +470,20 @@ export default function App() {
     }
   };
 
+  // Payment receipt image Base64 compression
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        // High-fidelity scaling of receipt for readable numbers
+        const compressed = await getBase64Image(file, 480);
+        setRReceiptImage(compressed);
+      } catch (err) {
+        alert('Error processing receipt photo scaling.');
+      }
+    }
+  };
+
   // Submit Member Registration Form
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -487,6 +502,7 @@ export default function App() {
           occupation: rOccupation.trim(),
           emergency: rEmergency.trim(),
           photo: rPhoto,
+          receiptImage: rReceiptImage,
           status: 'pending',
           membershipId: '',
           feeAmount: Number(rFeeAmount) || 5,
@@ -510,6 +526,7 @@ export default function App() {
       setROccupation('');
       setREmergency('');
       setRPhoto('');
+      setRReceiptImage('');
       setRFeeAmount('5');
       setRPayMethod('Bank Transfer');
       setRPayRef('');
@@ -651,7 +668,11 @@ export default function App() {
 
   // Calculation variables
   const totalApprovedMembers = members.filter(m => m.status === 'approved').length;
-  const accumulativeFunds = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const approvedMembersRegistrationFees = members
+    .filter(m => m.status === 'approved')
+    .reduce((sum, m) => sum + (m.feeAmount !== undefined ? Number(m.feeAmount) : 5), 0);
+  const accumulativeDonations = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const accumulativeFunds = accumulativeDonations + approvedMembersRegistrationFees;
   const reportedIncidentCount = incidents.filter(i => i.status === 'published').length;
 
   return (
@@ -873,9 +894,12 @@ export default function App() {
                   </div>
                   <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Welfare donations
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Welfare Donations
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">OMR {accumulativeFunds.toFixed(3)}</p>
+                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">OMR {accumulativeFunds.toFixed(3)}</p>
+                    <span className="text-[9px] text-amber-300/60 mt-1 font-mono uppercase tracking-wider block">
+                      Reg: OMR {approvedMembersRegistrationFees.toFixed(3)} | Don: OMR {accumulativeDonations.toFixed(3)}
+                    </span>
                   </div>
                   <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
@@ -1494,6 +1518,35 @@ export default function App() {
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-mono"
                         />
                       </div>
+                    </div>
+
+                    {/* Receipt Upload Row */}
+                    <div className="pt-3 border-t border-emerald-100/40">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                        Upload Payment Receipt (Proof of Payment) *
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        required
+                        onChange={handleReceiptUpload}
+                        className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-900 hover:file:bg-amber-100 cursor-pointer"
+                        id="member-receipt-file"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                        Please upload a screenshot of your Bank Transfer, Mobile Wallet payment receipt, or cash receipt to speed up verification.
+                      </p>
+                      
+                      {rReceiptImage && (
+                        <div className="mt-3 inline-block">
+                          <span className="text-[10px] text-slate-400 block mb-1 font-bold uppercase tracking-wider">Receipt Preview:</span>
+                          <img 
+                            src={rReceiptImage} 
+                            alt="Receipt preview scroll template" 
+                            className="max-h-24 w-auto object-contain border border-slate-200 rounded p-1 bg-white shadow-xs" 
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
