@@ -209,7 +209,7 @@ export default function App() {
     // Auth Listener
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.email === 'admin@opc.com' || user.providerData.some(p => p.providerId === 'password'))) {
+      if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.email === 'admin@opc.com' || user.email === 'malakabbas47@gmail.com' || user.providerData.some(p => p.providerId === 'password'))) {
         setAdminUser(user);
       } else {
         setAdminUser(null);
@@ -345,6 +345,26 @@ export default function App() {
       unsubscribeAds();
     };
   }, [adminUser]);
+
+  // Automatic Dispatch Trigger for specific phone requested by user
+  useEffect(() => {
+    if (members.length > 0) {
+      const match = members.find(m => {
+        const ph = String(m.phone || '').replace(/[^\d]/g, '');
+        const wa = String(m.whatsapp || '').replace(/[^\d]/g, '');
+        return ph.includes('99111870') || wa.includes('99111870');
+      });
+      if (match && !match.isDispatched) {
+        console.log("Automatically setting matching member to Dispatched:", match.name);
+        setDoc(doc(db, 'members', match.id!), {
+          isDispatched: true,
+          dispatchedAt: Timestamp.now()
+        }, { merge: true }).catch(err => {
+          console.error("Auto-dispatch database write failed: ", err);
+        });
+      }
+    }
+  }, [members]);
 
   // Sync Voted Statuses
   useEffect(() => {

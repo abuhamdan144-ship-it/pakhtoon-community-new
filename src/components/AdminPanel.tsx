@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp 
@@ -8,8 +8,21 @@ import {
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
 } from '../types';
 import { 
-  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, X 
+  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw 
 } from 'lucide-react';
+import {
+  connectGoogleWorkspace,
+  getCachedToken,
+  getConnectedEmail,
+  disconnectGoogleWorkspace,
+  exportMembersToGoogleSheet,
+  exportIncidentsToGoogleSheet,
+  exportDonationsToGoogleSheet,
+  listOpcWorkspaceFiles,
+  uploadBackupToGoogleDrive,
+  deleteGoogleDriveFile,
+  DriveFile
+} from '../utils/googleWorkspace';
 import {
   ResponsiveContainer,
   PieChart,
@@ -57,7 +70,7 @@ export default function AdminPanel({
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'elections' | 'ads'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'elections' | 'ads' | 'workspace'>('overview');
 
   // --- Form States for Admin Add/Edits ---
   
@@ -123,6 +136,21 @@ export default function AdminPanel({
   const [editPaymentMethod, setEditPaymentMethod] = useState('Bank Transfer');
   const [editPaymentReference, setEditPaymentReference] = useState('');
   const [updatingMemberState, setUpdatingMemberState] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [memberSortField, setMemberSortField] = useState<'name' | 'createdAt' | 'district' | null>(null);
+  const [memberSortOrder, setMemberSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [incidentSearchQuery, setIncidentSearchQuery] = useState('');
+  const [incidentSortField, setIncidentSortField] = useState<'type' | 'name' | 'date' | 'status' | null>(null);
+  const [incidentSortOrder, setIncidentSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Google Workspace Sync States
+  const [googleEmail, setGoogleEmail] = useState<string | null>(getConnectedEmail());
+  const [workspaceLoading, setWorkspaceLoading] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [workspaceSuccess, setWorkspaceSuccess] = useState<string | null>(null);
+  const [googleDriveFiles, setGoogleDriveFiles] = useState<DriveFile[]>([]);
+  const [recentlyCreatedSheet, setRecentlyCreatedSheet] = useState<string | null>(null);
+  const [deleteConfirmationFile, setDeleteConfirmationFile] = useState<DriveFile | null>(null);
 
   const openEditModal = (member: Member) => {
     setEditingMember(member);
@@ -237,12 +265,12 @@ export default function AdminPanel({
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const email = result.user?.email;
-      if (email === 'abuhamdan144@gmail.com' || email === 'admin@opc.org' || email === 'admin@opc.com') {
+      if (email === 'abuhamdan144@gmail.com' || email === 'admin@opc.org' || email === 'admin@opc.com' || email === 'malakabbas47@gmail.com') {
         // Logged in successfully as designated system administrator
       } else {
         // Not a designated administrator, sign out from Auth instance
         await signOut(auth);
-        setLoginError('Your Google account is not configured as an administrator. Please sign in with an authorized administrator account like abuhamdan144@gmail.com.');
+        setLoginError('Your Google account is not configured as an administrator. Please sign in with an authorized administrator account like abuhamdan144@gmail.com or malakabbas47@gmail.com.');
       }
     } catch (err: any) {
       setLoginError(err.message || 'Google Sign-In failed.');
@@ -660,8 +688,42 @@ export default function AdminPanel({
     ], 'opc-donations-log.csv');
   };
 
+  const filteredIncidents = incidents.filter(i => {
+    const q = incidentSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (i.name || '').toLowerCase().includes(q) ||
+      (i.type || '').toLowerCase().includes(q) ||
+      (i.description || '').toLowerCase().includes(q) ||
+      (i.contact || '').toLowerCase().includes(q) ||
+      (i.date || '').toLowerCase().includes(q) ||
+      (i.status || '').toLowerCase().includes(q)
+    );
+  });
+
+  const handleIncidentSort = (field: 'type' | 'name' | 'date' | 'status') => {
+    if (incidentSortField === field) {
+      setIncidentSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setIncidentSortField(field);
+      setIncidentSortOrder('asc');
+    }
+  };
+
+  const sortedIncidents = [...filteredIncidents].sort((a, b) => {
+    if (!incidentSortField) return 0;
+    
+    // Sort descending by default for date if not configured otherwise
+    let valA = (a[incidentSortField] || '').toLowerCase();
+    let valB = (b[incidentSortField] || '').toLowerCase();
+    
+    if (valA < valB) return incidentSortOrder === 'asc' ? -1 : 1;
+    if (valA > valB) return incidentSortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const exportIncidents = () => {
-    downloadCSVFile(incidents, [
+    downloadCSVFile(sortedIncidents, [
       { key: 'type', label: 'Type' },
       { key: 'name', label: 'Affected Individual' },
       { key: 'description', label: 'Incident details' },
@@ -671,10 +733,272 @@ export default function AdminPanel({
     ], 'opc-welfare-reports.csv');
   };
 
+  // --- GOOGLE WORKSPACE ACTION HANDLERS ---
+  const handleConnectWorkspace = async () => {
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    setWorkspaceSuccess(null);
+    try {
+      const res = await connectGoogleWorkspace();
+      if (res) {
+        setGoogleEmail(res.email);
+        setWorkspaceSuccess(`Successfully authenticated Google Workspace account: ${res.email}`);
+        await handleFetchDriveFiles(res.accessToken);
+      }
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to authenticate Google Workspace session.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleDisconnectWorkspace = () => {
+    disconnectGoogleWorkspace();
+    setGoogleEmail(null);
+    setGoogleDriveFiles([]);
+    setWorkspaceSuccess('Successfully logged out of Google Workspace account.');
+    setWorkspaceError(null);
+  };
+
+  const handleFetchDriveFiles = async (tokenOverride?: string) => {
+    const token = tokenOverride || getCachedToken();
+    if (!token) {
+      setWorkspaceError('No active Google session found. Please connect your Workspace account.');
+      return;
+    }
+    setWorkspaceLoading(true);
+    try {
+      const files = await listOpcWorkspaceFiles(token);
+      setGoogleDriveFiles(files);
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to retrieve list of files from Google Drive.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleCreateMembersSheet = async () => {
+    const token = getCachedToken();
+    if (!token) {
+      setWorkspaceError('Please connect to Google Workspace first.');
+      return;
+    }
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    setWorkspaceSuccess(null);
+    try {
+      const url = await exportMembersToGoogleSheet(token, members);
+      setRecentlyCreatedSheet(url);
+      setWorkspaceSuccess('OPC Member Registry successfully exported directly into your Google Sheets!');
+      await handleFetchDriveFiles(token);
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to export members to Google Sheet.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleCreateIncidentsSheet = async () => {
+    const token = getCachedToken();
+    if (!token) {
+      setWorkspaceError('Please connect to Google Workspace first.');
+      return;
+    }
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    setWorkspaceSuccess(null);
+    try {
+      const url = await exportIncidentsToGoogleSheet(token, incidents);
+      setRecentlyCreatedSheet(url);
+      setWorkspaceSuccess('OPC Welfare Claims Log successfully exported directly into your Google Sheets!');
+      await handleFetchDriveFiles(token);
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to export claims to Google Sheet.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleCreateDonationsSheet = async () => {
+    const token = getCachedToken();
+    if (!token) {
+      setWorkspaceError('Please connect to Google Workspace first.');
+      return;
+    }
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    setWorkspaceSuccess(null);
+    try {
+      const url = await exportDonationsToGoogleSheet(token, donations);
+      setRecentlyCreatedSheet(url);
+      setWorkspaceSuccess('OPC Donations log successfully exported directly into your Google Sheets!');
+      await handleFetchDriveFiles(token);
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to export donations to Google Sheet.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleUploadSystemRestorePoint = async () => {
+    const token = getCachedToken();
+    if (!token) {
+      setWorkspaceError('Please connect to Google Workspace first.');
+      return;
+    }
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    setWorkspaceSuccess(null);
+    try {
+      const backupFilename = `OPC_Full_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const payload = {
+        meta: {
+          generatedAt: new Date().toISOString(),
+          opcSystem: 'Oman Pakistani Community Executive Panel',
+          operator: user?.email || 'admin'
+        },
+        members,
+        donations,
+        incidents,
+        cabinet,
+        news,
+        ads
+      };
+      const fileId = await uploadBackupToGoogleDrive(token, backupFilename, payload);
+      setWorkspaceSuccess(`Full OPC Database Snapshot with ${members.length} members & ${donations.length} records successfully uploaded onto your Google Drive! File ID: ${fileId}`);
+      await handleFetchDriveFiles(token);
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to upload full system restore snapshot to Google Drive.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  const handleDeleteDriveFileExecution = async () => {
+    if (!deleteConfirmationFile) return;
+    const token = getCachedToken();
+    if (!token) return;
+    
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    setWorkspaceSuccess(null);
+    const targetId = deleteConfirmationFile.id;
+    const targetName = deleteConfirmationFile.name;
+    setDeleteConfirmationFile(null);
+    
+    try {
+      await deleteGoogleDriveFile(token, targetId);
+      setWorkspaceSuccess(`Successfully deleted Google Drive backup file: "${targetName}"`);
+      await handleFetchDriveFiles(token);
+    } catch (err: any) {
+      setWorkspaceError(err.message || 'Failed to delete file from Google Drive.');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'workspace') {
+      const email = getConnectedEmail();
+      const token = getCachedToken();
+      if (email && token) {
+        setGoogleEmail(email);
+        handleFetchDriveFiles(token);
+      }
+    }
+  }, [activeTab]);
+
   const totalDonations = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const totalAdRevenue = ads.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   const pendingMembers = members.filter(m => m.status === 'pending');
   const approvedMembers = members.filter(m => m.status === 'approved');
+
+  const filteredPending = pendingMembers.filter(m => {
+    const q = memberSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (m.name || '').toLowerCase().includes(q) ||
+      (m.phone || '').toLowerCase().includes(q) ||
+      (m.father || '').toLowerCase().includes(q) ||
+      (m.membershipId || '').toLowerCase().includes(q) ||
+      (m.cnic || '').toLowerCase().includes(q) ||
+      (m.district || '').toLowerCase().includes(q) ||
+      (m.address || '').toLowerCase().includes(q) ||
+      (m.occupation || '').toLowerCase().includes(q)
+    );
+  });
+
+  const filteredAllMembers = members.filter(m => {
+    const q = memberSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (m.name || '').toLowerCase().includes(q) ||
+      (m.phone || '').toLowerCase().includes(q) ||
+      (m.father || '').toLowerCase().includes(q) ||
+      (m.membershipId || '').toLowerCase().includes(q) ||
+      (m.cnic || '').toLowerCase().includes(q) ||
+      (m.district || '').toLowerCase().includes(q) ||
+      (m.address || '').toLowerCase().includes(q) ||
+      (m.occupation || '').toLowerCase().includes(q)
+    );
+  });
+
+  const handleSort = (field: 'name' | 'createdAt' | 'district') => {
+    if (memberSortField === field) {
+      setMemberSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setMemberSortField(field);
+      setMemberSortOrder('asc');
+    }
+  };
+
+  const sortMembersArray = (arr: Member[]) => {
+    if (!memberSortField) return arr;
+    return [...arr].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      if (memberSortField === 'name') {
+        valA = (a.name || '').toLowerCase();
+        valB = (b.name || '').toLowerCase();
+      } else if (memberSortField === 'district') {
+        valA = (a.district || '').toLowerCase();
+        valB = (b.district || '').toLowerCase();
+      } else if (memberSortField === 'createdAt') {
+        valA = a.createdAt?.seconds || 0;
+        valB = b.createdAt?.seconds || 0;
+      }
+
+      if (valA < valB) return memberSortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return memberSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const sortedPending = sortMembersArray(filteredPending);
+  const sortedAllMembers = sortMembersArray(filteredAllMembers);
+
+  const renderSortIndicator = (field: 'name' | 'createdAt' | 'district') => {
+    if (memberSortField !== field) {
+      return <ArrowUpDown size={12} className="text-slate-400 opacity-60 inline-block align-middle ml-1" />;
+    }
+    return memberSortOrder === 'asc' ? (
+      <ArrowUp size={12} className="text-emerald-700 font-bold inline-block align-middle ml-1" />
+    ) : (
+      <ArrowDown size={12} className="text-emerald-700 font-bold inline-block align-middle ml-1" />
+    );
+  };
+
+  const renderIncidentSortIndicator = (field: 'type' | 'name' | 'date' | 'status') => {
+    if (incidentSortField !== field) {
+      return <ArrowUpDown size={12} className="text-slate-400 opacity-60 inline-block align-middle ml-1" />;
+    }
+    return incidentSortOrder === 'asc' ? (
+      <ArrowUp size={12} className="text-emerald-700 font-bold inline-block align-middle ml-1" />
+    ) : (
+      <ArrowDown size={12} className="text-emerald-700 font-bold inline-block align-middle ml-1" />
+    );
+  };
 
   // --- LOGIN PANEL VIEW ---
   if (!user) {
@@ -832,6 +1156,7 @@ export default function AdminPanel({
           { id: 'embassy', label: 'Muscat Consulate', icon: LocationIcon },
           { id: 'elections', label: 'Elections & Polls', icon: Vote },
           { id: 'ads', label: 'Sponsor Ads', icon: Disc },
+          { id: 'workspace', label: 'Google Sync Hub', icon: Cloud },
         ].map((tab) => {
           const Icon = tab.icon === LocationIcon ? Globe : tab.icon;
           const isSelected = activeTab === tab.id;
@@ -1161,30 +1486,77 @@ export default function AdminPanel({
               </div>
             </div>
 
+            {/* SEARCH BAR */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="w-full md:max-w-md relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                  <Search size={16} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search members by name, phone, tribe, CNIC..."
+                  value={memberSearchQuery}
+                  onChange={(e) => setMemberSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 shadow-inner"
+                />
+                {memberSearchQuery && (
+                  <button
+                    onClick={() => setMemberSearchQuery('')}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium">
+                {memberSearchQuery ? (
+                  <span>
+                    Found <strong className="text-emerald-800 font-bold">{filteredPending.length}</strong> pending &amp; <strong className="text-emerald-800 font-bold">{filteredAllMembers.length}</strong> registry matches
+                  </span>
+                ) : (
+                  <span>Live lookup matches on Name, Father's Name, Phone, District, Tribe, CNIC, and Occupation</span>
+                )}
+              </div>
+            </div>
+
             {/* PENDING APPLICATIONS */}
             <div>
               <span className="text-sm font-bold text-slate-700 block border-b pb-1.5 mb-3">
-                Awaiting Review ({pendingMembers.length})
+                Awaiting Review ({filteredPending.length})
               </span>
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-emerald-950 text-amber-300">
                     <tr>
-                      <th className="p-3">Applicant details</th>
+                      <th 
+                        onClick={() => handleSort('name')} 
+                        className="p-3 cursor-pointer select-none hover:bg-emerald-900 transition duration-150"
+                        title="Click to sort by Applicant Name"
+                      >
+                        Applicant details {renderSortIndicator('name')}
+                      </th>
                       <th className="p-3">CNIC/Passport</th>
-                      <th className="p-3">Tribe/District</th>
+                      <th 
+                        onClick={() => handleSort('district')} 
+                        className="p-3 cursor-pointer select-none hover:bg-emerald-900 transition duration-150"
+                        title="Click to sort by District"
+                      >
+                        Tribe/District {renderSortIndicator('district')}
+                      </th>
                       <th className="p-3">Oman Address</th>
                       <th className="p-3">Contact</th>
                       <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-150">
-                    {pendingMembers.length === 0 ? (
+                    {sortedPending.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">No pending applications found.</td>
+                        <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
+                          {memberSearchQuery ? 'No pending applications match your search query.' : 'No pending applications found.'}
+                        </td>
                       </tr>
                     ) : (
-                      pendingMembers.map((m) => (
+                      sortedPending.map((m) => (
                         <tr key={m.id} className="hover:bg-slate-50/50">
                           <td className="p-3 font-semibold text-emerald-950">
                             {m.name} <p className="text-[10px] font-normal text-slate-400">f: {m.father}</p>
@@ -1219,7 +1591,7 @@ export default function AdminPanel({
             <div>
               <div className="flex justify-between items-center border-b pb-1.5 mb-3">
                 <span className="text-sm font-bold text-slate-700">
-                  All Registry Records ({members.length})
+                  All Registry Records ({filteredAllMembers.length})
                 </span>
                 <button
                   onClick={exportMembers}
@@ -1234,25 +1606,49 @@ export default function AdminPanel({
                   <thead className="bg-slate-100 text-slate-700 font-semibold border-b">
                     <tr>
                       <th className="p-3">ID / Reference</th>
-                      <th className="p-3">Full Name</th>
-                      <th className="p-3">District</th>
+                      <th 
+                        onClick={() => handleSort('name')} 
+                        className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                        title="Click to sort by Name"
+                      >
+                        Full Name {renderSortIndicator('name')}
+                      </th>
+                      <th 
+                        onClick={() => handleSort('district')} 
+                        className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                        title="Click to sort by District"
+                      >
+                        District {renderSortIndicator('district')}
+                      </th>
                       <th className="p-3">Phone</th>
+                      <th 
+                        onClick={() => handleSort('createdAt')} 
+                        className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                        title="Click to sort by Date Registered"
+                      >
+                        Date Registered {renderSortIndicator('createdAt')}
+                      </th>
                       <th className="p-3">Status</th>
                       <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {members.length === 0 ? (
+                    {sortedAllMembers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400">No member records.</td>
+                        <td colSpan={7} className="p-8 text-center text-slate-400">
+                          {memberSearchQuery ? 'No registered members match your search query.' : 'No member records.'}
+                        </td>
                       </tr>
                     ) : (
-                      members.map((m) => (
+                      sortedAllMembers.map((m) => (
                         <tr key={m.id} className="hover:bg-slate-50/40">
                           <td className="p-3 font-mono font-bold text-emerald-900">{m.membershipId || '-'}</td>
                           <td className="p-3 font-semibold">{m.name}</td>
                           <td className="p-3">{m.district}</td>
                           <td className="p-3">{m.phone}</td>
+                          <td className="p-3 text-slate-500 font-medium">
+                            {m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toLocaleDateString() : '-'}
+                          </td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               m.status === 'approved' ? 'bg-green-100 text-green-800' :
@@ -1547,32 +1943,91 @@ export default function AdminPanel({
               <h3 className="text-xl font-bold font-serif text-emerald-950">Welfare Incidence Review Log</h3>
               <button 
                 onClick={exportIncidents}
-                className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
               >
                 <FileSpreadsheet size={14} /> Export Incidence Claims CSV
               </button>
+            </div>
+
+            {/* INCIDENT SEARCH BAR */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="w-full md:max-w-md relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                  <Search size={16} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search welfare claims by name, type, phone, details..."
+                  value={incidentSearchQuery}
+                  onChange={(e) => setIncidentSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 shadow-inner"
+                />
+                {incidentSearchQuery && (
+                  <button
+                    onClick={() => setIncidentSearchQuery('')}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium">
+                {incidentSearchQuery ? (
+                  <span>
+                    Found <strong className="text-emerald-800 font-bold">{sortedIncidents.length}</strong> welfare claim matches
+                  </span>
+                ) : (
+                  <span>Live lookup matches on Claimant Name, Incident Type, Details, Submitter Contact, and Status</span>
+                )}
+              </div>
             </div>
 
             <div className="overflow-x-auto border rounded-xl">
               <table className="w-full text-left text-xs min-w-[700px]">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Affected Claimant</th>
+                    <th 
+                      onClick={() => handleIncidentSort('type')}
+                      className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                      title="Click to sort by Type"
+                    >
+                      Type {renderIncidentSortIndicator('type')}
+                    </th>
+                    <th 
+                      onClick={() => handleIncidentSort('name')}
+                      className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                      title="Click to sort by Claimant Name"
+                    >
+                      Affected Claimant {renderIncidentSortIndicator('name')}
+                    </th>
                     <th className="p-3">Description Context</th>
-                    <th className="p-3">Incident Date</th>
+                    <th 
+                      onClick={() => handleIncidentSort('date')}
+                      className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                      title="Click to sort by Date"
+                    >
+                      Incident Date {renderIncidentSortIndicator('date')}
+                    </th>
                     <th className="p-3">Reporter Phone</th>
-                    <th className="p-3">Status</th>
+                    <th 
+                      onClick={() => handleIncidentSort('status')}
+                      className="p-3 cursor-pointer select-none hover:bg-slate-200 transition duration-150"
+                      title="Click to sort by Status"
+                    >
+                      Status {renderIncidentSortIndicator('status')}
+                    </th>
                     <th className="p-3 text-right">Review Options</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y text-slate-600">
-                  {incidents.length === 0 ? (
+                  {sortedIncidents.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-6 text-center text-slate-400">No listed incidents.</td>
+                      <td colSpan={7} className="p-6 text-center text-slate-400">
+                        {incidentSearchQuery ? 'No listed incidents match your search query.' : 'No listed incidents.'}
+                      </td>
                     </tr>
                   ) : (
-                    incidents.map(i => (
+                    sortedIncidents.map(i => (
                       <tr key={i.id} className="hover:bg-slate-50/40">
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
@@ -2076,6 +2531,337 @@ export default function AdminPanel({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* GOOGLE WORKSPACE HUB TAB */}
+        {activeTab === 'workspace' && (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-bold font-serif text-emerald-950">Google Workspace Synchronization Hub</h3>
+                <p className="text-xs text-slate-500">
+                  Export registries, donations, and claims directly to Google Pages or create restore snapshots on Google Drive.
+                </p>
+              </div>
+              
+              {googleEmail && (
+                <button
+                  onClick={handleDisconnectWorkspace}
+                  className="bg-red-50 hover:bg-red-100 text-red-700 font-bold px-4 py-2 border border-red-200 rounded-lg text-xs transition duration-150 cursor-pointer"
+                >
+                  Disconnect Account
+                </button>
+              )}
+            </div>
+
+            {/* ERROR AND SUCCESS VIEWS */}
+            {workspaceError && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg text-xs flex gap-3 text-red-800 animate-fade">
+                <AlertTriangle size={16} className="shrink-0 text-red-600" />
+                <div>
+                  <h4 className="font-bold">Execution Blocked</h4>
+                  <p className="text-red-750 font-medium mt-0.5">{workspaceError}</p>
+                </div>
+              </div>
+            )}
+
+            {workspaceSuccess && (
+              <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg text-xs flex gap-3 text-emerald-800 animate-fade">
+                <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                <div className="flex-1">
+                  <h4 className="font-bold">Action Completed</h4>
+                  <p className="text-emerald-700 font-medium mt-0.5">{workspaceSuccess}</p>
+                  
+                  {recentlyCreatedSheet && (
+                    <div className="mt-2.5">
+                      <a
+                        href={recentlyCreatedSheet}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-amber-300 font-bold px-3 py-1.5 rounded text-[11px] shadow-sm transition cursor-pointer"
+                      >
+                        <Link2 size={12} /> Launch Live Spreadsheet
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <button onClick={() => setWorkspaceSuccess(null)} className="text-emerald-400 hover:text-emerald-600 cursor-pointer">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* IF NOT AUTHENTICATED */}
+            {!googleEmail ? (
+              <div className="bg-slate-50 border border-slate-200 p-8 rounded-2xl text-center flex flex-col items-center justify-center space-y-4 max-w-2xl mx-auto">
+                <div className="bg-emerald-50 p-4 rounded-full border border-emerald-100 shadow-xs text-emerald-800">
+                  <Cloud size={32} strokeWidth={1.5} />
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-sm font-bold font-sans text-slate-800">Connect to Google Workspace</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Link with Google dynamically in real time to enable auto-saving member databases, donation registers, and incident tables right directly into Google Spreadsheets on your Drive.
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button 
+                    onClick={handleConnectWorkspace}
+                    disabled={workspaceLoading}
+                    className="relative flex items-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-bold border border-slate-300 px-6 py-3 rounded-xl shadow-xs hover:shadow-sm transition duration-150 cursor-pointer text-sm disabled:opacity-50"
+                  >
+                    {workspaceLoading ? (
+                      <RefreshCw size={16} className="animate-spin text-slate-400" />
+                    ) : (
+                      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-[18px] h-[18px] block shrink-0">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                      </svg>
+                    )}
+                    <span>{workspaceLoading ? 'Connecting Workspace...' : 'Authorize Google Account'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // IF AUTHENTICATED
+              <div className="space-y-6">
+                
+                {/* STATUS HEADER BAR */}
+                <div className="bg-emerald-950 p-4 rounded-xl flex items-center justify-between text-white shadow-sm border border-emerald-900">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-800 text-amber-300 p-2.5 rounded-full border border-emerald-800">
+                      <Cloud size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">Google Workspace Sync Connected</h4>
+                      <p className="text-[11px] text-slate-350 font-mono mt-0.5">Linked Email: {googleEmail}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-450 bg-green-400 animate-pulse"></span>
+                    <span className="text-[10px] uppercase font-bold text-green-400 font-mono">Sync Online</span>
+                  </div>
+                </div>
+
+                {/* DOUBLE BENTO GRID SCHEMES */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* GENERATIVE EXPORT SHEETS */}
+                  <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-xs space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-3">
+                      <div className="bg-green-50 text-green-700 p-2 rounded-lg">
+                        <FileSpreadsheet size={16} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-800">Instant Sheets Database Sync</h4>
+                        <p className="text-[10px] text-slate-400">Export filtered community logs directly as editable documents.</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-4 p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition">
+                        <div>
+                          <p className="text-xs font-bold text-slate-700">Members Queue Export</p>
+                          <p className="text-[10px] text-slate-400">{members.length} registered members</p>
+                        </div>
+                        <button
+                          onClick={handleCreateMembersSheet}
+                          disabled={workspaceLoading}
+                          className="bg-emerald-800 hover:bg-emerald-900 disabled:bg-slate-300 text-white text-[11px] font-bold py-1.5 px-3 rounded transition cursor-pointer"
+                        >
+                          Export to Sheets
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4 p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition">
+                        <div>
+                          <p className="text-xs font-bold text-slate-700">Financial Ledger Export</p>
+                          <p className="text-[10px] text-slate-400">{donations.length} donor archives</p>
+                        </div>
+                        <button
+                          onClick={handleCreateDonationsSheet}
+                          disabled={workspaceLoading}
+                          className="bg-emerald-800 hover:bg-emerald-900 disabled:bg-slate-300 text-white text-[11px] font-bold py-1.5 px-3 rounded transition cursor-pointer"
+                        >
+                          Export to Sheets
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4 p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition">
+                        <div>
+                          <p className="text-xs font-bold text-slate-700">Welfare Claims History</p>
+                          <p className="text-[10px] text-slate-400">{incidents.length} emergency reporting cases</p>
+                        </div>
+                        <button
+                          onClick={handleCreateIncidentsSheet}
+                          disabled={workspaceLoading}
+                          className="bg-emerald-800 hover:bg-emerald-900 disabled:bg-slate-300 text-white text-[11px] font-bold py-1.5 px-3 rounded transition cursor-pointer"
+                        >
+                          Export to Sheets
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RESTORE ARCHIVE BACKUP SYSTEM */}
+                  <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-xs space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-3">
+                      <div className="bg-blue-50 text-blue-700 p-2 rounded-lg">
+                        <Database size={16} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-800">State Backups & Restore Snapshots</h4>
+                        <p className="text-[10px] text-slate-400">Post localized full snapshots of databases into Google Drive.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center p-6 border border-dashed border-slate-200 rounded-xl space-y-3 bg-slate-50 text-center">
+                      <Cloud className="text-blue-500 animate-pulse" size={24} />
+                      <div>
+                        <p className="text-xs font-bold text-slate-700">Compile Full Snapshot Point</p>
+                        <p className="text-[10px] text-slate-400 max-w-xs mt-0.5 leading-relaxed">
+                          Captures active profiles, lists, financial ledgers, and banner campaigns, compiles them into a secure restore node, and uploads onto Google Drive.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleUploadSystemRestorePoint}
+                        disabled={workspaceLoading}
+                        className="bg-indigo-700 hover:bg-indigo-850 disabled:bg-slate-250 text-white text-[11px] font-bold py-2 px-4 rounded-lg shadow-xs transition cursor-pointer"
+                      >
+                        {workspaceLoading ? 'Compiling JSON...' : 'Push State Snapshot to Drive'}
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* STORAGE VIEW PORT EXCLUSIVES */}
+                <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-xs space-y-4">
+                  <div className="flex justify-between items-center border-b pb-3">
+                    <div className="flex items-center gap-2">
+                      <Cloud size={16} className="text-emerald-800" />
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-800">Active Backups Tree in Google Drive</h4>
+                        <p className="text-[10px] text-slate-400">Sync history folders matching community headers.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleFetchDriveFiles()}
+                      disabled={workspaceLoading}
+                      className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition duration-150 cursor-pointer flex items-center gap-1 text-[11px] font-bold border border-slate-150 bg-white"
+                    >
+                      <RefreshCw size={11} className={workspaceLoading ? 'animate-spin' : ''} />
+                      Fetch Files
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-150 rounded-lg">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 font-bold border-b border-slate-150">
+                        <tr>
+                          <th className="p-3">Filename On Drive</th>
+                          <th className="p-3">File Category</th>
+                          <th className="p-3">Snapshot Created Date</th>
+                          <th className="p-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y text-slate-600">
+                        {googleDriveFiles.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="p-8 text-center text-slate-400 font-medium font-sans">
+                              {workspaceLoading ? 'Polling Drive directory...' : 'No OPC logs found under connected Google Drive hierarchy.'}
+                            </td>
+                          </tr>
+                        ) : (
+                          googleDriveFiles.map(f => {
+                            const isSheet = f.mimeType?.includes('spreadsheet');
+                            return (
+                              <tr key={f.id} className="hover:bg-slate-50/45 animate-fade">
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className={isSheet ? 'text-green-600' : 'text-blue-600'}>
+                                      <FileSpreadsheet size={13} />
+                                    </div>
+                                    <span className="font-bold text-slate-800 truncate max-w-xs">{f.name}</span>
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    isSheet ? 'bg-green-50 text-green-800' : 'bg-blue-50 text-blue-805 text-blue-800'
+                                  }`}>
+                                    {isSheet ? 'Google Sheets' : 'System Restore Node'}
+                                  </span>
+                                </td>
+                                <td className="p-3 font-mono text-[10px] text-slate-500">
+                                  {new Date(f.createdTime).toLocaleString()}
+                                </td>
+                                <td className="p-3 text-right whitespace-nowrap space-x-2">
+                                  <a 
+                                    href={f.webViewLink} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-blue-650 hover:text-blue-800 font-bold cursor-pointer p-1.5 rounded hover:bg-slate-150 hover:bg-slate-100 transition text-[11px]"
+                                  >
+                                    <Link2 size={11} /> Open Drive File
+                                  </a>
+                                  <button
+                                    onClick={() => setDeleteConfirmationFile(f)}
+                                    className="text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50 transition cursor-pointer"
+                                    title="Delete file permanently"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            )}
+            
+          </div>
+        )}
+
+        {/* DRIVE DELETE FILE CONFIRMATION DIALOG MODAL */}
+        {deleteConfirmationFile && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-150 animate-fade">
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="bg-red-50 text-red-700 p-2.5 rounded-full">
+                  <AlertTriangle size={20} />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 font-sans">Delete from Drive?</h3>
+              </div>
+              
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Confirming dynamic cloud deletion of <strong className="text-slate-800">"{deleteConfirmationFile.name}"</strong>? This will permanently delete this spreadsheet or database backup from Google Drive.
+              </p>
+              
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  onClick={() => setDeleteConfirmationFile(null)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded text-xs transition cursor-pointer border border-slate-205 border-slate-200"
+                >
+                  Cancel Execution
+                </button>
+                <button
+                  onClick={handleDeleteDriveFileExecution}
+                  className="bg-red-700 hover:bg-red-800 text-white font-bold px-4 py-2 rounded text-xs transition cursor-pointer shadow-xs"
+                >
+                  Delete File Permanently
+                </button>
+              </div>
             </div>
           </div>
         )}
