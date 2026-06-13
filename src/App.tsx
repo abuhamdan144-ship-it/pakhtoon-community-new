@@ -62,9 +62,12 @@ import AdminPanel from './components/AdminPanel';
 import AIAssistant from './components/AIAssistant';
 import CountdownTimer from './components/CountdownTimer';
 import CabinetPanel from './components/CabinetPanel';
+import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
+
+import { motion, AnimatePresence } from 'motion/react';
 
 import { 
-  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle 
+  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle, Quote, ArrowUp 
 } from 'lucide-react';
 
 // Help helper for base64 image scaling
@@ -130,6 +133,20 @@ const getPositionPriority = (pos: string): number => {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'register' | 'cabinet' | 'elections' | 'report' | 'chat' | 'admin'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showPortalMainContent, setShowPortalMainContent] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // --- Realtime DB Collections State ---
   const [members, setMembers] = useState<Member[]>([]);
@@ -380,16 +397,19 @@ export default function App() {
       }
     );
 
-    // Cabinet Meetings snapshot
-    const unsubscribeMeetings = onSnapshot(
-      query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMeeting })));
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'cabinet_meetings');
-      }
-    );
+    // Cabinet Meetings snapshot (only subscribed if admin is logged in)
+    let unsubscribeMeetings = () => {};
+    if (adminUser) {
+      unsubscribeMeetings = onSnapshot(
+        query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')),
+        (snapshot) => {
+          setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMeeting })));
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'cabinet_meetings');
+        }
+      );
+    }
 
     return () => {
       unsubscribeMembers();
@@ -641,16 +661,23 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-emerald-900 text-amber-50 shadow-md">
         <div className="container mx-auto max-w-7xl px-4 flex justify-between items-center h-16">
           
-          <div className="flex items-center gap-2 text-left">
-            <div className="bg-amber-500 rounded p-1">
-              <Shield className="text-emerald-950" size={24} />
+          <div 
+            onClick={() => {
+              setCurrentPage('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2.5 text-left cursor-pointer hover:opacity-95 select-none group"
+            id="brand-header-link"
+          >
+            <div className="bg-white rounded-full p-0.5 border border-amber-450 overflow-hidden w-9.5 h-9.5 sm:w-11 sm:h-11 flex items-center justify-center shrink-0 shadow-sm">
+              <img src={logoImg} alt="OPC Logo" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
             </div>
             <div>
-              <span className="font-display font-bold text-base sm:text-lg block tracking-tight text-amber-400 leading-none">
-                OPC ADMIN
+              <span className="font-display font-black text-sm sm:text-base block tracking-tight text-amber-400 leading-none group-hover:text-amber-300 transition">
+                OPC PORTAL
               </span>
-              <span className="text-[9px] uppercase tracking-wider text-amber-100/70 block leading-tight">
-                Oman Pakhtoon Community Welfare
+              <span className="text-[9px] uppercase tracking-wider text-amber-100/80 block leading-tight mt-0.5 font-medium">
+                Oman Pakhtoon Community
               </span>
             </div>
           </div>
@@ -723,65 +750,88 @@ export default function App() {
           <div className="h-full bg-red-651 flex-1" style={{ backgroundColor: '#c8102e' }} />
         </div>
 
-        {/* Mobile menu panel */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-emerald-950/95 border-t border-emerald-800 py-3 px-4 flex flex-col gap-1 fade-in">
-            {/* Mobile Auth button at top */}
-            <div className="border-b border-emerald-800 pb-3 mb-2 pt-1 text-left">
-              {currentUser ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {currentUser.photoURL ? (
-                      <img src={currentUser.photoURL} alt="User Avatar" className="w-7 h-7 rounded-full border border-amber-450" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-bold text-xs">
-                        {currentUser.displayName?.[0] || 'U'}
-                      </div>
-                    )}
-                    <span className="text-xs font-bold text-amber-400">{currentUser.displayName || 'Authorized Member'}</span>
+        {/* Mobile menu panel with smooth Framer Motion height/opacity transitions */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="lg:hidden bg-emerald-950/95 border-t border-emerald-800 py-3 px-4 flex flex-col gap-1 overflow-hidden"
+              id="mobile-menu-panel"
+            >
+              {/* Mobile Auth button at top */}
+              <div className="border-b border-emerald-800 pb-3 mb-2 pt-1 text-left">
+                {currentUser ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {currentUser.photoURL ? (
+                        <img src={currentUser.photoURL} alt="User Avatar" className="w-7 h-7 rounded-full border border-amber-450" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-bold text-xs">
+                          {currentUser.displayName?.[0] || 'U'}
+                        </div>
+                      )}
+                      <span className="text-xs font-bold text-amber-400">{currentUser.displayName || 'Authorized Member'}</span>
+                    </div>
+                    <button onClick={() => { handleGoogleSignOut(); setMobileMenuOpen(false); }} className="text-[10px] bg-emerald-850 hover:bg-emerald-800 text-amber-300 border border-emerald-700 font-bold px-2 py-1 rounded">
+                      Sign Out
+                    </button>
                   </div>
-                  <button onClick={() => { handleGoogleSignOut(); setMobileMenuOpen(false); }} className="text-[10px] bg-emerald-850 hover:bg-emerald-800 text-amber-300 border border-emerald-700 font-bold px-2 py-1 rounded">
-                    Sign Out
+                ) : (
+                  <button 
+                    onClick={() => {
+                      handleGoogleSignIn();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs py-2 rounded-md"
+                  >
+                    <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
+                    Sign In with Google
                   </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => {
-                    handleGoogleSignIn();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs py-2 rounded-md"
-                >
-                  <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
-                  Sign In with Google
-                </button>
-              )}
-            </div>
+                )}
+              </div>
 
-            {[
-              { id: 'home', label: 'Homepage Dashboard' },
-              { id: 'register', label: 'New Member Registry' },
-              { id: 'cabinet', label: 'OPC Cabinet Directory' },
-              { id: 'elections', label: 'OPC Polls / Elections' },
-              { id: 'report', label: 'Welfare Report Claim' },
-              { id: 'chat', label: 'AI assistant Chat' },
-              { id: 'admin', label: 'Administrative Access' },
-            ].map(tab => (
+              {[
+                { id: 'home', label: 'Homepage Dashboard' },
+                { id: 'register', label: 'New Member Registry' },
+                { id: 'cabinet', label: 'OPC Cabinet Directory' },
+                { id: 'elections', label: 'OPC Polls / Elections' },
+                { id: 'report', label: 'Welfare Report Claim' },
+                { id: 'chat', label: 'AI assistant Chat' },
+                { id: 'admin', label: 'Administrative Access' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setCurrentPage(tab.id as any);
+                    setMobileMenuOpen(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`w-full text-left p-2.5 rounded-md text-sm font-semibold transition cursor-pointer ${
+                    currentPage === tab.id ? 'bg-amber-500 text-emerald-950 font-bold shadow-xs' : 'text-amber-100 hover:bg-emerald-900/50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+
+              {/* Dedicated Back to Top quick action button in menu */}
               <button
-                key={tab.id}
                 onClick={() => {
-                  setCurrentPage(tab.id as any);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full text-left p-2.5 rounded-md text-sm font-semibold transition ${
-                  currentPage === tab.id ? 'bg-amber-500 text-emerald-950 font-bold' : 'text-amber-100'
-                }`}
+                className="mt-2.5 flex items-center justify-center gap-2 w-full p-2.5 rounded-md text-xs font-bold uppercase tracking-wider text-amber-400 bg-emerald-900 hover:bg-emerald-850 border border-emerald-800 transition cursor-pointer active:scale-98"
+                id="back-to-top-menu-btn"
               >
-                {tab.label}
+                <ArrowUp size={13} className="animate-bounce" />
+                Back To Top
               </button>
-            ))}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ----------------- PAGES CONTENT ----------------- */}
@@ -792,14 +842,22 @@ export default function App() {
           <div className="fade-in">
             
             {/* HERO HERO SECTION */}
-            <div className="bg-gradient-to-br from-emerald-950 to-emerald-900 text-white pt-10 pb-6 px-4 text-center border-b border-amber-500/10">
-              <div className="container mx-auto max-w-4xl space-y-4">
-                <span className="bg-amber-500 text-emerald-950 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-                  Sultanate of Oman Chapter
-                </span>
-                <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-amber-450 tracking-tight leading-tight">
-                  Oman Pakhtoon Community portal
-                </h1>
+            <div className="bg-gradient-to-br from-emerald-950 to-emerald-900 text-white pt-12 pb-8 px-4 text-center border-b border-amber-500/10 relative overflow-hidden">
+              <div className="container mx-auto max-w-4xl space-y-5 relative z-10">
+                
+                {/* Visual Emblem Badge Logo */}
+                <div className="mx-auto w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 rounded-full border-2 border-amber-450 shadow-xl overflow-hidden shadow-amber-500/10 flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer">
+                  <img src={logoImg} alt="Oman Pakhtoon Community Crest" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-extrabold tracking-widest px-3 py-1 rounded-full select-none">
+                    SULTANATE OF OMAN CHAPTER
+                  </span>
+                  <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight">
+                    Oman Pakhtoon Community <span className="text-amber-400">Portal</span>
+                  </h1>
+                </div>
                 <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
                   The primary network providing general assistance, lifetime welfare claim support, 
                   and cooperative services for the diaspora Pakhtoon tribes living in Muscat, Salalah, Sohar and across Oman.
@@ -826,10 +884,39 @@ export default function App() {
                     <p className="text-3xl font-bold font-serif text-white mt-1.5">{reportedIncidentCount}</p>
                   </div>
                 </div>
+                {/* Expand / Collapse Dashboard Toggle Button */}
+                <div className="pt-6 flex justify-center z-20 relative">
+                  <button
+                    onClick={() => setShowPortalMainContent(!showPortalMainContent)}
+                    className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider shadow-lg flex items-center gap-2 transition cursor-pointer select-none"
+                    id="toggle-main-content-btn"
+                  >
+                    {showPortalMainContent ? (
+                      <>
+                        <span>Hide Community Feed &amp; Sections</span>
+                        <span className="bg-emerald-950/25 px-2 py-0.5 rounded-full text-[9px] font-black">ON</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Show Community Feed &amp; Sections</span>
+                        <span className="bg-emerald-950/25 px-2 py-0.5 rounded-full text-[9px] font-black">OFF</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="container mx-auto max-w-7xl px-4 py-8 space-y-12">
+            <AnimatePresence>
+              {showPortalMainContent && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="container mx-auto max-w-7xl px-4 py-8 space-y-12 overflow-hidden"
+                  id="portal-main-content-container"
+                >
               
               {/* SPONSORED SLIDER BILLBOARD */}
               <section className="space-y-4">
@@ -880,6 +967,46 @@ export default function App() {
                   <a href="https://wa.me/96899111870" target="_blank" rel="noopener noreferrer" className="bg-emerald-955 hover:bg-emerald-960 text-white font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow border border-emerald-750 transition active:scale-95" style={{ backgroundColor: '#135c46' }}>
                     Confirm payment details on WhatsApp
                   </a>
+                </div>
+              </section>
+
+              {/* FOUNDER'S MESSAGE SECTION */}
+              <section className="bg-gradient-to-br from-amber-50 to-orange-50/20 border border-amber-200 rounded-2xl p-6 sm:p-8 md:p-10 shadow-xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 transform translate-x-12 -translate-y-12 text-amber-500/5 pointer-events-none select-none">
+                  <Quote size={200} />
+                </div>
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 relative z-10">
+                  {/* Founder photo / icon placeholder */}
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 p-1 shadow-md shrink-0 flex items-center justify-center">
+                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden font-serif font-bold text-3xl sm:text-4xl text-amber-600 uppercase select-none">
+                      AM
+                    </div>
+                  </div>
+                  {/* Message content */}
+                  <div className="space-y-4 text-center md:text-left flex-1">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Message from the Founder</span>
+                      <h3 className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight">Al-Haj Muhammad Amin</h3>
+                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">Founder of Oman Pakhtoon Community (OPC)</p>
+                    </div>
+                    <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative">
+                      "The Sultanate of Oman has been a second home to thousands of our Pakhtoon brothers who have contributed with their passion, labor, and dedication to the rise of this brotherly nation. We established OPC with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of hardship. From general emergency relief to repatriation support, we protect our family. Register with us, stay law-abiding, contribute to our community funds, and keep up the proud legacy of service in Oman."
+                    </blockquote>
+                    <div className="pt-4 border-t border-amber-200/50 flex flex-col sm:flex-row gap-4 items-center justify-between font-sans">
+                      <p className="text-[11px] text-slate-400 italic">
+                        Established with a legacy of brotherhood &bull; Muscat, Sultanate of Oman
+                      </p>
+                      <button 
+                        onClick={() => {
+                          setCurrentPage('register');
+                          window.scrollTo(0, 0);
+                        }}
+                        className="bg-emerald-900 border border-emerald-950 text-white font-bold text-xs uppercase px-5 py-2.5 rounded-xl shadow-xs hover:bg-emerald-950 hover:shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <UserPlus size={14} /> Join Our Brotherhood
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </section>
 
@@ -1078,7 +1205,9 @@ export default function App() {
                 </div>
               </section>
 
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -1848,18 +1977,23 @@ export default function App() {
       </main>
 
       {/* ----------------- APP FOOTER CARD INFO ----------------- */}
-      <footer className="bg-emerald-950 text-amber-50/80 border-t border-amber-500/10 py-8 px-4 text-center text-xs">
-        <div className="container mx-auto max-w-4xl space-y-3 font-sans">
-          <p className="font-serif text-amber-300 font-bold text-sm tracking-wide">
-            Oman Pakhtoon Community (OPC) Setup
-          </p>
-          <p className="text-amber-100/60 leading-relaxed max-w-xl mx-auto">
-            Providing reliable diaspora representations, general welfare programs, and cooperative support 
-            services across the Sultanate of Oman.
-          </p>
-          <p className="text-amber-550/50 font-mono text-[10px] text-amber-500/40">
-            For general welfare operations, sponsorship deals, or card records &gt; WhatsApp +968 99111870
-          </p>
+      <footer className="bg-emerald-950 text-amber-50/80 border-t border-amber-500/10 py-10 px-4 text-center text-xs">
+        <div className="container mx-auto max-w-4xl space-y-4 font-sans flex flex-col items-center">
+          <div className="w-14 h-14 bg-white p-0.5 rounded-full border border-amber-500 overflow-hidden shadow-md">
+            <img src={logoImg} alt="OPC Footer Emblem" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="font-serif text-amber-300 font-black text-sm tracking-wide">
+              Oman Pakhtoon Community (OPC)
+            </p>
+            <p className="text-amber-100/60 leading-relaxed max-w-xl mx-auto">
+              Providing reliable diaspora representations, general welfare programs, and cooperative support 
+              services across the Sultanate of Oman.
+            </p>
+            <p className="text-amber-500/40 font-mono text-[10px] tracking-wider pt-1">
+              For general welfare operations, sponsorship deals, or card records &gt; WhatsApp +968 99111870
+            </p>
+          </div>
         </div>
       </footer>
 
@@ -1873,6 +2007,25 @@ export default function App() {
           setActiveDocMember(null);
         }}
       />
+
+      {/* Floating Back to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, y: 35, scale: 0.85 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 35, scale: 0.85 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 z-50 p-3.5 rounded-full bg-amber-500 hover:bg-amber-600 text-emerald-950 shadow-lg border border-amber-400 focus:outline-emerald-800 transition cursor-pointer flex items-center justify-center shadow-amber-500/20"
+            title="Back to Top"
+            id="floating-scroll-to-top-btn"
+          >
+            <ArrowUp size={20} className="stroke-[2.5]" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
     </div>
   );
