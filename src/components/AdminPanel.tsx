@@ -595,7 +595,8 @@ export default function AdminPanel({
         return `"${val.replace(/"/g, '""')}"`;
       }).join(',') + '\n';
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    // Add UTF-8 Byte Order Mark (BOM) to guarantee that Microsoft Excel reads the file with proper encoding and column formatting
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -621,6 +622,32 @@ export default function AdminPanel({
       { key: 'status', label: 'Status' },
       { key: 'createdAt', label: 'Applied on' }
     ], 'opc-membership-log.csv');
+  };
+
+  const exportApprovedMembers = () => {
+    const approved = members.filter(m => m.status === 'approved');
+    downloadCSVFile(approved.map(m => ({
+      ...m,
+      createdAt: m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toLocaleDateString() : '',
+      approvedAt: m.approvedAt?.seconds ? new Date(m.approvedAt.seconds * 1000).toLocaleDateString() : ''
+    })), [
+      { key: 'membershipId', label: 'Membership ID' },
+      { key: 'name', label: 'Full Name' },
+      { key: 'father', label: 'Father Name' },
+      { key: 'cnic', label: 'CNIC/Passport' },
+      { key: 'district', label: 'District' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'whatsapp', label: 'WhatsApp' },
+      { key: 'address', label: 'Address' },
+      { key: 'occupation', label: 'Occupation' },
+      { key: 'emergency', label: 'Emergency Contact' },
+      { key: 'feeAmount', label: 'Fee Paid (OMR)' },
+      { key: 'paymentMethod', label: 'Payment Method' },
+      { key: 'paymentReference', label: 'Payment Reference' },
+      { key: 'receiptNumber', label: 'Receipt/Card No' },
+      { key: 'createdAt', label: 'Applied On' },
+      { key: 'approvedAt', label: 'Approved On' }
+    ], 'opc-approved-members-log.csv');
   };
 
   const exportDonations = () => {
@@ -1046,15 +1073,23 @@ export default function AdminPanel({
                       <Users size={16} className="text-emerald-850" /> Member Registry
                     </h5>
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      Download the complete directory of community members including system-issued Membership IDs, contact info, and registration status.
+                      Download compiled spreadsheets of community members including system-issued Membership IDs, contact info, and registration status.
                     </p>
                   </div>
-                  <button
-                    onClick={exportMembers}
-                    className="mt-4 w-full inline-flex items-center justify-center gap-1.5 bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2.5 px-3 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
-                  >
-                    <FileSpreadsheet size={14} /> Export Member Registry CSV
-                  </button>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <button
+                      onClick={exportApprovedMembers}
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2.5 px-3 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
+                    >
+                      <CheckCircle2 size={13} /> Export Approved Members CSV
+                    </button>
+                    <button
+                      onClick={exportMembers}
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-md text-xs border border-slate-200 transition duration-150 cursor-pointer shadow-sm"
+                    >
+                      <FileSpreadsheet size={13} /> Export Full Registry CSV
+                    </button>
+                  </div>
                 </div>
 
                 <div className="border border-slate-200 rounded-xl p-5 flex flex-col justify-between bg-slate-50/50 hover:border-emerald-200 transition duration-150">
@@ -1110,12 +1145,20 @@ export default function AdminPanel({
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <h3 className="text-xl font-bold font-serif text-emerald-950">Membership Operations</h3>
-              <button 
-                onClick={exportMembers}
-                className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer"
-              >
-                <FileSpreadsheet size={14} /> Export Member Registry CSV
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={exportApprovedMembers}
+                  className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
+                >
+                  <CheckCircle2 size={13} /> Export Approved Members CSV
+                </button>
+                <button 
+                  onClick={exportMembers}
+                  className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold px-3.5 py-2 rounded-md text-xs border border-slate-200 transition duration-150 cursor-pointer"
+                >
+                  <FileSpreadsheet size={13} /> Export Full Registry CSV
+                </button>
+              </div>
             </div>
 
             {/* PENDING APPLICATIONS */}
