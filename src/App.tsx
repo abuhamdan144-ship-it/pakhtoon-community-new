@@ -979,14 +979,14 @@ export default function App() {
                   {/* Founder photo / icon placeholder */}
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 p-1 shadow-md shrink-0 flex items-center justify-center">
                     <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden font-serif font-bold text-3xl sm:text-4xl text-amber-600 uppercase select-none">
-                      AM
+                      MA
                     </div>
                   </div>
                   {/* Message content */}
                   <div className="space-y-4 text-center md:text-left flex-1">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Message from the Founder</span>
-                      <h3 className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight">Al-Haj Muhammad Amin</h3>
+                      <h3 className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight">Malak Abbas</h3>
                       <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">Founder of Oman Pakhtoon Community (OPC)</p>
                     </div>
                     <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative">
