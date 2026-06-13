@@ -83,7 +83,7 @@ export default function AdminPanel({
   // Cabinet form state
   const [cId, setCId] = useState('');
   const [cName, setCName] = useState('');
-  const [cPosition, setCPosition] = useState('President');
+  const [cPosition, setCPosition] = useState('Chairman');
   const [cPhone, setCPhone] = useState('');
   const [cPhoto, setCPhoto] = useState('');
 
@@ -380,7 +380,7 @@ export default function AdminPanel({
   const resetCabinetForm = () => {
     setCId('');
     setCName('');
-    setCPosition('President');
+    setCPosition('Chairman');
     setCPhone('');
     setCPhoto('');
   };
@@ -2416,7 +2416,7 @@ export default function AdminPanel({
                     onChange={e => setCPosition(e.target.value)}
                     className="w-full px-3 py-2 border rounded bg-white text-sm"
                   >
-                    {['President', 'Senior Vice President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Finance Secretary', 'Information Secretary', 'Welfare Secretary', 'Cultural Secretary', 'Member - Executive Committee', 'Other'].map(pos => (
+                    {['Chairman', 'Deputy Chairman', 'President', 'Co-President', 'Senior Vice President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Finance Secretary', 'Information Secretary', 'Welfare Secretary', 'Cultural Secretary', 'Building Secretary', 'Chief Organizer', 'Member - Executive Committee', 'Other'].map(pos => (
                       <option key={pos} value={pos}>{pos}</option>
                     ))}
                   </select>
