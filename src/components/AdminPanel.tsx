@@ -8,8 +8,9 @@ import {
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
 } from '../types';
 import { 
-  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
+  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, FileDown, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import {
   connectGoogleWorkspace,
   getCachedToken,
@@ -31,6 +32,10 @@ import {
   Cell,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -746,6 +751,32 @@ export default function AdminPanel({
     ], 'opc-approved-members-log.csv');
   };
 
+  const exportFilteredMembers = () => {
+    downloadCSVFile(sortedAllMembers.map(m => ({
+      ...m,
+      createdAt: m.createdAt?.seconds ? new Date(m.createdAt.seconds * 1000).toLocaleDateString() : '',
+      approvedAt: m.approvedAt?.seconds ? new Date(m.approvedAt.seconds * 1000).toLocaleDateString() : ''
+    })), [
+      { key: 'membershipId', label: 'Membership ID' },
+      { key: 'name', label: 'Full Name' },
+      { key: 'father', label: 'Father Name' },
+      { key: 'cnic', label: 'CNIC/Passport' },
+      { key: 'district', label: 'District' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'whatsapp', label: 'WhatsApp' },
+      { key: 'address', label: 'Address' },
+      { key: 'occupation', label: 'Occupation' },
+      { key: 'status', label: 'Status' },
+      { key: 'emergency', label: 'Emergency Contact' },
+      { key: 'feeAmount', label: 'Fee Paid (OMR)' },
+      { key: 'paymentMethod', label: 'Payment Method' },
+      { key: 'paymentReference', label: 'Payment Reference' },
+      { key: 'receiptNumber', label: 'Receipt/Card No' },
+      { key: 'createdAt', label: 'Applied On' },
+      { key: 'approvedAt', label: 'Approved On' }
+    ], memberSearchQuery ? `opc-filtered-members-${memberSearchQuery.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.csv` : 'opc-filtered-members.csv');
+  };
+
   const exportDonations = () => {
     downloadCSVFile(donations, [
       { key: 'date', label: 'Date' },
@@ -799,6 +830,437 @@ export default function AdminPanel({
       { key: 'contact', label: 'Submitter Phone' },
       { key: 'status', label: 'Status' }
     ], 'opc-welfare-reports.csv');
+  };
+
+  const exportIncidentsPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width; // 210 for A4
+      const pageHeight = doc.internal.pageSize.height; // 297 for A4
+      let posY = 20;
+
+      const checkPageBreak = (needed: number) => {
+        if (posY + needed > pageHeight - 20) {
+          doc.addPage();
+          posY = 20;
+          drawMiniHeader();
+          return true;
+        }
+        return false;
+      };
+
+      const drawMiniHeader = () => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184); // Slate-400
+        doc.text("OPC WELFARE INCIDENT REGISTRY", 14, 10);
+        doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 25, 10);
+        doc.setDrawColor(226, 232, 240); // Slate-200
+        doc.line(14, 12, pageWidth - 14, 12);
+        posY = 18;
+      };
+
+      const drawFooter = () => {
+        const totalPages = doc.getNumberOfPages();
+        for (let j = 1; j <= totalPages; j++) {
+          doc.setPage(j);
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(7);
+          doc.setTextColor(156, 163, 175); // Gray-400
+          doc.text(
+            "CONFIDENTIAL - Overseas Pakistanis Advisory Council Administrative Terminal", 
+            14, 
+            pageHeight - 10
+          );
+          doc.text(
+            `Page ${j} of ${totalPages}`, 
+            pageWidth - 30, 
+            pageHeight - 10
+          );
+        }
+      };
+
+      // 1. Draw Modern Executive Header
+      doc.setFillColor(4, 120, 87); // Emerald-700
+      doc.rect(14, posY, pageWidth - 28, 4, 'F');
+      posY += 10;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(2, 44, 34); // Deep Emerald/Black
+      doc.text("OVERSEAS PAKISTANIS ADVISORY COUNCIL", 14, posY);
+      posY += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(6, 78, 59); // Emerald-900
+      doc.text("Welfare Division & Emergency Response Registry Log", 14, posY);
+      posY += 6;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139); // Slate-500
+      doc.text(`Generated on: ${new Date().toLocaleString()} (Local Time)`, 14, posY);
+      posY += 10;
+
+      // Draw horizontal divider rule
+      doc.setDrawColor(203, 213, 225); // Slate-300
+      doc.line(14, posY, pageWidth - 14, posY);
+      posY += 8;
+
+      // 2. Statistics Panel
+      checkPageBreak(30);
+      doc.setFillColor(248, 250, 252); // Slate-50
+      doc.rect(14, posY, pageWidth - 28, 22, 'F');
+      doc.setDrawColor(226, 232, 240); // Slate-200
+      doc.rect(14, posY, pageWidth - 28, 22);
+
+      const totalCount = sortedIncidents.length;
+      const deathCount = sortedIncidents.filter(i => i.type === 'death').length;
+      const injuryCount = sortedIncidents.filter(i => i.type === 'injury').length;
+      const lossCount = sortedIncidents.filter(i => i.type === 'loss').length;
+      const activeCount = sortedIncidents.filter(i => i.status !== 'closed').length;
+      const closedCount = sortedIncidents.filter(i => i.status === 'closed').length;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105); // Slate-600
+      doc.text("TOTAL DISPATCHED CASES", 18, posY + 7);
+      doc.text("BY PRIMARY CLASSIFICATION", 84, posY + 7);
+      doc.text("RESOLUTION PROGRESS", 152, posY + 7);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(2, 44, 34);
+      doc.text(`${totalCount} Incidents Active/Closed`, 18, posY + 15);
+      doc.text(`Deaths: ${deathCount} | Injuries: ${injuryCount} | Losses: ${lossCount}`, 84, posY + 15);
+      doc.text(`Active/Pending: ${activeCount} | Resolved: ${closedCount}`, 152, posY + 15);
+
+      posY += 32;
+
+      // 3. Grid / Table Title
+      checkPageBreak(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(2, 44, 34);
+      doc.text(`Detailed Incident Log Snapshot (${totalCount} Records)`, 14, posY);
+      posY += 6;
+
+      // Render Table Headers
+      doc.setFillColor(2, 44, 34); // Deep Emerald
+      doc.rect(14, posY, pageWidth - 28, 8, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      doc.text("TYPE / CAT", 18, posY + 5.5);
+      doc.text("CLAIMANT / INDIVIDUAL", 45, posY + 5.5);
+      doc.text("DATE", 110, posY + 5.5);
+      doc.text("SUBMITTER PHONE", 137, posY + 5.5);
+      doc.text("STATUS", 175, posY + 5.5);
+
+      posY += 8;
+
+      if (sortedIncidents.length === 0) {
+        checkPageBreak(20);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(14, posY, pageWidth - 28, 15, 'F');
+        doc.setDrawColor(226, 232, 240);
+        doc.rect(14, posY, pageWidth - 28, 15);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+        doc.text("No active welfare incidents registered matching current filters.", 24, posY + 9);
+        posY += 15;
+      } else {
+        // Render Row Items
+        sortedIncidents.forEach((item, index) => {
+          // Calculate needed lines for description
+          const maxTextWidth = pageWidth - 42; // Width of description line text box
+          const wrappedDescription = doc.splitTextToSize(item.description || 'No description provided.', maxTextWidth);
+          const blockHeight = 16 + (wrappedDescription.length * 4.5);
+
+          checkPageBreak(blockHeight);
+
+          // Alternating row background shading
+          if (index % 2 === 0) {
+            doc.setFillColor(255, 255, 255);
+          } else {
+            doc.setFillColor(248, 250, 252); // Slate-50 alternating row background
+          }
+          doc.rect(14, posY, pageWidth - 28, blockHeight, 'F');
+
+          // Optional subtle border
+          doc.setDrawColor(241, 245, 249);
+          doc.line(14, posY + blockHeight, pageWidth - 14, posY + blockHeight);
+
+          // Type badge styling
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          if (item.type === 'death') {
+            doc.setTextColor(185, 28, 28); // Dark Red
+            doc.text("[DEATH]", 18, posY + 6);
+          } else if (item.type === 'injury') {
+            doc.setTextColor(194, 65, 12); // Dark Orange
+            doc.text("[INJURY]", 18, posY + 6);
+          } else {
+            doc.setTextColor(29, 78, 216); // Dark Blue
+            doc.text("[LOSS]", 18, posY + 6);
+          }
+
+          // Row Primary Values
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(15, 23, 42); // slate-900
+          doc.text(item.name || 'Anonymous Claimant', 45, posY + 6);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(51, 65, 85); // slate-700
+          doc.text(item.date || 'N/A', 110, posY + 6);
+          doc.text(item.contact || 'N/A', 137, posY + 6);
+
+          // Status custom badges
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          if (item.status === 'closed') {
+            doc.setTextColor(16, 185, 129); // emerald
+            doc.text("RESOLVED", 175, posY + 6);
+          } else if (item.status === 'published') {
+            doc.setTextColor(59, 130, 246); // blue
+            doc.text("PUBLISHED", 175, posY + 6);
+          } else {
+            doc.setTextColor(217, 119, 6); // amber
+            doc.text("PENDING", 175, posY + 6);
+          }
+
+          // Sub-description details
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(7.5);
+          doc.setTextColor(71, 85, 105); // slate-600
+          doc.text("Details & Relief Coordination Notes:", 18, posY + 11.5);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(71, 85, 105); // slate-600
+          
+          wrappedDescription.forEach((line: string, lineIdx: number) => {
+            doc.text(line, 18, posY + 16 + (lineIdx * 4.5));
+          });
+
+          posY += blockHeight;
+        });
+      }
+
+      // Add actual page numbers retrospectively across all pages
+      drawFooter();
+
+      // Trigger Save
+      doc.save(`opc-welfare-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err: any) {
+      console.error("Failed to generate PDF report:", err);
+      alert("Error generating PDF document: " + (err.message || err));
+    }
+  };
+
+  const exportSingleIncidentPDF = (item: IncidentReport) => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width; // 210 for A4
+      const pageHeight = doc.internal.pageSize.height; // 297 for A4
+      let posY = 20;
+
+      // Header block
+      doc.setFillColor(4, 120, 87); // Emerald-700
+      doc.rect(14, posY, pageWidth - 28, 5, 'F');
+      posY += 12;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(2, 44, 34); // Deep Emerald/Black
+      doc.text("OVERSEAS PAKISTANIS ADVISORY COUNCIL", 14, posY);
+      posY += 7;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(6, 78, 59); // Emerald-900
+      doc.text("Welfare Case Incident & Assistance Briefing", 14, posY);
+      posY += 6;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139); // Slate-500
+      doc.text(`Official Document ID: OPAC-WCR-${item.id ? item.id.slice(0, 8).toUpperCase() : 'INTERNAL'} | Generated: ${new Date().toLocaleString()}`, 14, posY);
+      posY += 10;
+
+      doc.setDrawColor(226, 232, 240); // Slate-200
+      doc.line(14, posY, pageWidth - 14, posY);
+      posY += 10;
+
+      // Case Metadata Cards
+      doc.setFillColor(248, 250, 252); // Slate-50
+      doc.rect(14, posY, pageWidth - 28, 38, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, posY, pageWidth - 28, 38);
+
+      // Label column 1
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105); // Slate-600
+      doc.text("SUBJECT INDIVIDUAL:", 18, posY + 8);
+      doc.text("REPORTED INCIDENT TYPE:", 18, posY + 16);
+      doc.text("OCCURRENCE DATE:", 18, posY + 24);
+      doc.text("CURRENT REGISTRY STATUS:", 18, posY + 32);
+
+      // Values column 1
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42); // Black/Slate-900
+      doc.text(item.name || 'N/A', 68, posY + 8);
+      
+      let valType = '';
+      if (item.type === 'death') {
+        doc.setTextColor(185, 28, 28);
+        valType = "DEATH / REPATRIATION EMERGENCY";
+      } else if (item.type === 'injury') {
+        doc.setTextColor(194, 65, 12);
+        valType = "MEDEVAC / MEDICAL EMERGENCY INJURY";
+      } else {
+        doc.setTextColor(29, 78, 216);
+        valType = "LOSS OF PROPERTY / LEGAL ASSISTANCE CLAIMS";
+      }
+      doc.text(valType, 68, posY + 16);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(item.date || 'N/A', 68, posY + 24);
+
+      let valStatus = '';
+      if (item.status === 'closed') {
+        doc.setTextColor(16, 185, 129);
+        valStatus = "RESOLVED & ARCHIVED";
+      } else if (item.status === 'published') {
+        doc.setTextColor(59, 130, 246);
+        valStatus = "ACTIVE / ASSISTANCE PUBLISHED";
+      } else {
+        doc.setTextColor(217, 119, 6);
+        valStatus = "PENDING ASSESSMENT QUEUE";
+      }
+      doc.text(valStatus, 68, posY + 32);
+
+      posY += 48;
+
+      // Contact detail box
+      doc.setFillColor(241, 245, 249); // slate-100
+      doc.rect(14, posY, pageWidth - 28, 14, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("SUBMITTER EMERGENCY CONTACT:", 18, posY + 9);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(item.contact || 'No Submitter Phone Registered', 80, posY + 9);
+
+      posY += 24;
+
+      // Detailed Incident Description Section
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(2, 44, 34);
+      doc.text("Incident Narrative & Administrative Review Brief", 14, posY);
+      posY += 5;
+
+      doc.setDrawColor(203, 213, 225); // Slate-300
+      doc.line(14, posY, pageWidth - 14, posY);
+      posY += 8;
+
+      // Long text description wrapping
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(51, 65, 85); // Slate-700
+      const maxTextWidth = pageWidth - 28;
+      const lines = doc.splitTextToSize(item.description || 'No descriptive entries provided by submitter.', maxTextWidth);
+      lines.forEach((line: string) => {
+        if (posY + 6 > pageHeight - 30) {
+          doc.addPage();
+          posY = 20;
+        }
+        doc.text(line, 14, posY);
+        posY += 6;
+      });
+
+      posY += 15;
+
+      // Attachments Section
+      if (item.driveAttachments && item.driveAttachments.length > 0) {
+        if (posY + 30 > pageHeight - 30) {
+          doc.addPage();
+          posY = 20;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(2, 44, 34);
+        doc.text(`Linked Verification Documents (${item.driveAttachments.length})`, 14, posY);
+        posY += 5;
+
+        doc.setDrawColor(203, 213, 225); // Slate-300
+        doc.line(14, posY, pageWidth - 14, posY);
+        posY += 8;
+
+        item.driveAttachments.forEach((att, attIdx) => {
+          if (posY + 10 > pageHeight - 30) {
+            doc.addPage();
+            posY = 20;
+          }
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text(`${attIdx + 1}. ${att.name}`, 18, posY);
+          posY += 4;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Link: ${att.url}`, 18, posY);
+          posY += 7;
+        });
+      }
+
+      // Bottom Signature Blocks
+      if (posY + 40 > pageHeight) {
+        doc.addPage();
+        posY = 20;
+      } else {
+        posY = pageHeight - 45;
+      }
+
+      doc.setDrawColor(203, 213, 225);
+      doc.line(14, posY, 80, posY);
+      doc.line(pageWidth - 80, posY, pageWidth - 14, posY);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Administrative Clerk", 14, posY + 5);
+      doc.text("Welfare Secretary Sign-off", pageWidth - 80, posY + 5);
+
+      // Page footer on individual briefing
+      const totalPages = doc.getNumberOfPages();
+      for (let j = 1; j <= totalPages; j++) {
+        doc.setPage(j);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(156, 163, 175);
+        doc.text("CONFIDENTIAL OFFICE OF THE PAKISTANI ADVISORY COUNCIL", 14, pageHeight - 10);
+        doc.text(`Page ${j} of ${totalPages}`, pageWidth - 30, pageHeight - 10);
+      }
+
+      doc.save(`opc-welfare-brief-${item.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+    } catch (err: any) {
+      console.error("Failed to generate single PDF briefing:", err);
+      alert("Error generating PDF: " + (err.message || err));
+    }
   };
 
   // --- GOOGLE WORKSPACE ACTION HANDLERS ---
@@ -1452,6 +1914,166 @@ export default function AdminPanel({
                       <span>💡 <strong>Tip for Administrators:</strong> Click on &quot;Member Queue&quot; tab above to start assessing the pending applicants.</span>
                     </div>
                   </div>
+
+                  {/* Monthly Sign-ups & Cumulative Growth Premium Chart */}
+                  <div className="lg:col-span-12 bg-white border border-slate-200 p-4 md:p-5 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">Monthly Registry Growth & Enrollment Trends</h5>
+                      <p className="text-[11px] text-slate-400">Monthly new registrations (left axis) coupled with overall multi-month cumulative volume (right axis)</p>
+                    </div>
+
+                    <div className="h-72 mt-5 mb-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={(() => {
+                            const monthNames = [
+                              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                            ];
+                            const groups: { [key: string]: { approved: number; pending: number; total: number } } = {};
+                            const getParsedDate = (val: any) => {
+                              if (!val) return null;
+                              if (typeof val.toDate === 'function') {
+                                return val.toDate();
+                              }
+                              if (val.seconds) {
+                                return new Date(val.seconds * 1000);
+                              }
+                              if (val instanceof Date) {
+                                return val;
+                              }
+                              const parsed = new Date(val);
+                              if (!isNaN(parsed.getTime())) {
+                                return parsed;
+                              }
+                              return null;
+                            };
+
+                            members.forEach(m => {
+                              const d = getParsedDate(m.createdAt);
+                              if (!d) return;
+                              const year = d.getFullYear();
+                              const month = d.getMonth();
+                              const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+                              if (!groups[key]) {
+                                groups[key] = { approved: 0, pending: 0, total: 0 };
+                              }
+                              groups[key][m.status === 'approved' ? 'approved' : 'pending']++;
+                              groups[key].total++;
+                            });
+
+                            const sortedKeys = Object.keys(groups).sort();
+                            if (sortedKeys.length === 0) {
+                              const now = new Date();
+                              const result = [];
+                              for (let i = 5; i >= 0; i--) {
+                                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                                const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+                                result.push({ label, 'New Applicants': 0, 'Cumulative Volume': 0 });
+                              }
+                              return result;
+                            }
+
+                            let cumulativeValue = 0;
+                            return sortedKeys.map(key => {
+                              const [year, monthStr] = key.split('-');
+                              const monthIndex = parseInt(monthStr, 10) - 1;
+                              const label = `${monthNames[monthIndex]} ${year}`;
+                              const stats = groups[key];
+                              cumulativeValue += stats.total;
+                              return {
+                                label,
+                                'New Applicants': stats.total,
+                                'Approved Profiles': stats.approved,
+                                'Cumulative Volume': cumulativeValue
+                              };
+                            });
+                          })()}
+                          margin={{ top: 15, right: 15, left: -20, bottom: 5 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorApplicants" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#047857" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#047857" stopOpacity={0.0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis 
+                            dataKey="label" 
+                            stroke="#64748b" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                          />
+                          <YAxis 
+                            yAxisId="left"
+                            stroke="#047857" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            allowDecimals={false}
+                          />
+                          <YAxis 
+                            yAxisId="right"
+                            orientation="right"
+                            stroke="#d97706" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#1e293b',
+                              border: 'none',
+                              borderRadius: '8px',
+                              color: '#fff',
+                              fontSize: '11px',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                          />
+                          <Legend 
+                            verticalAlign="top" 
+                            height={36} 
+                            iconType="circle"
+                            iconSize={8}
+                            wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                          />
+                          <Area 
+                            yAxisId="left"
+                            type="monotone" 
+                            dataKey="New Applicants" 
+                            stroke="#047857" 
+                            strokeWidth={2}
+                            fillOpacity={1} 
+                            fill="url(#colorApplicants)" 
+                          />
+                          <Area 
+                            yAxisId="left"
+                            type="monotone" 
+                            dataKey="Approved Profiles" 
+                            stroke="#10b981" 
+                            strokeWidth={1.5}
+                            strokeDasharray="4 4"
+                            fillOpacity={0} 
+                          />
+                          <Line 
+                            yAxisId="right"
+                            type="monotone" 
+                            dataKey="Cumulative Volume" 
+                            stroke="#d97706" 
+                            strokeWidth={2.5}
+                            activeDot={{ r: 6 }}
+                            dot={{ r: 3 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 mt-2 flex justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <span>💡 <strong>Registry Fact:</strong> Cumulative Volume displays overall community membership registrations gathered over time.</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1544,6 +2166,13 @@ export default function AdminPanel({
                   className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
                 >
                   <CheckCircle2 size={13} /> Export Approved Members CSV
+                </button>
+                <button 
+                  onClick={exportFilteredMembers}
+                  className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
+                  title="Export currently searched and filtered members list to CSV"
+                >
+                  <FileSpreadsheet size={13} /> Export Filtered CSV ({sortedAllMembers.length})
                 </button>
                 <button 
                   onClick={exportMembers}
@@ -1662,11 +2291,11 @@ export default function AdminPanel({
                   All Registry Records ({filteredAllMembers.length})
                 </span>
                 <button
-                  onClick={exportMembers}
+                  onClick={exportFilteredMembers}
                   className="inline-flex items-center gap-1 bg-emerald-850 hover:bg-emerald-950 text-emerald-850 hover:text-white border border-emerald-200 hover:border-emerald-950 px-2.5 py-1 rounded-md text-[11px] font-semibold transition duration-150 cursor-pointer"
-                  title="Export full registry log to CSV"
+                  title="Export filtered and sorted members log to CSV"
                 >
-                  <FileSpreadsheet size={12} /> Export CSV
+                  <FileSpreadsheet size={12} /> Export Filtered CSV
                 </button>
               </div>
               <div className="overflow-x-auto border rounded-lg">
@@ -2009,12 +2638,21 @@ export default function AdminPanel({
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <h3 className="text-xl font-bold font-serif text-emerald-950">Welfare Incidence Review Log</h3>
-              <button 
-                onClick={exportIncidents}
-                className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
-              >
-                <FileSpreadsheet size={14} /> Export Incidence Claims CSV
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button 
+                  onClick={exportIncidentsPDF}
+                  className="inline-flex items-center gap-1.5 bg-rose-700 hover:bg-rose-800 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
+                  title="Generate dynamic executive PDF report from filtered incidents"
+                >
+                  <FileDown size={14} /> Download PDF Report ({sortedIncidents.length})
+                </button>
+                <button 
+                  onClick={exportIncidents}
+                  className="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-md text-xs transition duration-150 cursor-pointer shadow-sm"
+                >
+                  <FileSpreadsheet size={14} /> Export Incidence Claims CSV
+                </button>
+              </div>
             </div>
 
             {/* INCIDENT SEARCH BAR */}
@@ -2121,7 +2759,7 @@ export default function AdminPanel({
                           {i.status !== 'published' && (
                             <button 
                               onClick={() => handleIncidentStatus(i.id!, 'published')} 
-                              className="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-emerald-700"
+                              className="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-emerald-700 inline-block align-middle"
                             >
                               Approve / Publish
                             </button>
@@ -2129,11 +2767,19 @@ export default function AdminPanel({
                           {i.status !== 'closed' && (
                             <button 
                               onClick={() => handleIncidentStatus(i.id!, 'closed')} 
-                              className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-350"
+                              className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-slate-350 inline-block align-middle"
                             >
                               Archive / Close
                             </button>
                           )}
+                          <button 
+                            onClick={() => exportSingleIncidentPDF(i)}
+                            className="bg-rose-50 text-rose-800 px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-rose-100 inline-flex items-center gap-1 inline-block align-middle"
+                            title="Download official PDF emergency case briefing"
+                          >
+                            <FileDown size={11} />
+                            PDF Brief
+                          </button>
                           <button 
                             onClick={() => setActiveIncidentDocs(i)} 
                             className="bg-emerald-50 text-emerald-800 px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-emerald-100 inline-flex items-center gap-1 inline-block align-middle"
