@@ -15,7 +15,6 @@
         "occupation": { "type": "string", "description": "Occupation." },
         "emergency": { "type": "string", "description": "Emergency contact number in Pakistan." },
         "photo": { "type": "string", "description": "Base64 format photo data URL." },
-        "receiptImage": { "type": "string", "description": "Base64 payment receipt proof data URL." },
         "status": {
           "type": "string",
           "enum": ["pending", "approved", "rejected"],
@@ -33,6 +32,7 @@
       "type": "object",
       "properties": {
         "donor": { "type": "string", "description": "Name of the donor." },
+        "phone": { "type": "string", "description": "Contact number of donor." },
         "amount": { "type": "number", "description": "Amount donated in OMR." },
         "date": { "type": "string", "format": "date", "description": "Date of the donation." },
         "method": {
@@ -41,9 +41,15 @@
           "description": "Donation payment method."
         },
         "note": { "type": "string", "description": "Support message or specific purpose note." },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "Approval state of the donation."
+        },
+        "receiptNumber": { "type": "string", "description": "Sequential receipt registration code." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["donor", "amount", "date", "method", "createdAt"]
+      "required": ["donor", "phone", "amount", "date", "method", "status", "createdAt"]
     },
     "CabinetMember": {
       "title": "Cabinet Member",

@@ -10,7 +10,6 @@ export interface Member {
   occupation?: string;
   emergency?: string;
   photo?: string; // base64 URL
-  receiptImage?: string; // base64 URL (proof of payment receipt)
   status: 'pending' | 'approved' | 'rejected';
   membershipId?: string;
   createdAt: any; // Firestore Timestamp
@@ -28,11 +27,16 @@ export interface Member {
 export interface Donation {
   id?: string;
   donor: string;
+  phone: string;
   amount: number;
   date: string;
   method: 'Bank Transfer' | 'Cash' | 'Mobile Wallet';
   note?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  receiptNumber?: string;
   createdAt: any;
+  approvedAt?: any;
+  approvedBy?: any;
 }
 
 export interface CabinetMember {

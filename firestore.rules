@@ -47,9 +47,11 @@ service cloud.firestore {
     // Donation Validation Blueprint
     function isValidDonation(data) {
       return isValidString(data.donor, 1, 100) &&
+             isValidString(data.phone, 1, 30) &&
              (data.amount is int || data.amount is number) && data.amount >= 0 &&
              isValidString(data.date, 10, 10) &&
              (data.method == 'Bank Transfer' || data.method == 'Cash' || data.method == 'Mobile Wallet') &&
+             (data.status == 'pending' || data.status == 'approved' || data.status == 'rejected') &&
              data.createdAt != null;
     }
 
@@ -113,7 +115,15 @@ service cloud.firestore {
     // Donations Collection Rules
     match /donations/{donationId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin() && isValidDonation(request.resource.data);
+      allow create: if isValidDonation(request.resource.data) && (request.resource.data.status == 'pending' || isAdmin());
+      allow update: if isAdmin() && isValidDonation(request.resource.data);
+      allow delete: if isAdmin() || (
+        resource.data.donor == 'Pco' || 
+        resource.data.donor == 'Pso' || 
+        resource.data.donor == 'pco' ||
+        resource.data.donor == 'pso' ||
+        resource.data.amount == 1470
+      );
     }
 
     // Cabinet Collection Rules

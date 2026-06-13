@@ -97,6 +97,7 @@ export default function AdminPanel({
 
   // Donation form state
   const [dDonor, setDDonor] = useState('');
+  const [dPhone, setDPhone] = useState('');
   const [dAmount, setDAmount] = useState('');
   const [dDate, setDDate] = useState(new Date().toISOString().slice(0, 10));
   const [dMethod, setDMethod] = useState<'Bank Transfer' | 'Cash' | 'Mobile Wallet'>('Bank Transfer');
@@ -150,7 +151,6 @@ export default function AdminPanel({
   const [editFeeAmount, setEditFeeAmount] = useState('5');
   const [editPaymentMethod, setEditPaymentMethod] = useState('Bank Transfer');
   const [editPaymentReference, setEditPaymentReference] = useState('');
-  const [editReceiptImage, setEditReceiptImage] = useState('');
   const [updatingMemberState, setUpdatingMemberState] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [memberSortField, setMemberSortField] = useState<'name' | 'createdAt' | 'district' | null>(null);
@@ -189,7 +189,6 @@ export default function AdminPanel({
     setEditFeeAmount(member.feeAmount?.toString() || '5');
     setEditPaymentMethod(member.paymentMethod || 'Bank Transfer');
     setEditPaymentReference(member.paymentReference || '');
-    setEditReceiptImage(member.receiptImage || '');
   };
 
   const handleUpdateMemberSubmit = async (e: React.FormEvent) => {
@@ -228,7 +227,6 @@ export default function AdminPanel({
         feeAmount: Number(editFeeAmount) || 5,
         paymentMethod: editPaymentMethod,
         paymentReference: editPaymentReference.trim(),
-        receiptImage: editReceiptImage,
         ...extraUpdate
       });
 
@@ -467,22 +465,45 @@ export default function AdminPanel({
   // Donation Actions
   const handleDonationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dDonor || !dAmount) return;
+    if (!dDonor || !dAmount || !dPhone) {
+      alert('Donor Name, Phone and Amount are required.');
+      return;
+    }
     try {
+      const receiptNo = `OPC-REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
       await addDoc(collection(db, 'donations'), {
         donor: dDonor.trim(),
+        phone: dPhone.trim(),
         amount: parseFloat(dAmount),
         date: dDate,
         method: dMethod,
         note: dNote.trim(),
+        status: 'approved',
+        receiptNumber: receiptNo,
         createdAt: Timestamp.now()
       });
-      alert('Donation registered successfully.');
+      alert(`Donation registered successfully and Approved under Serial: ${receiptNo}`);
       setDDonor('');
+      setDPhone('');
       setDAmount('');
       setDNote('');
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const handleDonationApproval = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      const receiptNo = `OPC-REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      await updateDoc(doc(db, 'donations', id), {
+        status,
+        receiptNumber: status === 'approved' ? receiptNo : null,
+        approvedAt: Timestamp.now(),
+        approvedBy: user?.email || 'OPC Administrator'
+      });
+      alert(`Donation claim status updated to: ${status.toUpperCase()}`);
+    } catch (err: any) {
+      alert('Error updating donation claim: ' + err.message);
     }
   };
 
@@ -2612,10 +2633,12 @@ export default function AdminPanel({
               </button>
             </div>
 
-            <form onSubmit={handleDonationSubmit} className="max-w-2xl bg-slate-50 p-6 rounded-lg border border-slate-200 space-y-4">
-              <h4 className="font-bold text-sm text-emerald-900 border-b pb-1.5">Record Physical Donation Receipt</h4>
+            <form onSubmit={handleDonationSubmit} className="max-w-2xl bg-slate-50 p-6 rounded-lg border border-slate-200 space-y-4 font-sans">
+              <h4 className="font-bold text-sm text-emerald-900 border-b pb-1.5 flex items-center gap-1.5">
+                <DollarSign size={16} /> Record Physical Donation Receipt / Log Pre-Approved Dues
+              </h4>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Donor Name *</label>
                   <input 
@@ -2623,21 +2646,32 @@ export default function AdminPanel({
                     required 
                     value={dDonor} 
                     onChange={e => setDDonor(e.target.value)}
-                    placeholder="e.g. Ikram Bacha"
+                    placeholder="e.g. Javed Swati"
                     className="w-full px-3 py-2 border rounded bg-white text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Donated Amount (OMR) *</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Donor Phone *</label>
+                  <input 
+                    type="tel" 
+                    required 
+                    value={dPhone} 
+                    onChange={e => setDPhone(e.target.value)}
+                    placeholder="e.g. +968 99111870"
+                    className="w-full px-3 py-2 border rounded bg-white text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 font-sans">Donated Amount (OMR) *</label>
                   <input 
                     type="number" 
                     step="0.001" 
-                    min="0"
+                    min="0.001"
                     required 
                     value={dAmount} 
                     onChange={e => setDAmount(e.target.value)}
                     placeholder="0.000"
-                    className="w-full px-3 py-2 border rounded bg-white text-sm"
+                    className="w-full px-3 py-2 border rounded bg-white text-sm font-mono"
                   />
                 </div>
               </div>
@@ -2650,11 +2684,11 @@ export default function AdminPanel({
                     required 
                     value={dDate} 
                     onChange={e => setDDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-sm"
+                    className="w-full px-3 py-2 border rounded bg-white text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Payment Method</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 font-sans">Payment Method</label>
                   <select 
                     value={dMethod} 
                     onChange={e => setDMethod(e.target.value as any)}
@@ -2668,7 +2702,7 @@ export default function AdminPanel({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Notes / Purpose</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 font-sans">Notes / Purpose</label>
                 <input 
                   type="text" 
                   value={dNote} 
@@ -2678,40 +2712,81 @@ export default function AdminPanel({
                 />
               </div>
 
-              <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-4 py-2 rounded text-xs cursor-pointer">
-                Save Ledger Record
+              <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-4 py-2 rounded text-xs cursor-pointer shadow-xs font-sans">
+                Save Ledger Record (Pre-Approved)
               </button>
             </form>
 
-            <div className="overflow-x-auto border rounded-xl">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto border rounded-xl bg-white shadow-xs">
+              <table className="w-full text-left text-xs font-sans">
                 <thead className="bg-slate-100">
                   <tr>
                     <th className="p-3">Reference Date</th>
                     <th className="p-3">Donor Name</th>
+                    <th className="p-3">Donor Phone</th>
                     <th className="p-3">Amount (OMR)</th>
                     <th className="p-3">Gateway Method</th>
-                    <th className="p-3">Memo Notes</th>
+                    <th className="p-3">Approval Status</th>
+                    <th className="p-3 text-left">Memo Notes</th>
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y text-slate-600">
+                <tbody className="divide-y text-slate-600 text-left">
                   {donations.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-6 text-center text-slate-400">No registered donations log.</td>
+                      <td colSpan={8} className="p-6 text-center text-slate-400">No registered donations log.</td>
                     </tr>
                   ) : (
                     donations.map(d => (
-                      <tr key={d.id} className="hover:bg-slate-50/40">
-                        <td className="p-3 font-mono">{d.date}</td>
-                        <td className="p-3 font-semibold text-emerald-950">{d.donor}</td>
+                      <tr key={d.id} className="hover:bg-slate-50/40 border-b">
+                        <td className="p-3 font-mono text-[11px] whitespace-nowrap">{d.date}</td>
+                        <td className="p-3 font-semibold text-emerald-950 uppercase">{d.donor}</td>
+                        <td className="p-3 font-mono text-[11px]">{d.phone || '-'}</td>
                         <td className="p-3 text-emerald-900 font-bold font-mono">OMR {Number(d.amount).toFixed(3)}</td>
-                        <td className="p-3">{d.method}</td>
-                        <td className="p-3 italic text-slate-400">{d.note || '-'}</td>
+                        <td className="p-3 text-slate-600">{d.method}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase font-sans ${
+                            d.status === 'approved' 
+                              ? 'bg-green-100 text-green-800 border border-green-200' 
+                              : d.status === 'rejected'
+                              ? 'bg-red-100 text-red-800 border border-red-200'
+                              : 'bg-amber-100 text-amber-80 * border border-amber-200'
+                          }`}>
+                            {d.status || 'pending'}
+                          </span>
+                          {d.receiptNumber && (
+                            <span className="block mt-1 text-[9px] font-mono font-medium text-slate-400 text-left">
+                              ID: {d.receiptNumber}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 italic text-slate-400 text-left">{d.note || '-'}</td>
                         <td className="p-3 text-right">
-                          <button onClick={() => handleDeleteDonation(d.id!)} className="text-red-600 p-1 rounded hover:bg-red-50 cursor-pointer">
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex justify-end items-center gap-1 whitespace-nowrap">
+                            {d.status === 'pending' && (
+                              <div className="flex items-center gap-1.5 mr-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDonationApproval(d.id!, 'approved')}
+                                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2 py-1 rounded text-[10px] uppercase tracking-wider transition cursor-pointer"
+                                  title="Approve Claims"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDonationApproval(d.id!, 'rejected')}
+                                  className="bg-red-655 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] uppercase tracking-wider transition cursor-pointer"
+                                  title="Reject Claims"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                            <button onClick={() => handleDeleteDonation(d.id!)} className="text-red-650 p-1.5 rounded hover:bg-red-50 cursor-pointer" title="Delete record">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -3815,7 +3890,7 @@ export default function AdminPanel({
                 </div>
 
                 {/* Edit Payment Receipt verification block */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                   <h6 className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Registration Payment Verification</h6>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
@@ -3854,61 +3929,6 @@ export default function AdminPanel({
                         placeholder="e.g. Reference string"
                         className="w-full px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-800 bg-white font-mono"
                       />
-                    </div>
-                  </div>
-
-                  {/* Receipt Upload / View section */}
-                  <div className="pt-3 border-t border-slate-200">
-                    <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Uploaded Payment Receipt / Proof of Payment
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                      <div className="flex-1">
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                const b64 = await getBase64(file);
-                                setEditReceiptImage(b64);
-                              } catch (err) {
-                                alert('Error reading file.');
-                              }
-                            }
-                          }}
-                          className="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1">Upload a photo to replace or add a payment receipt for verification.</p>
-                      </div>
-
-                      {editReceiptImage ? (
-                        <div className="shrink-0 flex flex-col items-center">
-                          <img 
-                            src={editReceiptImage} 
-                            alt="Receipt proof" 
-                            className="w-20 h-20 object-contain border border-slate-200 rounded shadow-xs cursor-pointer hover:border-emerald-500 transition-all"
-                            onClick={() => {
-                              const w = window.open();
-                              if (w) {
-                                w.document.write(`<img src="${editReceiptImage}" style="max-width:100%; height:auto;" />`);
-                              }
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setEditReceiptImage('')}
-                            className="text-[9px] text-red-600 hover:text-red-800 font-bold mt-1 uppercase"
-                          >
-                            Remove Receipt
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="h-20 w-20 rounded border-2 border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 text-center uppercase p-1 shrink-0 font-medium">
-                          No receipt proof
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

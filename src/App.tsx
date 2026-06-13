@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where 
+  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where, deleteDoc 
 } from 'firebase/firestore';
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from './firebase';
@@ -58,6 +58,7 @@ import {
 // Importing sub-components
 import SponsoredBillboard from './components/SponsoredBillboard';
 import DocumentModal from './components/DocumentModal';
+import FounderProfileModal from './components/FounderProfileModal';
 import AdminPanel from './components/AdminPanel';
 import AIAssistant from './components/AIAssistant';
 import CountdownTimer from './components/CountdownTimer';
@@ -65,9 +66,10 @@ import CabinetPanel from './components/CabinetPanel';
 import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
 
 import { motion, AnimatePresence } from 'motion/react';
+import { jsPDF } from 'jspdf';
 
 import { 
-  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle, Quote, ArrowUp 
+  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle, Quote, ArrowUp, DollarSign 
 } from 'lucide-react';
 
 // Help helper for base64 image scaling
@@ -166,6 +168,7 @@ export default function App() {
   // Active Doc Generation
   const [activeDocMember, setActiveDocMember] = useState<Member | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
+  const [founderModalOpen, setFounderModalOpen] = useState(false);
 
   // --- Form submission parameters ---
   const [rName, setRName] = useState('');
@@ -178,7 +181,6 @@ export default function App() {
   const [rOccupation, setROccupation] = useState('');
   const [rEmergency, setREmergency] = useState('');
   const [rPhoto, setRPhoto] = useState('');
-  const [rReceiptImage, setRReceiptImage] = useState('');
   const [rFeeAmount, setRFeeAmount] = useState('5');
   const [rPayMethod, setRPayMethod] = useState('Bank Transfer');
   const [rPayRef, setRPayRef] = useState('');
@@ -189,6 +191,17 @@ export default function App() {
   const [lookupValue, setLookupValue] = useState('');
   const [lookupResult, setLookupResult] = useState<Member | null>(null);
   const [lookupAttempted, setLookupAttempted] = useState(false);
+
+  // --- Public Donation Claim Form State ---
+  const [pubDonorName, setPubDonorName] = useState('');
+  const [pubDonorPhone, setPubDonorPhone] = useState('');
+  const [pubDonorAmount, setPubDonorAmount] = useState('');
+  const [pubDonorDate, setPubDonorDate] = useState(new Date().toISOString().slice(0, 10));
+  const [pubDonorMethod, setPubDonorMethod] = useState<'Bank Transfer' | 'Cash' | 'Mobile Wallet'>('Bank Transfer');
+  const [pubDonorNote, setPubDonorNote] = useState('');
+  const [pubDonorLoading, setPubDonorLoading] = useState(false);
+  const [pubDonorSuccess, setPubDonorSuccess] = useState(false);
+  const [pubDonorError, setPubDonorError] = useState('');
 
   // Submitting incidents
   const [iType, setIType] = useState<'death' | 'injury' | 'loss'>('death');
@@ -326,7 +339,31 @@ export default function App() {
     const unsubscribeDonations = onSnapshot(
       query(collection(db, 'donations'), orderBy('date', 'desc')),
       (snapshot) => {
-        setDonations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Donation })));
+        const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Donation }));
+        
+        // Filter out any test donations matching Pco/Pso/1470 so they never appear on UI, stats or export logs
+        const list = allItems.filter(d => {
+          const donorLower = (d.donor || '').trim().toLowerCase();
+          const noteLower = (d.note || '').trim().toLowerCase();
+          const isTest = donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso');
+          return !isTest;
+        });
+        
+        setDonations(list);
+        
+        // Auto-purge any test donation from the DB (only triggered for authorized admins to prevent guest permission-denied errors)
+        if (adminUser) {
+          allItems.forEach(d => {
+            const donorLower = (d.donor || '').trim().toLowerCase();
+            const noteLower = (d.note || '').trim().toLowerCase();
+            if (donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso')) {
+              console.log('Detected test donation. Auto-purging:', d.id);
+              deleteDoc(doc(db, 'donations', d.id)).catch(() => {
+                // Silently handle deletion error since items are already safely filtered on frontend list
+              });
+            }
+          });
+        }
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'donations');
@@ -470,20 +507,6 @@ export default function App() {
     }
   };
 
-  // Payment receipt image Base64 compression
-  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        // High-fidelity scaling of receipt for readable numbers
-        const compressed = await getBase64Image(file, 480);
-        setRReceiptImage(compressed);
-      } catch (err) {
-        alert('Error processing receipt photo scaling.');
-      }
-    }
-  };
-
   // Submit Member Registration Form
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -502,7 +525,6 @@ export default function App() {
           occupation: rOccupation.trim(),
           emergency: rEmergency.trim(),
           photo: rPhoto,
-          receiptImage: rReceiptImage,
           status: 'pending',
           membershipId: '',
           feeAmount: Number(rFeeAmount) || 5,
@@ -526,7 +548,6 @@ export default function App() {
       setROccupation('');
       setREmergency('');
       setRPhoto('');
-      setRReceiptImage('');
       setRFeeAmount('5');
       setRPayMethod('Bank Transfer');
       setRPayRef('');
@@ -605,6 +626,197 @@ export default function App() {
     }
   };
 
+  const handlePublicDonationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pubDonorName.trim() || !pubDonorAmount || !pubDonorPhone.trim()) {
+      setPubDonorError('Please complete all required fields (*).');
+      return;
+    }
+    setPubDonorLoading(true);
+    setPubDonorSuccess(false);
+    setPubDonorError('');
+    try {
+      try {
+        await addDoc(collection(db, 'donations'), {
+          donor: pubDonorName.trim(),
+          phone: pubDonorPhone.trim(),
+          amount: parseFloat(pubDonorAmount),
+          date: pubDonorDate,
+          method: pubDonorMethod,
+          note: pubDonorNote.trim(),
+          status: 'pending',
+          createdAt: Timestamp.now()
+        });
+      } catch (fErr) {
+        handleFirestoreError(fErr, OperationType.CREATE, 'donations');
+      }
+      setPubDonorSuccess(true);
+      setPubDonorName('');
+      setPubDonorPhone('');
+      setPubDonorAmount('');
+      setPubDonorNote('');
+    } catch (err: any) {
+      setPubDonorError(err.message || 'Error logging donation claim.');
+    } finally {
+      setPubDonorLoading(false);
+    }
+  };
+
+  const downloadDonationReceiptPDF = (d: Donation) => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width; // 210 for A4
+      const pageHeight = doc.internal.pageSize.height; // 297 for A4
+
+      // Draw background decorations
+      doc.setFillColor(27, 77, 62); // Emerald Green
+      doc.rect(0, 0, pageWidth, 5, 'F');
+
+      // Watermark
+      doc.setFontSize(24);
+      doc.setTextColor(242, 245, 243);
+      doc.setFont('helvetica', 'bold');
+      doc.text("OMAN PAKHTOON COMMUNITY", pageWidth / 2, 110, { align: 'center', angle: 25 });
+
+      // Title header
+      doc.setFontSize(18);
+      doc.setTextColor(27, 77, 62);
+      doc.text("OMAN PAKHTOON COMMUNITY", pageWidth / 2, 25, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.setTextColor(200, 16, 46); // Crimson
+      doc.setFont('helvetica', 'bold');
+      doc.text("COMMUNITY WELFARE FUND & DONATION RECEIPT", pageWidth / 2, 32, { align: 'center' });
+
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.text("Official Welfare Society, Muscat, Sultanate of Oman | Admin Code: OPC-OM", pageWidth / 2, 38, { align: 'center' });
+
+      // Divider Line
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.5);
+      doc.line(15, 45, pageWidth - 15, 45);
+
+      // Details Box Left
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text("DONOR DETAILS / RECEIPT TO:", 15, 55);
+
+      doc.setFontSize(12);
+      doc.setTextColor(27, 77, 62);
+      doc.setFont('helvetica', 'bold');
+      doc.text(d.donor.toUpperCase(), 15, 62);
+
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Mobile Phone No: ${d.phone}`, 15, 68);
+      doc.text(`Payment Gateway: ${d.method}`, 15, 73);
+      if (d.note) {
+        doc.text(`Memo Note: ${d.note}`, 15, 78);
+      }
+
+      // Receipt Metadata Right
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text("RECEIPT METADATA:", pageWidth - 15, 55, { align: 'right' });
+
+      const issueYear = new Date(d.createdAt?.seconds ? d.createdAt.seconds * 1000 : Date.now()).getFullYear();
+      const receiptNo = d.receiptNumber || `OPC-REC-${issueYear}-${String(d.id).substring(0, 5).toUpperCase()}`;
+      doc.setFontSize(11);
+      doc.setTextColor(200, 16, 46);
+      doc.text(`Receipt Serial: ${receiptNo}`, pageWidth - 15, 62, { align: 'right' });
+
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Payment Date: ${d.date}`, pageWidth - 15, 68, { align: 'right' });
+      doc.text(`Approval Status: APPROVED & RECORDED`, pageWidth - 15, 73, { align: 'right' });
+
+      // Table Dues Block
+      doc.setFillColor(248, 250, 252);
+      doc.rect(15, 88, pageWidth - 30, 10, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(15, 88, pageWidth - 30, 10, 'S');
+
+      doc.setFontSize(9);
+      doc.setTextColor(27, 77, 62);
+      doc.setFont('helvetica', 'bold');
+      doc.text("TRANSACTION DESCRIPTION", 18, 94);
+      doc.text("TOTAL APPROVED DUES (OMR)", pageWidth - 18, 94, { align: 'right' });
+
+      // Table Row
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'normal');
+      doc.text("Oman Pakhtoon Community Welfare Fund General Donation Contribution", 18, 110);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${Number(d.amount).toFixed(3)} OMR`, pageWidth - 18, 110, { align: 'right' });
+
+      // Divider Row
+      doc.line(15, 116, pageWidth - 15, 116);
+
+      // Explainer Footer
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'normal');
+      doc.text("Your donation directly backs Body Repatriation, critical medical care, and asset", 18, 126);
+      doc.text("hardship relief programs for Pakhtoons in the Sultanate of Oman.", 18, 131);
+
+      // Calculations summary box
+      const calcX = pageWidth - 90;
+      doc.setFillColor(241, 245, 249);
+      doc.rect(calcX, 138, 75, 20, 'F');
+      doc.rect(calcX, 138, 75, 20, 'S');
+
+      doc.setFontSize(9);
+      doc.setTextColor(27, 77, 62);
+      doc.setFont('helvetica', 'bold');
+      doc.text("GRAND CERTIFIED AMOUNT:", calcX + 3, 144);
+
+      doc.setFontSize(11);
+      doc.setTextColor(200, 16, 46);
+      doc.text(`${Number(d.amount).toFixed(3)} OMR`, pageWidth - 18, 151, { align: 'right' });
+
+      // Official Received Seal
+      doc.setDrawColor(4, 120, 87);
+      doc.setLineWidth(1);
+      doc.rect(15, 138, 55, 20, 'S');
+      doc.setFontSize(11);
+      doc.setTextColor(4, 120, 87);
+      doc.text("RECEIVED", 42, 147, { align: 'center' });
+      doc.setFontSize(6);
+      doc.text("OPC TREASURY UNIT", 42, 154, { align: 'center' });
+
+      // Signatures
+      doc.setLineWidth(0.3);
+      doc.line(pageWidth - 85, 195, pageWidth - 25, 195);
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text("IKRAM BACHA", pageWidth - 55, 201, { align: 'center' });
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.text("Official Collector / Treasurer", pageWidth - 55, 206, { align: 'center' });
+
+      // Disclaimer Footer Text
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.setFont('helvetica', 'italic');
+      doc.text("This official electronic system-generated receipt is fully certified and issued by OPC.", pageWidth / 2, 235, { align: 'center' });
+      doc.text("Support Desk & WhatsApp Contact: +968 99111870", pageWidth / 2, 240, { align: 'center' });
+
+      doc.save(`OPC-Donation-Receipt-${d.id}.pdf`);
+    } catch (err: any) {
+      alert("Failed to render PDF: " + err.message);
+    }
+  };
+
   // Public Poll Cast Vote
   const handlePublicVote = async (electionId: string, candidateId: string) => {
     if (!currentUser) {
@@ -668,11 +880,9 @@ export default function App() {
 
   // Calculation variables
   const totalApprovedMembers = members.filter(m => m.status === 'approved').length;
-  const approvedMembersRegistrationFees = members
-    .filter(m => m.status === 'approved')
-    .reduce((sum, m) => sum + (m.feeAmount !== undefined ? Number(m.feeAmount) : 5), 0);
-  const accumulativeDonations = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const accumulativeFunds = accumulativeDonations + approvedMembersRegistrationFees;
+  const accumulativeFunds = donations
+    .filter(d => d.status === 'approved')
+    .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const reportedIncidentCount = incidents.filter(i => i.status === 'published').length;
 
   return (
@@ -894,12 +1104,9 @@ export default function App() {
                   </div>
                   <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Welfare Donations
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Welfare donations
                     </span>
-                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">OMR {accumulativeFunds.toFixed(3)}</p>
-                    <span className="text-[9px] text-amber-300/60 mt-1 font-mono uppercase tracking-wider block">
-                      Reg: OMR {approvedMembersRegistrationFees.toFixed(3)} | Don: OMR {accumulativeDonations.toFixed(3)}
-                    </span>
+                    <p className="text-3xl font-bold font-serif text-white mt-1.5">OMR {accumulativeFunds.toFixed(3)}</p>
                   </div>
                   <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
@@ -984,13 +1191,124 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2.5 pt-2">
+                <div className="flex flex-wrap gap-2.5 pt-2 pb-2">
                   <a href="tel:+96899111870" className="bg-amber-500 hover:bg-amber-600 text-emerald-950 font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow transition active:scale-95">
                     Call Ikram Bacha (+968 99111870)
                   </a>
                   <a href="https://wa.me/96899111870" target="_blank" rel="noopener noreferrer" className="bg-emerald-955 hover:bg-emerald-960 text-white font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow border border-emerald-750 transition active:scale-95" style={{ backgroundColor: '#135c46' }}>
                     Confirm payment details on WhatsApp
                   </a>
+                </div>
+
+                {/* Public Donation Claim Form */}
+                <div className="border-t border-emerald-800/60 pt-6 mt-6 max-w-xl">
+                  <h4 className="font-bold text-sm text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <DollarSign size={16} /> Log Your Donation / Submit Payment Claim
+                  </h4>
+                  <p className="text-xs text-emerald-100/70 mb-4 leading-relaxed">
+                    If you have already processed a transfer to our official Bank Dhofar account or via Mobile Wallet, please enter your transfer details below to submit a claim. Once approved by the OPC Admin, your dynamic payment receipt will be generated.
+                  </p>
+
+                  {pubDonorSuccess && (
+                    <div className="bg-emerald-950 border border-emerald-700 text-emerald-300 rounded-lg p-4 mb-4 text-xs font-sans">
+                      <p className="font-bold mb-1">✓ Donation Claim Logged Successfully!</p>
+                      <p className="text-emerald-300/80 leading-relaxed">
+                        Thank you for your generous contribution. Your claim has been queued for OPC executive board review. You will be able to search and download your official PDF Payment Receipt using your contact mobile number as soon as it is approved.
+                      </p>
+                    </div>
+                  )}
+
+                  {pubDonorError && (
+                    <div className="bg-red-950 border border-red-800 text-red-300 rounded-lg p-3 mb-4 text-xs">
+                      {pubDonorError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePublicDonationSubmit} className="space-y-4 text-left">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1 font-sans">Donor Name *</label>
+                        <input 
+                          type="text"
+                          required
+                          value={pubDonorName}
+                          onChange={(e) => setPubDonorName(e.target.value)}
+                          placeholder="e.g. Javed Swati"
+                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1 font-sans">Mobile Phone Number *</label>
+                        <input 
+                          type="tel"
+                          required
+                          value={pubDonorPhone}
+                          onChange={(e) => setPubDonorPhone(e.target.value)}
+                          placeholder="e.g. +968 99111870"
+                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Amount Donated (OMR) *</label>
+                        <input 
+                          type="number"
+                          step="0.001"
+                          min="0.001"
+                          required
+                          value={pubDonorAmount}
+                          onChange={(e) => setPubDonorAmount(e.target.value)}
+                          placeholder="0.000"
+                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Transfer Date *</label>
+                        <input 
+                          type="date"
+                          required
+                          value={pubDonorDate}
+                          onChange={(e) => setPubDonorDate(e.target.value)}
+                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Payment Channel *</label>
+                        <select 
+                          value={pubDonorMethod}
+                          onChange={(e) => setPubDonorMethod(e.target.value as any)}
+                          className="w-full h-9 px-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500"
+                        >
+                          <option value="Bank Transfer">Bank Transfer (BankDhofar)</option>
+                          <option value="Cash">Cash Handover</option>
+                          <option value="Mobile Wallet">Mobile Wallet / Pay</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Memo / Reference Code</label>
+                        <input 
+                          type="text"
+                          value={pubDonorNote}
+                          onChange={(e) => setPubDonorNote(e.target.value)}
+                          placeholder="e.g., Bank transaction reference"
+                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={pubDonorLoading}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold py-2.5 px-4 rounded text-xs tracking-wider uppercase shadow hover:shadow-md transition active:scale-95 text-center flex items-center justify-center gap-1.5 cursor-pointer font-sans"
+                    >
+                      {pubDonorLoading ? 'Submitting Transfer Claim...' : 'Log Transfer Claim & Submit Dues'}
+                    </button>
+                  </form>
                 </div>
               </section>
 
@@ -1000,18 +1318,30 @@ export default function App() {
                   <Quote size={200} />
                 </div>
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 relative z-10">
-                  {/* Founder photo / icon placeholder */}
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 p-1 shadow-md shrink-0 flex items-center justify-center">
-                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden font-serif font-bold text-3xl sm:text-4xl text-amber-600 uppercase select-none">
-                      MA
-                    </div>
+                  {/* Founder photo */}
+                  <div
+                    onClick={() => setFounderModalOpen(true)}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 p-1 shadow-md shrink-0 flex items-center justify-center overflow-hidden cursor-pointer hover:scale-105 transition duration-300"
+                    title="View Al-Haj Muhammad Amin Profile"
+                  >
+                    <img
+                      src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256&h=256"
+                      alt="Al-Haj Muhammad Amin"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   </div>
                   {/* Message content */}
-                  <div className="space-y-4 text-center md:text-left flex-1">
+                  <div className="space-y-4 text-center md:text-left flex-1 font-sans">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Message from the Founder</span>
-                      <h3 className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight">Malak Abbas</h3>
-                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">Founder of Oman Pakhtoon Community (OPC)</p>
+                      <h3 
+                        onClick={() => setFounderModalOpen(true)}
+                        className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight cursor-pointer hover:text-amber-800 transition"
+                      >
+                        Al-Haj Muhammad Amin
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">Founder & President of Oman Pakhtoon Community (OPC)</p>
                     </div>
                     <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative">
                       "The Sultanate of Oman has been a second home to thousands of our Pakhtoon brothers who have contributed with their passion, labor, and dedication to the rise of this brotherly nation. We established OPC with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of hardship. From general emergency relief to repatriation support, we protect our family. Register with us, stay law-abiding, contribute to our community funds, and keep up the proud legacy of service in Oman."
@@ -1020,15 +1350,23 @@ export default function App() {
                       <p className="text-[11px] text-slate-400 italic">
                         Established with a legacy of brotherhood &bull; Muscat, Sultanate of Oman
                       </p>
-                      <button 
-                        onClick={() => {
-                          setCurrentPage('register');
-                          window.scrollTo(0, 0);
-                        }}
-                        className="bg-emerald-900 border border-emerald-950 text-white font-bold text-xs uppercase px-5 py-2.5 rounded-xl shadow-xs hover:bg-emerald-950 hover:shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <UserPlus size={14} /> Join Our Brotherhood
-                      </button>
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        <button 
+                          onClick={() => setFounderModalOpen(true)}
+                          className="bg-amber-500 hover:bg-amber-655 text-emerald-950 font-bold text-xs uppercase px-4 py-2.5 rounded-xl shadow-xs hover:shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Award size={14} /> View Founder Profile
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setCurrentPage('register');
+                            window.scrollTo(0, 0);
+                          }}
+                          className="bg-emerald-900 border border-emerald-950 text-white font-bold text-xs uppercase px-4 py-2.5 rounded-xl shadow-xs hover:bg-emerald-950 hover:shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <UserPlus size={14} /> Join Our Brotherhood
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1519,35 +1857,6 @@ export default function App() {
                         />
                       </div>
                     </div>
-
-                    {/* Receipt Upload Row */}
-                    <div className="pt-3 border-t border-emerald-100/40">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                        Upload Payment Receipt (Proof of Payment) *
-                      </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        required
-                        onChange={handleReceiptUpload}
-                        className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-900 hover:file:bg-amber-100 cursor-pointer"
-                        id="member-receipt-file"
-                      />
-                      <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                        Please upload a screenshot of your Bank Transfer, Mobile Wallet payment receipt, or cash receipt to speed up verification.
-                      </p>
-                      
-                      {rReceiptImage && (
-                        <div className="mt-3 inline-block">
-                          <span className="text-[10px] text-slate-400 block mb-1 font-bold uppercase tracking-wider">Receipt Preview:</span>
-                          <img 
-                            src={rReceiptImage} 
-                            alt="Receipt preview scroll template" 
-                            className="max-h-24 w-auto object-contain border border-slate-200 rounded p-1 bg-white shadow-xs" 
-                          />
-                        </div>
-                      )}
-                    </div>
                   </div>
 
                   <div>
@@ -1608,12 +1917,11 @@ export default function App() {
                     >
                       Verify Status
                     </button>
-                  </form>
-
-                  {/* RESULTS SECTION */}
+                  </form>                  {/* RESULTS SECTION */}
                   {lookupAttempted && (
-                    <div className="mt-4 border-t pt-5 animate-fade-in">
-                      {lookupResult ? (
+                    <div className="mt-4 border-t pt-5 animate-fade-in space-y-6">
+                      {/* 1. Member Profile Results */}
+                      {lookupResult && (
                         <div className="space-y-6">
                           {/* Success Banner */}
                           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3 text-green-900">
@@ -1712,15 +2020,99 @@ export default function App() {
                             </p>
                           </div>
                         </div>
-                      ) : (
+                      )}
+
+                      {/* 2. Donation Receipts Lookup Results */}
+                      {donations.filter(d => {
+                        const rawSearchVal = lookupValue.trim().toLowerCase();
+                        const searchValNoSymbols = rawSearchVal.replace(/[^a-z0-9]/g, '');
+                        if (!searchValNoSymbols) return false;
+                        const phoneValNoSymbols = (d.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const donorVal = (d.donor || '').toLowerCase().trim();
+                        return (phoneValNoSymbols && (phoneValNoSymbols.includes(searchValNoSymbols) || searchValNoSymbols.includes(phoneValNoSymbols))) || 
+                               (donorVal && donorVal.includes(rawSearchVal));
+                      }).length > 0 && (
+                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 sm:p-6 space-y-4">
+                          <div className="flex items-center gap-2 border-b pb-2">
+                            <CheckCircle size={18} className="text-amber-600" />
+                            <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">Approved Welfare Fund Donation Receipts</h4>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            We found the following official Welfare Fund donations recorded under your credentials. Click below to download your certified PDF payment receipt.
+                          </p>
+                          <div className="divide-y divide-slate-100 bg-white rounded-lg border shadow-xs overflow-hidden">
+                            {donations.filter(d => {
+                              const rawSearchVal = lookupValue.trim().toLowerCase();
+                              const searchValNoSymbols = rawSearchVal.replace(/[^a-z0-9]/g, '');
+                              if (!searchValNoSymbols) return false;
+                              const phoneValNoSymbols = (d.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                              const donorVal = (d.donor || '').toLowerCase().trim();
+                              return (phoneValNoSymbols && (phoneValNoSymbols.includes(searchValNoSymbols) || searchValNoSymbols.includes(phoneValNoSymbols))) || 
+                                     (donorVal && donorVal.includes(rawSearchVal));
+                            }).map(d => (
+                              <div key={d.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-950 text-sm">{d.donor}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold font-sans uppercase ${
+                                      d.status === 'approved' 
+                                        ? 'bg-emerald-100 text-emerald-800' 
+                                        : d.status === 'rejected'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                      {d.status || 'pending'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 flex flex-wrap gap-x-3 font-mono">
+                                    <span>Phone: {d.phone}</span>
+                                    <span>&bull;</span>
+                                    <span>Date: {d.date}</span>
+                                    <span>&bull;</span>
+                                    <span>Channel: {d.method}</span>
+                                  </div>
+                                  {d.note && <p className="text-[11px] text-slate-400 italic">"{d.note}"</p>}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="font-bold text-emerald-800 font-mono text-sm sm:text-base">{Number(d.amount).toFixed(3)} OMR</div>
+                                  {d.status === 'approved' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDonationReceiptPDF(d)}
+                                      className="mt-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-2.5 py-1 rounded text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer shadow-xs transition inline-flex"
+                                    >
+                                      <FileText size={12} /> Download PDF Receipt
+                                    </button>
+                                  ) : d.status === 'pending' ? (
+                                    <span className="text-[10px] text-amber-600 block italic font-semibold mt-1">Pending Admin Review</span>
+                                  ) : (
+                                    <span className="text-[10px] text-red-650 block italic font-semibold mt-1">Receipt Rejected</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. Empty State (No member profile AND no donations) */}
+                      {!lookupResult && donations.filter(d => {
+                        const rawSearchVal = lookupValue.trim().toLowerCase();
+                        const searchValNoSymbols = rawSearchVal.replace(/[^a-z0-9]/g, '');
+                        if (!searchValNoSymbols) return false;
+                        const phoneValNoSymbols = (d.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const donorVal = (d.donor || '').toLowerCase().trim();
+                        return (phoneValNoSymbols && (phoneValNoSymbols.includes(searchValNoSymbols) || searchValNoSymbols.includes(phoneValNoSymbols))) || 
+                               (donorVal && donorVal.includes(rawSearchVal));
+                      }).length === 0 && (
                         <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-5 text-center text-amber-900 font-sans">
                           <HelpCircle size={32} className="text-amber-500 p-0.5 mx-auto mb-2.5 animate-pulse shrink-0" />
-                          <span className="font-bold block text-sm">No Approved Lifetime Member Record Found</span>
-                          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
-                            We couldn't locate an approved lifetime membership matching <strong>"{lookupValue}"</strong>. 
-                            If you recently submitted your registration, please wait for administrative coordinators to review your claim.
+                          <span className="font-bold block text-sm">No Approved Lifetime Member or Donation Record Found</span>
+                          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto font-sans">
+                            We couldn't locate any approved membership or verified donation matching <strong>"{lookupValue}"</strong>. 
+                            If you recently submitted, please allow some time for the executive board to complete processing.
                           </p>
-                          <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                          <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center font-sans">
                             <button
                               onClick={() => {
                                 setRegisterTab('submit');
@@ -2031,10 +2423,7 @@ export default function App() {
 
       {/* ----------------- APP FOOTER CARD INFO ----------------- */}
       <footer className="bg-emerald-950 text-amber-50/80 border-t border-amber-500/10 py-10 px-4 text-center text-xs">
-        <div className="container mx-auto max-w-4xl space-y-4 font-sans flex flex-col items-center">
-          <div className="w-14 h-14 bg-white p-0.5 rounded-full border border-amber-500 overflow-hidden shadow-md">
-            <img src={logoImg} alt="OPC Footer Emblem" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
-          </div>
+        <div className="container mx-auto max-w-4xl space-y-3 font-sans flex flex-col items-center">
           <div className="space-y-1.5">
             <p className="font-serif text-amber-300 font-black text-sm tracking-wide">
               Oman Pakhtoon Community (OPC)
@@ -2050,7 +2439,7 @@ export default function App() {
         </div>
       </footer>
 
-      {/* DOCUMENT CARD/CERTIFICATE GENERATOR MODAL */}
+       {/* DOCUMENT CARD/CERTIFICATE GENERATOR MODAL */}
       <DocumentModal 
         isOpen={docModalOpen}
         member={activeDocMember}
@@ -2059,6 +2448,12 @@ export default function App() {
           setDocModalOpen(false);
           setActiveDocMember(null);
         }}
+      />
+
+      {/* FOUNDER DETAILED BIO PROFILE MODAL */}
+      <FounderProfileModal 
+        isOpen={founderModalOpen}
+        onClose={() => setFounderModalOpen(false)}
       />
 
       {/* Floating Back to Top Button */}
