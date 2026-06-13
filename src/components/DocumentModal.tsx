@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Member } from '../types';
-import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon } from 'lucide-react';
 import pukhtoonLogo from '../assets/images/pukhtoon_logo_1781303873200.jpg';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import { connectGoogleWorkspace, getCachedToken, openGooglePicker } from '../utils/googleWorkspace';
+
 
 interface DocumentModalProps {
   member: Member | null;
@@ -29,15 +31,80 @@ const loadImage = (src: string): Promise<HTMLImageElement | null> => {
 };
 
 export default function DocumentModal({ member, isOpen, onClose }: DocumentModalProps) {
-  const [activeTab, setActiveTab] = useState<'card' | 'certificate' | 'receipt' | 'dispatch'>('card');
+  const [activeTab, setActiveTab] = useState<'card' | 'certificate' | 'receipt' | 'dispatch' | 'attachments'>('card');
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [dispatchLogs, setDispatchLogs] = useState<string[]>([]);
   const [memberLocal, setMemberLocal] = useState<Member | null>(null);
 
+  const [isConnectingDrive, setIsConnectingDrive] = useState(false);
+  const [driveError, setDriveError] = useState<string | null>(null);
+
   const cardCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const certCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const receiptCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const handleAttachDriveFile = async () => {
+    setDriveError(null);
+    let token = getCachedToken();
+    if (!token) {
+      setIsConnectingDrive(true);
+      try {
+        const workspaceconn = await connectGoogleWorkspace();
+        if (workspaceconn) {
+          token = workspaceconn.accessToken;
+        }
+      } catch (err: any) {
+        setDriveError(err.message || 'Failed to authenticate with Google Drive.');
+        setIsConnectingDrive(false);
+        return;
+      }
+      setIsConnectingDrive(false);
+    }
+
+    if (token) {
+      openGooglePicker(token, async (file) => {
+        try {
+          if (memberLocal && memberLocal.id) {
+            const currentAttachments = memberLocal.driveAttachments || [];
+            if (currentAttachments.some((f) => f.id === file.id)) {
+              setDriveError('This file is already attached to the member.');
+              return;
+            }
+            const updated = [...currentAttachments, file];
+            await updateDoc(doc(db, 'members', memberLocal.id), {
+              driveAttachments: updated
+            });
+            setMemberLocal(prev => prev ? { ...prev, driveAttachments: updated } : null);
+          }
+        } catch (err: any) {
+          setDriveError(err.message || 'Failed to save attach metadata to database.');
+        }
+      });
+    } else {
+      setDriveError('Authorization is required to use Google Drive Picker.');
+    }
+  };
+
+  const handleRemoveDriveFile = async (fileId: string) => {
+    if (!memberLocal || !memberLocal.id) return;
+    const confirmRemove = window.confirm(
+      'Are you sure you want to remove this Google Drive file attachment? This will only remove the link in the membership registry, not the official file on Google Drive.'
+    );
+    if (!confirmRemove) return;
+
+    try {
+      const currentAttachments = memberLocal.driveAttachments || [];
+      const updated = currentAttachments.filter(f => f.id !== fileId);
+      await updateDoc(doc(db, 'members', memberLocal.id), {
+        driveAttachments: updated
+      });
+      setMemberLocal(prev => prev ? { ...prev, driveAttachments: updated } : null);
+    } catch (err: any) {
+      setDriveError(err.message || 'Failed to remove file connection.');
+    }
+  };
+
 
   // Keep local member sync'd up
   useEffect(() => {
@@ -660,7 +727,23 @@ Oman Pakhtoon Community Welfare Network`;
             <Send size={14} />
             Dispatch Console
             {memberLocal.isDispatched && (
-              <span className="w-2 h-2 rounded-full bg-emerald-555 animate-ping"></span>
+              <span className="w-2 h-2 rounded-full bg-emerald-455 animate-ping"></span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('attachments')}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer ${
+              activeTab === 'attachments' 
+                ? 'border-emerald-800 bg-emerald-50/50 text-emerald-900' 
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Link2 size={14} className="text-emerald-800" />
+            Drive Files
+            {memberLocal.driveAttachments && memberLocal.driveAttachments.length > 0 && (
+              <span className="bg-emerald-800 text-white rounded-full text-[10px] px-1.5 py-0.2">
+                {memberLocal.driveAttachments.length}
+              </span>
             )}
           </button>
         </div>
@@ -858,6 +941,99 @@ Oman Pakhtoon Community Welfare Network`;
                     {isSending && (
                       <span className="inline-block w-2.5 h-1.5 bg-emerald-405 animate-pulse ml-1 font-bold">▋</span>
                     )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 5. GOOGLE DRIVE ATTACHMENTS TAB */}
+          {activeTab === 'attachments' && (
+            <div className="space-y-5 bg-white border border-slate-200 rounded-xl p-5 md:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h4 className="font-serif text-slate-900 font-extrabold text-base border-l-4 border-emerald-850 pl-2">
+                    Google Drive Documents
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Store and reference external registration files, passport scans, or reference files directly on Google Drive.
+                  </p>
+                </div>
+                <div>
+                  <button
+                    onClick={handleAttachDriveFile}
+                    disabled={isConnectingDrive}
+                    className="flex items-center justify-center gap-1.5 bg-emerald-850 hover:bg-emerald-900 text-white font-bold text-xs py-2 px-4 rounded transition cursor-pointer disabled:opacity-50"
+                  >
+                    {isConnectingDrive ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <FolderPlus size={13} />
+                        Attach file from Drive
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {driveError && (
+                <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-200">
+                  {driveError}
+                </div>
+              )}
+
+              {/* Attachments List */}
+              <div className="space-y-3">
+                {!memberLocal.driveAttachments || memberLocal.driveAttachments.length === 0 ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <FileIcon className="mx-auto text-slate-300 mb-2" size={36} />
+                    <p className="text-xs font-semibold text-slate-500">No external documents attached yet</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Click the button above to link official documents from Google Drive.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {memberLocal.driveAttachments.map((f) => (
+                      <div
+                        key={f.id}
+                        className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-lg transition"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-emerald-50 text-emerald-800 rounded-md">
+                            <FileIcon size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate" title={f.name}>
+                              {f.name}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-mono truncate">
+                              ID: {f.id}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-slate-500 hover:text-emerald-800 hover:bg-emerald-50 rounded transition"
+                            title="Open in Google Drive"
+                          >
+                            <ExternalLink size={15} />
+                          </a>
+                          <button
+                            onClick={() => handleRemoveDriveFile(f.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
+                            title="Remove attachment link"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

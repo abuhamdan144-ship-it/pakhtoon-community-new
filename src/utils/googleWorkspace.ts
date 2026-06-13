@@ -300,3 +300,78 @@ export const deleteGoogleDriveFile = async (token: string, fileId: string): Prom
     throw new Error(`Google Drive API Error during file deletion: ${errText}`);
   }
 };
+
+export interface PickerFile {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+}
+
+/**
+ * Loads the Google API client script and triggers the Google Picker interface
+ */
+export const openGooglePicker = (
+  token: string,
+  onPicked: (file: PickerFile) => void,
+  onCancel?: () => void
+) => {
+  const loadPicker = () => {
+    if (!(window as any).gapi) {
+      console.error('Google API (gapi) script could not be loaded.');
+      return;
+    }
+    (window as any).gapi.load('picker', {
+      callback: () => {
+        try {
+          const pickerOrigin =
+            window.location.ancestorOrigins &&
+            window.location.ancestorOrigins.length > 0
+              ? window.location.ancestorOrigins[
+                  window.location.ancestorOrigins.length - 1
+                ]
+              : window.location.origin;
+
+          const picker = new (window as any).google.picker.PickerBuilder()
+            .addView((window as any).google.picker.ViewId.DOCS)
+            .setOAuthToken(token)
+            .setCallback((data: any) => {
+              if (data.action === (window as any).google.picker.Action.PICKED) {
+                const doc = data.docs[0];
+                if (doc) {
+                  onPicked({
+                    id: doc.id,
+                    name: doc.name,
+                    url: doc.url || `https://drive.google.com/file/d/${doc.id}/view?usp=drivesdk`,
+                    mimeType: doc.mimeType || '',
+                  });
+                }
+              } else if (data.action === (window as any).google.picker.Action.CANCEL) {
+                if (onCancel) onCancel();
+              }
+            })
+            .setOrigin(pickerOrigin)
+            .build();
+          
+          picker.setVisible(true);
+        } catch (err) {
+          console.error("Error creating Google Picker:", err);
+        }
+      }
+    });
+  };
+
+  // If script not loaded, inject it dynamically
+  if (!(window as any).gapi) {
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.defer = true;
+    script.onload = loadPicker;
+    document.body.appendChild(script);
+  } else {
+    loadPicker();
+  }
+};
+

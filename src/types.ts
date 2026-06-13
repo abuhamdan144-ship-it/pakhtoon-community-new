@@ -20,6 +20,7 @@ export interface Member {
   receiptNumber?: string;
   isDispatched?: boolean;
   dispatchedAt?: any; // Firestore Timestamp
+  driveAttachments?: { id: string; name: string; url: string; mimeType?: string; }[];
 }
 
 export interface Donation {
@@ -57,6 +58,7 @@ export interface IncidentReport {
   contact: string;
   status: 'pending' | 'published' | 'closed';
   createdAt: any;
+  driveAttachments?: { id: string; name: string; url: string; mimeType?: string; }[];
 }
 
 export interface EmbassySetting {

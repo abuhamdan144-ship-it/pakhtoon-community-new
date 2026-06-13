@@ -8,7 +8,7 @@ import {
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
 } from '../types';
 import { 
-  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw 
+  Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
 } from 'lucide-react';
 import {
   connectGoogleWorkspace,
@@ -21,6 +21,7 @@ import {
   listOpcWorkspaceFiles,
   uploadBackupToGoogleDrive,
   deleteGoogleDriveFile,
+  openGooglePicker,
   DriveFile
 } from '../utils/googleWorkspace';
 import {
@@ -142,6 +143,11 @@ export default function AdminPanel({
   const [incidentSearchQuery, setIncidentSearchQuery] = useState('');
   const [incidentSortField, setIncidentSortField] = useState<'type' | 'name' | 'date' | 'status' | null>(null);
   const [incidentSortOrder, setIncidentSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Incident Documents management state
+  const [activeIncidentDocs, setActiveIncidentDocs] = useState<IncidentReport | null>(null);
+  const [isConnectingIncidentDrive, setIsConnectingIncidentDrive] = useState(false);
+  const [incidentDriveError, setIncidentDriveError] = useState<string | null>(null);
 
   // Google Workspace Sync States
   const [googleEmail, setGoogleEmail] = useState<string | null>(getConnectedEmail());
@@ -417,6 +423,68 @@ export default function AdminPanel({
   const handleDeleteIncident = async (id: string) => {
     if (!confirm('Delete incident report?')) return;
     await deleteDoc(doc(db, 'incidents', id));
+  };
+
+  const handleAttachIncidentDriveFile = async () => {
+    setIncidentDriveError(null);
+    let token = getCachedToken();
+    if (!token) {
+      setIsConnectingIncidentDrive(true);
+      try {
+        const workspaceconn = await connectGoogleWorkspace();
+        if (workspaceconn) {
+          token = workspaceconn.accessToken;
+          setGoogleEmail(workspaceconn.email);
+        }
+      } catch (err: any) {
+        setIncidentDriveError(err.message || 'Failed to authenticate with Google Drive.');
+        setIsConnectingIncidentDrive(false);
+        return;
+      }
+      setIsConnectingIncidentDrive(false);
+    }
+
+    if (token) {
+      openGooglePicker(token, async (file) => {
+        try {
+          if (activeIncidentDocs && activeIncidentDocs.id) {
+            const currentAttachments = activeIncidentDocs.driveAttachments || [];
+            if (currentAttachments.some((f) => f.id === file.id)) {
+              setIncidentDriveError('This file is already attached.');
+              return;
+            }
+            const updated = [...currentAttachments, file];
+            await updateDoc(doc(db, 'incidents', activeIncidentDocs.id), {
+              driveAttachments: updated
+            });
+            setActiveIncidentDocs(prev => prev ? { ...prev, driveAttachments: updated } : null);
+          }
+        } catch (err: any) {
+          setIncidentDriveError(err.message || 'Failed to save attachment metadata to database.');
+        }
+      });
+    } else {
+      setIncidentDriveError('Authorization is required to use Google Drive Picker.');
+    }
+  };
+
+  const handleRemoveIncidentDriveFile = async (fileId: string) => {
+    if (!activeIncidentDocs || !activeIncidentDocs.id) return;
+    const confirmRemove = window.confirm(
+      'Are you sure you want to remove this attached file from the Claim/Incident? This only deletes the association, not the actual file from Google Drive.'
+    );
+    if (!confirmRemove) return;
+
+    try {
+      const currentAttachments = activeIncidentDocs.driveAttachments || [];
+      const updated = currentAttachments.filter(f => f.id !== fileId);
+      await updateDoc(doc(db, 'incidents', activeIncidentDocs.id), {
+        driveAttachments: updated
+      });
+      setActiveIncidentDocs(prev => prev ? { ...prev, driveAttachments: updated } : null);
+    } catch (err: any) {
+      setIncidentDriveError(err.message || 'Failed to remove file connection.');
+    }
   };
 
   // News Actions
@@ -2066,6 +2134,14 @@ export default function AdminPanel({
                               Archive / Close
                             </button>
                           )}
+                          <button 
+                            onClick={() => setActiveIncidentDocs(i)} 
+                            className="bg-emerald-50 text-emerald-800 px-2 py-1 rounded text-[10px] font-semibold cursor-pointer hover:bg-emerald-100 inline-flex items-center gap-1 inline-block align-middle"
+                            title="Manage Google Drive attachments"
+                          >
+                            <Paperclip size={11} />
+                            Docs ({i.driveAttachments?.length || 0})
+                          </button>
                           <button onClick={() => handleDeleteIncident(i.id!)} className="text-red-600 p-1 hover:bg-red-50 rounded inline-block align-middle cursor-pointer">
                             <Trash2 size={14} />
                           </button>
@@ -3075,6 +3151,124 @@ export default function AdminPanel({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* INCIDENT DOCUMENTS MODAL */}
+        {activeIncidentDocs && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg p-5 border hover:border-slate-300 md:p-6 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative">
+              <button 
+                onClick={() => setActiveIncidentDocs(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors z-10"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="border-b border-slate-100 pb-3 mb-5">
+                <span className="text-[10px] text-emerald-800 uppercase font-bold tracking-wide">Welfare Case Reference</span>
+                <h3 className="text-xl font-serif text-emerald-950 font-bold">
+                  Welfare Claim Documents Manager
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Manage external verification letters, medical receipts, or welfare grants documents hosted on Google Drive for: <strong className="text-emerald-850 font-bold">{activeIncidentDocs.name}</strong>
+                </p>
+              </div>
+
+              {incidentDriveError && (
+                <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-200 mb-4">
+                  {incidentDriveError}
+                </div>
+              )}
+
+              {/* Attach/Select Drive File Controls */}
+              <div className="flex justify-between items-center gap-4 bg-slate-50 p-4 border border-slate-150 rounded-xl mb-5">
+                <div className="text-[11px] text-slate-500 font-sans leading-relaxed">
+                  Directly query and attach external medical files, death certifications, or court orders linked safely directly from your Google Drive.
+                </div>
+                <button
+                  onClick={handleAttachIncidentDriveFile}
+                  disabled={isConnectingIncidentDrive}
+                  className="flex items-center gap-1.5 bg-emerald-850 hover:bg-emerald-900 text-white font-bold text-xs py-2 px-3.5 rounded-lg shadow-sm font-sans shrink-0 hover:shadow transition duration-155 cursor-pointer disabled:opacity-50"
+                >
+                  {isConnectingIncidentDrive ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus size={13} />
+                      Link Google Drive File
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Attachments List */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Attached records ({activeIncidentDocs.driveAttachments?.length || 0})</h4>
+                
+                {!activeIncidentDocs.driveAttachments || activeIncidentDocs.driveAttachments.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                    <FileIcon size={32} className="mx-auto text-slate-350 mb-2" />
+                    <p className="text-xs font-semibold text-slate-500">No official document links linked yet.</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Attach medical clearances, receipts, or legal reports above.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {activeIncidentDocs.driveAttachments.map((f) => (
+                      <div
+                        key={f.id}
+                        className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-lg transition"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-emerald-50 text-emerald-850 rounded-lg">
+                            <FileIcon size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-850 truncate" title={f.name}>
+                              {f.name}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-mono truncate">
+                              ID: {f.id}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-slate-500 hover:text-emerald-800 hover:bg-emerald-50 rounded transition"
+                            title="Open in Google Drive"
+                          >
+                            <ExternalLink size={15} />
+                          </a>
+                          <button
+                            onClick={() => handleRemoveIncidentDriveFile(f.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
+                            title="Remove attachment link"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end border-t border-slate-100 pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setActiveIncidentDocs(null)}
+                  className="px-4 py-2 bg-slate-150 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-xs transition duration-150 cursor-pointer"
+                >
+                  Close Manager
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -95,7 +95,10 @@ service cloud.firestore {
       allow create: if isValidMember(request.resource.data) && request.resource.data.status == 'pending';
       allow get: if isAdmin() || (resource == null || resource.data.status == 'approved');
       allow list: if isAdmin() || (resource != null && resource.data.status == 'approved');
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isDispatched', 'dispatchedAt'])
+      );
+      allow delete: if isAdmin();
     }
 
     // Donations Collection Rules
