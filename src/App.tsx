@@ -60,6 +60,7 @@ import SponsoredBillboard from './components/SponsoredBillboard';
 import DocumentModal from './components/DocumentModal';
 import AdminPanel from './components/AdminPanel';
 import AIAssistant from './components/AIAssistant';
+import CountdownTimer from './components/CountdownTimer';
 
 import { 
   Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle 
@@ -1531,13 +1532,25 @@ export default function App() {
 
                   return (
                     <div key={el.id} className="bg-white border rounded-xl overflow-hidden shadow-md p-6 space-y-6">
-                      <div className="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                        <h3 className="font-serif text-xl font-bold text-emerald-950">{el.title}</h3>
-                        <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
-                          el.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {el.status === 'open' ? 'Open for voting' : 'Completed / Closed'}
-                        </span>
+                      <div className="flex justify-between items-center border-b pb-3 flex-wrap gap-4">
+                        <div className="space-y-1">
+                          <h3 className="font-serif text-xl font-bold text-emerald-950">{el.title}</h3>
+                          {el.endDate && (
+                            <p className="text-[11px] text-slate-400 font-sans">
+                              Deadline: {new Date(el.endDate).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2.5 py-1.5 rounded text-[10px] uppercase font-bold tracking-wider leading-none ${
+                            el.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {el.status === 'open' ? 'Open for voting' : 'Completed / Closed'}
+                          </span>
+                          {el.status === 'open' && el.endDate && (
+                            <CountdownTimer endDate={el.endDate} />
+                          )}
+                        </div>
                       </div>
 
                       {/* Bar metrics visual mapping */}
@@ -1564,7 +1577,11 @@ export default function App() {
                       {/* Cast active ballot if open */}
                       {el.status === 'open' && (
                         <div className="border-t pt-4 mt-6">
-                          {!currentUser ? (
+                          {el.endDate && new Date(el.endDate).getTime() <= Date.now() ? (
+                            <div className="bg-red-50 text-red-800 p-4 border border-red-100 rounded text-xs font-semibold flex items-center justify-center gap-1.5 font-sans">
+                              ⌛ Voting period has naturally expired! No further ballots can be cast.
+                            </div>
+                          ) : !currentUser ? (
                             <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-5 text-center space-y-3">
                               <span className="text-slate-700 text-xs font-semibold block">You must sign in with your Google account to cast a vote under current OPC guidelines.</span>
                               <button 

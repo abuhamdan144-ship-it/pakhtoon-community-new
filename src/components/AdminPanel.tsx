@@ -119,6 +119,7 @@ export default function AdminPanel({
 
   // Election form state
   const [elTitle, setElTitle] = useState('');
+  const [elEndDate, setElEndDate] = useState('');
   const [newCandidates, setNewCandidates] = useState<{ [electionId: string]: string }>({});
 
   // Ads form state
@@ -639,9 +640,11 @@ export default function AdminPanel({
         title: elTitle.trim(),
         status: 'open',
         candidates: [],
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
+        endDate: elEndDate ? elEndDate : null
       });
       setElTitle('');
+      setElEndDate('');
       alert('Election category created!');
     } catch (err: any) {
       alert(err.message);
@@ -3086,6 +3089,15 @@ export default function AdminPanel({
                   className="w-full px-3 py-2 border rounded bg-white text-sm"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 font-sans">Voting End Date (Optional)</label>
+                <input 
+                  type="datetime-local" 
+                  value={elEndDate} 
+                  onChange={e => setElEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border rounded bg-white text-sm"
+                />
+              </div>
               <button type="submit" className="bg-emerald-800 hover:bg-emerald-990 text-white font-bold px-4 py-2 rounded text-xs cursor-pointer">
                 Generate Election
               </button>
@@ -3104,11 +3116,18 @@ export default function AdminPanel({
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                         <div>
                           <h4 className="font-bold text-emerald-950 text-base">{el.title}</h4>
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider mt-1 ${
-                            el.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-600'
-                          }`}>
-                            Status: {el.status}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
+                              el.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              Status: {el.status}
+                            </span>
+                            {el.endDate && (
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                Ends: {new Date(el.endDate).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
                           <button 

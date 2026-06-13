@@ -94,6 +94,7 @@ export interface Election {
   status: 'open' | 'closed';
   candidates: Candidate[];
   createdAt: any;
+  endDate?: string;
 }
 
 export interface SponsoredAd {
