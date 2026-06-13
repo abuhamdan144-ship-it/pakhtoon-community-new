@@ -61,6 +61,7 @@ import DocumentModal from './components/DocumentModal';
 import AdminPanel from './components/AdminPanel';
 import AIAssistant from './components/AIAssistant';
 import CountdownTimer from './components/CountdownTimer';
+import CabinetPanel from './components/CabinetPanel';
 
 import { 
   Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle 
@@ -95,8 +96,39 @@ const getBase64Image = (file: File, maxSize: number): Promise<string> => {
   });
 };
 
+const CABINET_POSITION_ORDER = [
+  'chairman',
+  'deputy chairman',
+  'president',
+  'co-president',
+  'senior vice president',
+  'vice president',
+  'general secretary',
+  'joint secretary',
+  'finance secretary',
+  'information secretary',
+  'welfare secretary',
+  'cultural secretary',
+  'building secretary',
+  'chief organizer',
+  'member - executive committee',
+  'other'
+];
+
+const getPositionPriority = (pos: string): number => {
+  const cleanPos = (pos || '').trim().toLowerCase();
+  const idx = CABINET_POSITION_ORDER.indexOf(cleanPos);
+  if (idx !== -1) return idx;
+  if (cleanPos.includes('chairman')) return 0;
+  if (cleanPos.includes('president')) return 3;
+  if (cleanPos.includes('secretary')) return 8;
+  if (cleanPos.includes('organizer')) return 13;
+  if (cleanPos.includes('member') || cleanPos.includes('committee')) return 14;
+  return CABINET_POSITION_ORDER.length;
+};
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'register' | 'elections' | 'report' | 'chat' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'register' | 'cabinet' | 'elections' | 'report' | 'chat' | 'admin'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // --- Realtime DB Collections State ---
@@ -628,6 +660,7 @@ export default function App() {
             {[
               { id: 'home', label: 'Home Portal' },
               { id: 'register', label: 'Register Membership' },
+              { id: 'cabinet', label: 'OPC Cabinet' },
               { id: 'elections', label: 'Cast Vote' },
               { id: 'report', label: 'Report Incident' },
               { id: 'chat', label: 'AI Assistant' },
@@ -728,6 +761,7 @@ export default function App() {
             {[
               { id: 'home', label: 'Homepage Dashboard' },
               { id: 'register', label: 'New Member Registry' },
+              { id: 'cabinet', label: 'OPC Cabinet Directory' },
               { id: 'elections', label: 'OPC Polls / Elections' },
               { id: 'report', label: 'Welfare Report Claim' },
               { id: 'chat', label: 'AI assistant Chat' },
@@ -851,37 +885,58 @@ export default function App() {
 
               {/* COMMUNITY CABINET EXECUTIVE TEAM */}
               <section className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                  OPC Cabinet Members
-                </h2>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
+                    OPC Cabinet Members
+                  </h2>
+                  <button 
+                    onClick={() => {
+                      setCurrentPage('cabinet');
+                      window.scrollTo(0, 0);
+                    }}
+                    className="text-xs font-semibold text-emerald-800 hover:text-emerald-990 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    View Full Directory &rarr;
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {cabinet.length === 0 ? (
                     <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-medium font-serif w-full col-span-full">
                       The official OPC cabinet bears directory is loaded as soon as an administrator sets up credentials.
                     </div>
                   ) : (
-                    cabinet.map((cm) => (
-                      <div key={cm.id} className="bg-white border rounded-xl shadow-xs overflow-hidden text-center p-5 space-y-3">
-                        {cm.photo ? (
-                          <img src={cm.photo} alt={cm.name} className="w-24 h-24 rounded-full object-cover border-4 border-amber-400 mx-auto" />
-                        ) : (
-                          <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-dashed flex items-center justify-center font-bold font-serif text-3xl text-slate-400 mx-auto">
-                            {cm.name[0]}
+                    [...cabinet]
+                      .sort((a, b) => {
+                        const priorityA = getPositionPriority(a.position);
+                        const priorityB = getPositionPriority(b.position);
+                        if (priorityA !== priorityB) {
+                          return priorityA - priorityB;
+                        }
+                        return a.name.localeCompare(b.name);
+                      })
+                      .slice(0, 8) // Show top 8 on home page, rest available in full tab directory
+                      .map((cm) => (
+                        <div key={cm.id} className="bg-white border rounded-xl shadow-xs overflow-hidden text-center p-5 space-y-3 hover:shadow-md transition">
+                          {cm.photo ? (
+                            <img src={cm.photo} alt={cm.name} className="w-24 h-24 rounded-full object-cover border-4 border-amber-400 mx-auto" />
+                          ) : (
+                            <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-dashed flex items-center justify-center font-bold font-serif text-3xl text-slate-400 mx-auto">
+                              {cm.name[0]}
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="font-serif font-bold text-emerald-950 leading-tight">{cm.name}</h4>
+                            <span className="text-xs text-red-650 font-bold block mt-0.5 uppercase tracking-wide">
+                              {cm.position}
+                            </span>
                           </div>
-                        )}
-                        <div>
-                          <h4 className="font-serif font-bold text-emerald-950 leading-tight">{cm.name}</h4>
-                          <span className="text-xs text-red-600 font-bold block mt-0.5 uppercase tracking-wide">
-                            {cm.position}
-                          </span>
+                          {cm.phone && (
+                            <p className="text-[11px] font-mono font-semibold text-slate-500">
+                              Mob: {cm.phone}
+                            </p>
+                          )}
                         </div>
-                        {cm.phone && (
-                          <p className="text-[11px] font-mono font-semibold text-slate-500">
-                            Mob: {cm.phone}
-                          </p>
-                        )}
-                      </div>
-                    ))
+                      ))
                   )}
                 </div>
               </section>
@@ -1506,6 +1561,13 @@ export default function App() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* CABINET & MEMBERS DIRECTORY */}
+        {currentPage === 'cabinet' && (
+          <div className="container mx-auto max-w-7xl px-4 py-8 fade-in">
+            <CabinetPanel cabinet={cabinet} members={members} />
           </div>
         )}
 
