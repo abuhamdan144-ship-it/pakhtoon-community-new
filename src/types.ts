@@ -21,6 +21,7 @@ export interface Member {
   isDispatched?: boolean;
   dispatchedAt?: any; // Firestore Timestamp
   driveAttachments?: { id: string; name: string; url: string; mimeType?: string; }[];
+  email?: string;
 }
 
 export interface Donation {
@@ -38,7 +39,18 @@ export interface CabinetMember {
   name: string;
   position: string;
   phone?: string;
+  email?: string;
   photo?: string;
+}
+
+export interface CabinetMeeting {
+  id?: string;
+  agenda: string;
+  description: string;
+  status: 'scheduled' | 'active' | 'completed';
+  votes?: { [email: string]: 'Approve' | 'Reject' | 'Abstain' };
+  createdAt: any;
+  completedAt?: any;
 }
 
 export interface NewsAnnouncement {

@@ -11,6 +11,7 @@ interface DocumentModalProps {
   member: Member | null;
   isOpen: boolean;
   onClose: () => void;
+  isAdmin?: boolean;
 }
 
 const loadImage = (src: string): Promise<HTMLImageElement | null> => {
@@ -30,7 +31,7 @@ const loadImage = (src: string): Promise<HTMLImageElement | null> => {
   });
 };
 
-export default function DocumentModal({ member, isOpen, onClose }: DocumentModalProps) {
+export default function DocumentModal({ member, isOpen, onClose, isAdmin = false }: DocumentModalProps) {
   const [activeTab, setActiveTab] = useState<'card' | 'certificate' | 'receipt' | 'dispatch' | 'attachments'>('card');
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -716,36 +717,40 @@ Oman Pakhtoon Community Welfare Network`;
             <FileText size={14} />
             Payment Receipt
           </button>
-          <button
-            onClick={() => setActiveTab('dispatch')}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer ${
-              activeTab === 'dispatch' 
-                ? 'border-emerald-850 bg-emerald-50 text-emerald-900' 
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <Send size={14} />
-            Dispatch Console
-            {memberLocal.isDispatched && (
-              <span className="w-2 h-2 rounded-full bg-emerald-455 animate-ping"></span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('attachments')}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer ${
-              activeTab === 'attachments' 
-                ? 'border-emerald-800 bg-emerald-50/50 text-emerald-900' 
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <Link2 size={14} className="text-emerald-800" />
-            Drive Files
-            {memberLocal.driveAttachments && memberLocal.driveAttachments.length > 0 && (
-              <span className="bg-emerald-800 text-white rounded-full text-[10px] px-1.5 py-0.2">
-                {memberLocal.driveAttachments.length}
-              </span>
-            )}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('dispatch')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer ${
+                activeTab === 'dispatch' 
+                  ? 'border-emerald-850 bg-emerald-50 text-emerald-950' 
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Send size={14} />
+              Dispatch Console
+              {memberLocal.isDispatched && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              )}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('attachments')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer ${
+                activeTab === 'attachments' 
+                  ? 'border-emerald-800 bg-emerald-50/50 text-emerald-900' 
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Link2 size={14} className="text-emerald-800" />
+              Drive Files
+              {memberLocal.driveAttachments && memberLocal.driveAttachments.length > 0 && (
+                <span className="bg-emerald-800 text-white rounded-full text-[10px] px-1.5 py-0.2">
+                  {memberLocal.driveAttachments.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Tab Contents */}

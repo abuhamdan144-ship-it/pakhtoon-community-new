@@ -52,7 +52,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 import { 
-  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
+  Member, Donation, CabinetMember, CabinetMeeting, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
 } from './types';
 
 // Importing sub-components
@@ -62,7 +62,7 @@ import AdminPanel from './components/AdminPanel';
 import AIAssistant from './components/AIAssistant';
 
 import { 
-  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare 
+  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle 
 } from 'lucide-react';
 
 // Help helper for base64 image scaling
@@ -107,6 +107,7 @@ export default function App() {
   const [embassy, setEmbassy] = useState<EmbassySetting>({});
   const [elections, setElections] = useState<Election[]>([]);
   const [ads, setAds] = useState<SponsoredAd[]>([]);
+  const [meetings, setMeetings] = useState<CabinetMeeting[]>([]);
 
   // Auth Users
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -132,6 +133,11 @@ export default function App() {
   const [rPayRef, setRPayRef] = useState('');
   const [rSuccess, setRSuccess] = useState(false);
   const [rLoading, setRLoading] = useState(false);
+  const [rEmail, setREmail] = useState('');
+  const [registerTab, setRegisterTab] = useState<'submit' | 'lookup'>('submit');
+  const [lookupValue, setLookupValue] = useState('');
+  const [lookupResult, setLookupResult] = useState<Member | null>(null);
+  const [lookupAttempted, setLookupAttempted] = useState(false);
 
   // Submitting incidents
   const [iType, setIType] = useState<'death' | 'injury' | 'loss'>('death');
@@ -203,6 +209,13 @@ export default function App() {
     };
     bootstrapRegisterAdmin();
   }, []);
+
+  // Sync Google Sign-In email into registration form
+  useEffect(() => {
+    if (currentUser && currentUser.email) {
+      setREmail(currentUser.email);
+    }
+  }, [currentUser]);
 
   // --- Snapshot synchronizations ---
   useEffect(() => {
@@ -334,6 +347,17 @@ export default function App() {
       }
     );
 
+    // Cabinet Meetings snapshot
+    const unsubscribeMeetings = onSnapshot(
+      query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')),
+      (snapshot) => {
+        setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMeeting })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'cabinet_meetings');
+      }
+    );
+
     return () => {
       unsubscribeMembers();
       unsubscribeCabinet();
@@ -343,6 +367,7 @@ export default function App() {
       unsubscribeEmbassy();
       unsubscribeElections();
       unsubscribeAds();
+      unsubscribeMeetings();
     };
   }, [adminUser]);
 
@@ -414,6 +439,7 @@ export default function App() {
           feeAmount: Number(rFeeAmount) || 5,
           paymentMethod: rPayMethod,
           paymentReference: rPayRef.trim(),
+          email: rEmail.trim(),
           createdAt: Timestamp.now()
         });
       } catch (fErr) {
@@ -434,11 +460,42 @@ export default function App() {
       setRFeeAmount('5');
       setRPayMethod('Bank Transfer');
       setRPayRef('');
+      setREmail(currentUser?.email || '');
     } catch (err: any) {
       alert('Error registering: ' + err.message);
     } finally {
       setRLoading(false);
     }
+  };
+
+  // Find approved member by phone, whatsapp, cnic or email address
+  const handleLookupMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLookupAttempted(true);
+    
+    const searchClean = lookupValue.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!searchClean) {
+      setLookupResult(null);
+      return;
+    }
+    
+    const matched = members.find(m => {
+      if (m.status !== 'approved') return false;
+      
+      const cnicClean = (m.cnic || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const phoneClean = (m.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const whatsappClean = (m.whatsapp || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const emailClean = (m.email || '').toLowerCase().trim();
+      const valClean = lookupValue.trim().toLowerCase();
+      
+      return cnicClean === searchClean || 
+             phoneClean.includes(searchClean) || 
+             searchClean.includes(phoneClean) ||
+             (whatsappClean && (whatsappClean.includes(searchClean) || searchClean.includes(whatsappClean))) ||
+             (emailClean && emailClean === valClean);
+    });
+    
+    setLookupResult(matched || null);
   };
 
   // Submit Incidents Claim Form
@@ -971,235 +1028,483 @@ export default function App() {
 
         {/* REGISTER MEMBERSHIP PAGE */}
         {currentPage === 'register' && (
-          <div className="container mx-auto max-w-3xl px-4 py-8 fade-in">
+          <div className="container mx-auto max-w-4xl px-4 py-8 fade-in">
             <div className="space-y-4 text-center mb-8">
-              <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950">OPC Member Registration</h2>
+              <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950">OPC Member Portal</h2>
               <p className="text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-                Add profile credentials to submit a membership application. An official community card &amp; 
-                membership certificate containing a unique reference serial ID is generated upon approval.
+                Apply for local lifetime membership or verify approved request status to render and download your card, certificate, and official payment receipts.
               </p>
             </div>
 
-            {rSuccess && (
-              <div className="bg-emerald-50 text-emerald-900 border border-emerald-100 rounded-lg p-5 mb-6 text-center shadow-xs">
-                <span className="text-emerald-700 block font-bold text-lg mb-1">Registration Request Sent</span>
-                <p className="text-xs text-slate-600">
-                  Your application has been received. OPC administrative coordinators will verify your identity 
-                  details and contacts to update your credentials shortly.
-                </p>
+            {/* View Tab Selector */}
+            <div className="flex justify-center gap-2 mb-8 bg-slate-100 p-1 rounded-xl max-w-md mx-auto border border-slate-200/50">
+              <button
+                onClick={() => {
+                  setRegisterTab('submit');
+                  setLookupResult(null);
+                  setLookupAttempted(false);
+                }}
+                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  registerTab === 'submit'
+                    ? 'bg-emerald-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/55'
+                }`}
+              >
+                <UserPlus size={14} />
+                Submit Application
+              </button>
+              <button
+                onClick={() => {
+                  setRegisterTab('lookup');
+                  setLookupResult(null);
+                  setLookupAttempted(false);
+                }}
+                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  registerTab === 'lookup'
+                    ? 'bg-emerald-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/55'
+                }`}
+              >
+                <Search size={14} />
+                Check Status &amp; Cards
+              </button>
+            </div>
+
+            {/* Smart Google Account approved member detector */}
+            {registerTab === 'lookup' && currentUser?.email && (() => {
+              const matchedUser = members.find(m => m.status === 'approved' && m.email?.toLowerCase().trim() === currentUser?.email?.toLowerCase().trim());
+              if (matchedUser) {
+                return (
+                  <div className="bg-emerald-950/5 border border-emerald-900/10 rounded-xl p-5 mb-6 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded uppercase tracking-widest inline-block mb-1 font-mono">Approved Account Linked</span>
+                      <h4 className="text-base font-serif font-bold text-slate-900">We found your verified lifetime membership!</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Welcome back, <strong>{matchedUser.name}</strong>. Your membership is fully active. Use the button to view/generate credentials.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveDocMember(matchedUser);
+                        setDocModalOpen(true);
+                      }}
+                      className="bg-amber-500 hover:bg-amber-600 text-emerald-950 font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow transition shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <CreditCard size={14} />
+                      Launch Documents Desk
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {registerTab === 'submit' && (
+              <div className="max-w-3xl mx-auto space-y-6">
+                {rSuccess && (
+                  <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg p-5 text-center shadow-xs">
+                    <span className="text-emerald-700 block font-bold text-lg mb-1">Registration Request Sent</span>
+                    <p className="text-xs text-slate-600">
+                      Your application has been received. OPC administrative coordinators will verify your identity 
+                      details and contacts to update your credentials shortly.
+                    </p>
+                  </div>
+                )}
+
+                <form onSubmit={handleRegisterSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        Your Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={rName}
+                        onChange={(e) => setRName(e.target.value)}
+                        placeholder="e.g. Ikram Ullah Bacha"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        Father's Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={rFather}
+                        onChange={(e) => setRFather(e.target.value)}
+                        placeholder="e.g. Gul Rehman Bacha"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        CNIC / Passport Number *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={rCnic}
+                        onChange={(e) => setRCnic(e.target.value)}
+                        placeholder="e.g. 15101-XXXXXXXX-X"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        District / Tribe (KPK) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={rDistrict}
+                        onChange={(e) => setRDistrict(e.target.value)}
+                        placeholder="e.g. Buner / Swat / Mardan"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        Mobile Number (Oman) *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={rPhone}
+                        onChange={(e) => setRPhone(e.target.value)}
+                        placeholder="e.g. +968 99111870"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                        Email Address *
+                        {currentUser && currentUser.email === rEmail && (
+                          <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded flex items-center gap-0.5">
+                            <CheckCircle size={10} /> Account Synced
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={rEmail}
+                        onChange={(e) => setREmail(e.target.value)}
+                        placeholder="e.g. name@domain.com"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 font-sans">
+                        WhatsApp Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={rWhatsapp}
+                        onChange={(e) => setRWhatsapp(e.target.value)}
+                        placeholder="+968 XXXXXXXX"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        Current Occupation / Trades
+                      </label>
+                      <input
+                        type="text"
+                        value={rOccupation}
+                        onChange={(e) => setROccupation(e.target.value)}
+                        placeholder="e.g. Businessman / Driver / Electrician"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                      Current Permanent address (Oman) *
+                    </label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={rAddress}
+                      onChange={(e) => setRAddress(e.target.value)}
+                      placeholder="e.g. Building 24, Al Ghubrah South, Muscat"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                      Emergency Contact Number (Pakistan)
+                    </label>
+                    <input
+                      type="tel"
+                      value={rEmergency}
+                      onChange={(e) => setREmergency(e.target.value)}
+                      placeholder="e.g. +92 312 XXXXXXX"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
+                    />
+                  </div>
+
+                  {/* Payment Receipt / Verification Info */}
+                  <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-4">
+                    <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block border-b border-emerald-100 pb-2">
+                      Registration Fee Verification (Lifetime Membership)
+                    </span>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                          Fee Paid (OMR) *
+                        </label>
+                        <select
+                          value={rFeeAmount}
+                          onChange={(e) => setRFeeAmount(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white"
+                        >
+                          <option value="5">5.000 OMR (Standard)</option>
+                          <option value="10">10.000 OMR (Premium / Supporter)</option>
+                          <option value="3">3.000 OMR (Concessionary)</option>
+                          <option value="0">0.000 OMR (Fee Waiver / Free)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                          Payment Method *
+                        </label>
+                        <select
+                          value={rPayMethod}
+                          onChange={(e) => setRPayMethod(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-sans"
+                        >
+                          <option value="Bank Transfer">Bank Transfer</option>
+                          <option value="Mobile Wallet">Mobile Wallet / Pay</option>
+                          <option value="Cash">Paid Cash to Representative</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 font-sans">
+                          Ref No. / Mobile No. *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={rPayRef}
+                          onChange={(e) => setRPayRef(e.target.value)}
+                          placeholder="e.g. Txn ID or Sender No."
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                      Passport Photo (For Card generation)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-705 hover:file:bg-emerald-100 cursor-pointer"
+                    />
+                    
+                    {rPhoto && (
+                      <div className="mt-3">
+                        <span className="text-[10px] text-slate-400 block mb-1">Cropped Preview:</span>
+                        <img src={rPhoto} alt="Upload crop preview" className="w-16 h-20 object-cover border border-slate-200 rounded shadow-xs" />
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={rLoading}
+                    className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-150 cursor-pointer shadow disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                  >
+                    {rLoading ? 'Submitting Application...' : 'Submit Membership Request'}
+                  </button>
+                </form>
               </div>
             )}
 
-            <form onSubmit={handleRegisterSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    Your Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={rName}
-                    onChange={(e) => setRName(e.target.value)}
-                    placeholder="e.g. Ikram Ullah Bacha"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    Father's Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={rFather}
-                    onChange={(e) => setRFather(e.target.value)}
-                    placeholder="e.g. Gul Rehman Bacha"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    CNIC / Passport Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={rCnic}
-                    onChange={(e) => setRCnic(e.target.value)}
-                    placeholder="e.g. 15101-XXXXXXXX-X"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    District / Tribe (KPK) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={rDistrict}
-                    onChange={(e) => setRDistrict(e.target.value)}
-                    placeholder="e.g. Buner / Swat / Mardan"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    Mobile Number (Oman) *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={rPhone}
-                    onChange={(e) => setRPhone(e.target.value)}
-                    placeholder="e.g. +968 99111870"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 text-slate-500 font-sans">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={rWhatsapp}
-                    onChange={(e) => setRWhatsapp(e.target.value)}
-                    placeholder="+968 XXXXXXXX"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                  Current Permanent address (Oman) *
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  value={rAddress}
-                  onChange={(e) => setRAddress(e.target.value)}
-                  placeholder="e.g. Building 24, Al Ghubrah South, Muscat"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    Current Occupation / Trades
-                  </label>
-                  <input
-                    type="text"
-                    value={rOccupation}
-                    onChange={(e) => setROccupation(e.target.value)}
-                    placeholder="e.g. Businessman / Driver / Electrician"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                    Emergency Contact Number (Pakistan)
-                  </label>
-                  <input
-                    type="tel"
-                    value={rEmergency}
-                    onChange={(e) => setREmergency(e.target.value)}
-                    placeholder="e.g. +92 312 XXXXXXX"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Payment Receipt / Verification Info */}
-              <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-4">
-                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block border-b border-emerald-100 pb-2">
-                  Registration Fee Verification (Lifetime Membership)
-                </span>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {registerTab === 'lookup' && (
+              <div className="space-y-6 max-w-2xl mx-auto fade-in">
+                <div className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 border border-slate-200 text-left">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Fee Paid (OMR) *
-                    </label>
-                    <select
-                      value={rFeeAmount}
-                      onChange={(e) => setRFeeAmount(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white"
+                    <h3 className="text-xl font-serif font-bold text-emerald-950">Verify &amp; Download Membership Credentials</h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Already registered? Enter your Omani Mobile phone number, CNIC/Passport, or synced email address below to dynamically verify and download your lifetime association card, board certificate, and verified payment receipt.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleLookupMember} className="flex gap-2.5">
+                    <div className="relative flex-1">
+                      <Search size={16} className="absolute left-3.5 top-3.5 text-slate-400 font-sans" />
+                      <input
+                        type="text"
+                        required
+                        value={lookupValue}
+                        onChange={(e) => setLookupValue(e.target.value)}
+                        placeholder="Enter CNIC, Mobile No. or Email Address"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-sans"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="bg-emerald-900 hover:bg-emerald-950 text-white font-bold px-6 py-2.5 rounded-md transition duration-150 cursor-pointer text-xs uppercase tracking-wider shrink-0"
                     >
-                      <option value="5">5.000 OMR (Standard)</option>
-                      <option value="10">10.000 OMR (Premium / Supporter)</option>
-                      <option value="3">3.000 OMR (Concessionary)</option>
-                      <option value="0">0.000 OMR (Fee Waiver / Free)</option>
-                    </select>
-                  </div>
+                      Verify Status
+                    </button>
+                  </form>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Payment Method *
-                    </label>
-                    <select
-                      value={rPayMethod}
-                      onChange={(e) => setRPayMethod(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-sans"
-                    >
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Mobile Wallet">Mobile Wallet / Pay</option>
-                      <option value="Cash">Paid Cash to Representative</option>
-                    </select>
-                  </div>
+                  {/* RESULTS SECTION */}
+                  {lookupAttempted && (
+                    <div className="mt-4 border-t pt-5 animate-fade-in">
+                      {lookupResult ? (
+                        <div className="space-y-6">
+                          {/* Success Banner */}
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3 text-green-900">
+                            <CheckCircle size={20} className="text-green-600 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold block text-sm">Verified Member Profile Found</span>
+                              <p className="text-xs text-green-800/90 mt-0.5">
+                                Your membership application is officially approved! You have secure access to preview, generate, and download your credential cards and certificates below.
+                              </p>
+                            </div>
+                          </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 font-sans">
-                      Ref No. / Mobile No. *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={rPayRef}
-                      onChange={(e) => setRPayRef(e.target.value)}
-                      placeholder="e.g. Txn ID or Sender No."
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-mono"
-                    />
-                  </div>
+                          {/* Member Info Card */}
+                          <div className="bg-emerald-950/5 border border-emerald-900/10 rounded-xl p-6 relative overflow-hidden flex flex-col sm:flex-row gap-5">
+                            <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-700/5 rounded-full blur-2xl pointer-events-none" />
+                            
+                            {/* Photo */}
+                            <div className="shrink-0 mx-auto sm:mx-0">
+                              {lookupResult.photo ? (
+                                <img src={lookupResult.photo} alt={lookupResult.name} className="w-24 h-28 object-cover rounded-lg border-2 border-amber-400 shadow-sm" />
+                              ) : (
+                                <div className="w-24 h-28 bg-emerald-900/10 border-2 border-dashed border-emerald-250 flex items-center justify-center font-bold text-3xl text-emerald-800 rounded-lg">
+                                  {lookupResult.name[0]}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 space-y-3 font-sans text-xs">
+                              <div className="border-b pb-2">
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-amber-600 block leading-tight">OPC LIFETIME MEMBER</span>
+                                <h4 className="text-lg font-serif font-bold text-emerald-950">{lookupResult.name}</h4>
+                                <span className="text-slate-500 font-mono font-bold">CNIC: {lookupResult.cnic}</span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-slate-600">
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Father's Name</span>
+                                  <span className="font-semibold text-emerald-900">{lookupResult.father}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Member ID No.</span>
+                                  <span className="font-bold text-emerald-900 font-mono">{lookupResult.membershipId || "OPC-" + String(lookupResult.id).substring(0, 5).toUpperCase()}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Oman Mobile</span>
+                                  <span className="font-semibold text-emerald-900 font-mono">{lookupResult.phone}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Dues Status</span>
+                                  <span className="font-bold text-emerald-700">✅ PAID (OMR {Number(lookupResult.feeAmount || 5).toFixed(3)})</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ACTION BUTTON GRID */}
+                          <div className="space-y-3">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Available Credential Downloads:</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <button
+                                onClick={() => {
+                                  setActiveDocMember(lookupResult);
+                                  setDocModalOpen(true);
+                                }}
+                                className="bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-900/40 font-bold py-3 px-4 rounded-lg text-xs leading-5 tracking-wide uppercase shadow-xs hover:border-emerald-900 transition flex flex-col items-center justify-center gap-2 cursor-pointer text-center group font-sans"
+                              >
+                                <CreditCard size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
+                                <span>Get Member Card</span>
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setActiveDocMember(lookupResult);
+                                  setDocModalOpen(true);
+                                }}
+                                className="bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-900/40 font-bold py-3 px-4 rounded-lg text-xs leading-5 tracking-wide uppercase shadow-xs hover:border-emerald-900 transition flex flex-col items-center justify-center gap-2 cursor-pointer text-center group font-sans"
+                              >
+                                <Award size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
+                                <span>Get Certificate</span>
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setActiveDocMember(lookupResult);
+                                  setDocModalOpen(true);
+                                }}
+                                className="bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-900/40 font-bold py-3 px-4 rounded-lg text-xs leading-5 tracking-wide uppercase shadow-xs hover:border-emerald-900 transition flex flex-col items-center justify-center gap-2 cursor-pointer text-center group font-sans"
+                              >
+                                <FileText size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
+                                <span>Get Payment Receipt</span>
+                              </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400 text-center mt-1">
+                              💡 These buttons will load the official high-resolution documents workspace. You can choose to download PNG images. All credentials contain verifiable cryptographic secure hashes.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-5 text-center text-amber-900 font-sans">
+                          <HelpCircle size={32} className="text-amber-500 p-0.5 mx-auto mb-2.5 animate-pulse shrink-0" />
+                          <span className="font-bold block text-sm">No Approved Lifetime Member Record Found</span>
+                          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
+                            We couldn't locate an approved lifetime membership matching <strong>"{lookupValue}"</strong>. 
+                            If you recently submitted your registration, please wait for administrative coordinators to review your claim.
+                          </p>
+                          <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                            <button
+                              onClick={() => {
+                                setRegisterTab('submit');
+                              }}
+                              className="bg-emerald-900 hover:bg-emerald-950 text-white font-bold px-4 py-2 rounded text-[11px] transition cursor-pointer"
+                            >
+                              Apply for New Membership
+                            </button>
+                            <a
+                              href="tel:+96899111870"
+                              className="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold px-4 py-2 rounded text-[11px] transition cursor-pointer"
+                            >
+                              Call Hotline: +968 99111870
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                  Passport Photo (For Card generation)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-705 hover:file:bg-emerald-100 cursor-pointer"
-                />
-                
-                {rPhoto && (
-                  <div className="mt-3">
-                    <span className="text-[10px] text-slate-400 block mb-1">Cropped Preview:</span>
-                    <img src={rPhoto} alt="Upload crop preview" className="w-16 h-20 object-cover border border-slate-200 rounded shadow-xs" />
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={rLoading}
-                className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-150 cursor-pointer shadow disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {rLoading ? 'Submitting Application...' : 'Submit Membership Request'}
-              </button>
-            </form>
+            )}
           </div>
         )}
 
@@ -1453,6 +1758,7 @@ export default function App() {
             embassy={embassy}
             elections={elections}
             ads={ads}
+            meetings={meetings}
             onViewDocuments={(m) => {
               setActiveDocMember(m);
               setDocModalOpen(true);
@@ -1482,6 +1788,7 @@ export default function App() {
       <DocumentModal 
         isOpen={docModalOpen}
         member={activeDocMember}
+        isAdmin={!!adminUser}
         onClose={() => {
           setDocModalOpen(false);
           setActiveDocMember(null);

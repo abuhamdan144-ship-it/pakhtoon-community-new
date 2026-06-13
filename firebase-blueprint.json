@@ -52,9 +52,31 @@
         "name": { "type": "string", "description": "Full name." },
         "position": { "type": "string", "description": "Assigned office position." },
         "phone": { "type": "string", "description": "Contact phone." },
+        "email": { "type": "string", "description": "Verified Google email linked to cabinet member." },
         "photo": { "type": "string", "description": "Base64 format profile photo." }
       },
       "required": ["name", "position"]
+    },
+    "CabinetMeeting": {
+      "title": "Cabinet Meeting",
+      "description": "An exclusive cabinet meeting restricted to cabinet members with a single agenda item and member vote.",
+      "type": "object",
+      "properties": {
+        "agenda": { "type": "string", "description": "Single primary agenda item discussed and decided by vote." },
+        "description": { "type": "string", "description": "Detailed background contextual briefing for the agenda item." },
+        "status": {
+          "type": "string",
+          "enum": ["scheduled", "active", "completed"],
+          "description": "Operational meeting and vote state."
+        },
+        "votes": {
+          "type": "object",
+          "description": "Map representing private votes cast by cabinet member emails (e.g., {'email': 'Approve'|'Reject'|'Abstain'}) to guarantee only cabinet members vote."
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["agenda", "description", "status", "createdAt"]
     },
     "NewsAnnouncement": {
       "title": "News Announcement",
@@ -192,6 +214,10 @@
     "/cabinet/{cabinetId}": {
       "schema": "CabinetMember",
       "description": "OPC operational cabinet officers."
+    },
+    "/cabinet_meetings/{meetingId}": {
+      "schema": "CabinetMeeting",
+      "description": "Exclusive minutes, agendas, and logs for executive cabinet discussion & vote."
     },
     "/news/{newsId}": {
       "schema": "NewsAnnouncement",

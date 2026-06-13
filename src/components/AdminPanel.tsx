@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { 
-  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
+  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting 
 } from '../types';
 import { 
   Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, FileDown, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
@@ -53,6 +53,7 @@ interface AdminPanelProps {
   embassy: EmbassySetting;
   elections: Election[];
   ads: SponsoredAd[];
+  meetings: CabinetMeeting[];
   onViewDocuments: (member: Member) => void;
 }
 
@@ -67,7 +68,7 @@ const getBase64 = (file: File): Promise<string> => {
 };
 
 export default function AdminPanel({
-  user, members, cabinet, donations, incidents, news, embassy, elections, ads, onViewDocuments
+  user, members, cabinet, donations, incidents, news, embassy, elections, ads, meetings, onViewDocuments
 }: AdminPanelProps) {
   // Login State
   const [loginEmail, setLoginEmail] = useState('');
@@ -76,15 +77,22 @@ export default function AdminPanel({
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'elections' | 'ads' | 'workspace'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'elections' | 'ads' | 'workspace' | 'meetings'>('overview');
 
   // --- Form States for Admin Add/Edits ---
+  
+  // Cabinet Meetings form state
+  const [mId, setMId] = useState('');
+  const [mAgenda, setMAgenda] = useState('');
+  const [mDescription, setMDescription] = useState('');
+  const [mStatus, setMStatus] = useState<'scheduled' | 'active' | 'completed'>('scheduled');
   
   // Cabinet form state
   const [cId, setCId] = useState('');
   const [cName, setCName] = useState('');
   const [cPosition, setCPosition] = useState('Chairman');
   const [cPhone, setCPhone] = useState('');
+  const [cEmail, setCEmail] = useState('');
   const [cPhoto, setCPhoto] = useState('');
 
   // Donation form state
@@ -347,6 +355,7 @@ export default function AdminPanel({
       name: cName.trim(),
       position: cPosition,
       phone: cPhone.trim(),
+      email: cEmail.trim().toLowerCase(),
     };
     if (cPhoto) data.photo = cPhoto;
 
@@ -369,6 +378,7 @@ export default function AdminPanel({
     setCName(cm.name);
     setCPosition(cm.position);
     setCPhone(cm.phone || '');
+    setCEmail(cm.email || '');
     setCPhoto(cm.photo || '');
   };
 
@@ -382,6 +392,7 @@ export default function AdminPanel({
     setCName('');
     setCPosition('Chairman');
     setCPhone('');
+    setCEmail('');
     setCPhoto('');
   };
 
@@ -391,6 +402,62 @@ export default function AdminPanel({
       const base64 = await getBase64(file);
       setCPhoto(base64);
     }
+  };
+
+  // Cabinet Meetings Actions
+  const handleMeetingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mAgenda.trim()) {
+      alert('Please specify the Meeting Agenda.');
+      return;
+    }
+    const data: Partial<CabinetMeeting> = {
+      agenda: mAgenda.trim(),
+      description: mDescription.trim(),
+      status: mStatus,
+    };
+
+    try {
+      if (mId) {
+        if (mStatus === 'completed') {
+          data.completedAt = new Date().toISOString();
+        }
+        await updateDoc(doc(db, 'cabinet_meetings', mId), data);
+        alert('Cabinet meeting updated.');
+      } else {
+        data.createdAt = new Date().toISOString();
+        data.votes = {};
+        await addDoc(collection(db, 'cabinet_meetings'), data);
+        alert('Cabinet meeting scheduled.');
+      }
+      resetMeetingForm();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleEditMeeting = (mt: CabinetMeeting) => {
+    setMId(mt.id || '');
+    setMAgenda(mt.agenda);
+    setMDescription(mt.description);
+    setMStatus(mt.status);
+  };
+
+  const handleDeleteMeeting = async (id: string) => {
+    if (!confirm('Permanently delete this cabinet meeting and its votes?')) return;
+    try {
+      await deleteDoc(doc(db, 'cabinet_meetings', id));
+      alert('Cabinet meeting deleted.');
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const resetMeetingForm = () => {
+    setMId('');
+    setMAgenda('');
+    setMDescription('');
+    setMStatus('scheduled');
   };
 
   // Donation Actions
@@ -1687,6 +1754,7 @@ export default function AdminPanel({
           { id: 'elections', label: 'Elections & Polls', icon: Vote },
           { id: 'ads', label: 'Sponsor Ads', icon: Disc },
           { id: 'workspace', label: 'Google Sync Hub', icon: Cloud },
+          { id: 'meetings', label: 'Cabinet Assemblies', icon: Award },
         ].map((tab) => {
           const Icon = tab.icon === LocationIcon ? Globe : tab.icon;
           const isSelected = activeTab === tab.id;
@@ -2434,6 +2502,19 @@ export default function AdminPanel({
                   />
                 </div>
                 <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 font-sans">Google Email (For Chamber Access & Voting)</label>
+                  <input 
+                    type="email" 
+                    value={cEmail} 
+                    onChange={e => setCEmail(e.target.value)}
+                    placeholder="e.g. member@gmail.com"
+                    className="w-full px-3 py-2 border rounded bg-white text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Profile Image</label>
                   <input 
                     type="file" 
@@ -2470,13 +2551,14 @@ export default function AdminPanel({
                     <th className="p-3">Officer</th>
                     <th className="p-3">Role</th>
                     <th className="p-3">Contact</th>
+                    <th className="p-3">Verified Google Email</th>
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {cabinet.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="p-6 text-center text-slate-400">No officers registered.</td>
+                      <td colSpan={5} className="p-6 text-center text-slate-400">No officers registered.</td>
                     </tr>
                   ) : (
                     cabinet.map(cm => (
@@ -2493,6 +2575,7 @@ export default function AdminPanel({
                         </td>
                         <td className="p-3 text-emerald-850 font-bold">{cm.position}</td>
                         <td className="p-3 font-mono">{cm.phone || '-'}</td>
+                        <td className="p-3 text-slate-600 font-mono text-[11px]">{cm.email || <span className="text-amber-600 font-sans italic text-[10px] bg-amber-50 border border-amber-200/50 px-2 py-0.5 rounded">No email linked (Cannot access/vote)</span>}</td>
                         <td className="p-3 text-right space-x-1 whitespace-nowrap">
                           <button onClick={() => handleEditCabinet(cm)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition cursor-pointer">
                             <Edit2 size={14} />
