@@ -3,11 +3,11 @@ import { motion } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
-  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp 
+  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit 
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { 
-  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile 
+  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile, AdminLog 
 } from '../types';
 import { 
   Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, FileDown, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
@@ -80,7 +80,7 @@ export default function AdminPanel({
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'directory' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'founder' | 'elections' | 'ads' | 'workspace' | 'meetings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'directory' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'founder' | 'elections' | 'ads' | 'workspace' | 'meetings' | 'logs'>('overview');
 
   // --- Form States for Admin Add/Edits ---
   
@@ -303,6 +303,53 @@ export default function AdminPanel({
   const [recentlyCreatedSheet, setRecentlyCreatedSheet] = useState<string | null>(null);
   const [deleteConfirmationFile, setDeleteConfirmationFile] = useState<DriveFile | null>(null);
 
+  const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    const email = user.email || '';
+    const isAuthorized = email === 'abuhamdan144@gmail.com' || email === 'admin@opc.org' || email === 'admin@opc.com' || email === 'malakabbas47@gmail.com';
+    if (!isAuthorized) return;
+
+    const q = query(
+      collection(db, 'admin_logs'),
+      orderBy('createdAt', 'desc'),
+      limit(200)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedLogs: AdminLog[] = [];
+      snapshot.forEach((docSnap) => {
+        fetchedLogs.push({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as AdminLog);
+      });
+      setLogs(fetchedLogs);
+      setLogsLoading(false);
+    }, (error) => {
+      console.error("Error fetching admin logs:", error);
+      setLogsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const logAdminAction = async (action: string, details: string) => {
+    try {
+      if (!user) return;
+      await addDoc(collection(db, 'admin_logs'), {
+        adminEmail: user.email || 'admin@opc.org',
+        action,
+        details,
+        createdAt: Timestamp.now()
+      });
+    } catch (err) {
+      console.error('Error logging admin action:', err);
+    }
+  };
+
   const openEditModal = (member: Member) => {
     setEditingMember(member);
     setEditName(member.name || '');
@@ -456,6 +503,7 @@ export default function AdminPanel({
         approvedAt: Timestamp.now()
       });
 
+      await logAdminAction('Approve Membership', `Approved membership for ${member.name} (CNIC: ${member.cnic || '-'}) with issued ID: ${newId}`);
       alert(`Member approved! Issued Membership ID: ${newId}`);
     } catch (err: any) {
       alert('Error approving member: ' + err.message);
@@ -466,6 +514,7 @@ export default function AdminPanel({
     if (!confirm('Reject this application?')) return;
     try {
       await updateDoc(doc(db, 'members', id), { status: 'rejected' });
+      await logAdminAction('Reject Membership', `Rejected pending membership application (ID: ${id})`);
     } catch (err: any) {
       alert('Error rejecting: ' + err.message);
     }
@@ -475,6 +524,7 @@ export default function AdminPanel({
     if (!confirm('Permanently delete this application?')) return;
     try {
       await deleteDoc(doc(db, 'members', id));
+      await logAdminAction('Delete Membership Record', `Permanently deleted membership application/record (ID: ${id})`);
     } catch (err: any) {
       alert('Error deleting: ' + err.message);
     }
@@ -631,6 +681,9 @@ export default function AdminPanel({
         approvedAt: Timestamp.now(),
         approvedBy: user?.email || 'OPC Administrator'
       });
+      const dRecord = donations.find(d => d.id === id);
+      const donorInfo = dRecord ? `donor: ${dRecord.donor}, amount: OMR ${Number(dRecord.amount).toFixed(3)}` : `id: ${id}`;
+      await logAdminAction('Donation Decision', `Updated donation status to ${status.toUpperCase()} (${donorInfo})`);
       alert(`Donation claim status updated to: ${status.toUpperCase()}`);
     } catch (err: any) {
       alert('Error updating donation claim: ' + err.message);
@@ -639,17 +692,38 @@ export default function AdminPanel({
 
   const handleDeleteDonation = async (id: string) => {
     if (!confirm('Delete donation record?')) return;
-    await deleteDoc(doc(db, 'donations', id));
+    try {
+      const dRecord = donations.find(d => d.id === id);
+      const donorInfo = dRecord ? `donor: ${dRecord.donor}, amount: OMR ${Number(dRecord.amount).toFixed(3)}` : `id: ${id}`;
+      await deleteDoc(doc(db, 'donations', id));
+      await logAdminAction('Delete Donation', `Deleted donation ledger record (${donorInfo})`);
+    } catch (err: any) {
+      alert('Error deleting donation: ' + err.message);
+    }
   };
 
   // Incident reviews
   const handleIncidentStatus = async (id: string, status: 'published' | 'closed') => {
-    await updateDoc(doc(db, 'incidents', id), { status });
+    try {
+      await updateDoc(doc(db, 'incidents', id), { status });
+      const iRecord = incidents.find(i => i.id === id);
+      const incidentInfo = iRecord ? `affected: ${iRecord.name}, type: ${iRecord.type}` : `id: ${id}`;
+      await logAdminAction('Update Incident Status', `Changed welfare claim status to ${status.toUpperCase()} (${incidentInfo})`);
+    } catch (err: any) {
+      alert('Error updating welfare incident status: ' + err.message);
+    }
   };
 
   const handleDeleteIncident = async (id: string) => {
     if (!confirm('Delete incident report?')) return;
-    await deleteDoc(doc(db, 'incidents', id));
+    try {
+      const iRecord = incidents.find(i => i.id === id);
+      const incidentInfo = iRecord ? `affected: ${iRecord.name}, type: ${iRecord.type}` : `id: ${id}`;
+      await deleteDoc(doc(db, 'incidents', id));
+      await logAdminAction('Delete Incident', `Permanently deleted welfare incident claim (${incidentInfo})`);
+    } catch (err: any) {
+      alert('Error deleting welfare incident: ' + err.message);
+    }
   };
 
   const handleAttachIncidentDriveFile = async () => {
@@ -2260,6 +2334,7 @@ export default function AdminPanel({
           { id: 'ads', label: 'Sponsor Ads', icon: Disc },
           { id: 'workspace', label: 'Google Sync Hub', icon: Cloud },
           { id: 'meetings', label: 'Cabinet Assemblies', icon: Award },
+          { id: 'logs', label: 'Activity Logs', icon: FileSpreadsheet },
         ].map((tab) => {
           const Icon = tab.icon === LocationIcon ? Globe : tab.icon;
           const isSelected = activeTab === tab.id;
@@ -5253,6 +5328,91 @@ export default function AdminPanel({
               </div>
             )}
             
+          </div>
+        )}
+
+        {/* SYSTEM ACTIVITY LOGTAB */}
+        {activeTab === 'logs' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-bold font-serif text-emerald-950">System Activity Log</h3>
+                <p className="text-xs text-slate-500">
+                  Immutable audit records of administrative operations, catalogued for compliance, security, and governance.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium font-sans">Real-time Stream</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              </div>
+            </div>
+
+            {/* Logs Table */}
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="p-3.5 font-bold text-slate-700 font-sans uppercase tracking-wider">Timestamp</th>
+                      <th className="p-3.5 font-bold text-slate-700 font-sans uppercase tracking-wider">Admin Email</th>
+                      <th className="p-3.5 font-bold text-slate-700 font-sans uppercase tracking-wider">Action</th>
+                      <th className="p-3.5 font-bold text-slate-700 font-sans uppercase tracking-wider">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-600">
+                    {logsLoading ? (
+                      <tr>
+                        <td colSpan={4} className="p-10 text-center text-slate-400 font-sans">
+                          <RefreshCw size={18} className="animate-spin mx-auto text-slate-350 mb-2" />
+                          <span>Streaming live activity logs from secure ledger...</span>
+                        </td>
+                      </tr>
+                    ) : logs.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-10 text-center text-slate-400 font-sans">
+                          No audit entries recorded in the current database node yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      logs.map((log) => {
+                        let dateFormatted = '';
+                        try {
+                          if (log.createdAt?.toDate) {
+                            dateFormatted = log.createdAt.toDate().toLocaleString();
+                          } else if (log.createdAt?.seconds) {
+                            dateFormatted = new Date(log.createdAt.seconds * 1000).toLocaleString();
+                          } else if (log.createdAt) {
+                            dateFormatted = new Date(log.createdAt).toLocaleString();
+                          } else {
+                            dateFormatted = 'N/A';
+                          }
+                        } catch (e) {
+                          dateFormatted = 'Invalid Date';
+                        }
+                        return (
+                          <tr key={log.id || Math.random().toString()} className="hover:bg-slate-50/40 transition">
+                            <td className="p-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                              {dateFormatted}
+                            </td>
+                            <td className="p-3.5 font-semibold text-emerald-950 font-sans whitespace-nowrap">
+                              {log.adminEmail}
+                            </td>
+                            <td className="p-3.5 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-bold tracking-wide uppercase font-sans">
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="p-3.5 text-slate-700 text-xs font-sans max-w-sm xl:max-w-2xl truncate" title={log.details}>
+                              {log.details}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

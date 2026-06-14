@@ -99,7 +99,22 @@ service cloud.firestore {
              data.createdAt != null;
     }
 
+    // Admin Log Validation Blueprint
+    function isValidAdminLog(data) {
+      return isValidString(data.adminEmail, 1, 150) &&
+             isValidString(data.action, 1, 200) &&
+             isValidString(data.details, 1, 5000) &&
+             data.createdAt != null;
+    }
+
     // --- COLLECTION MATCHES ---
+
+    // Admin Logs Rules
+    match /admin_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidAdminLog(request.resource.data);
+      allow update, delete: if false;
+    }
 
     // Members Collection Rules
     match /members/{memberId} {

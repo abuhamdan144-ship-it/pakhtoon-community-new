@@ -155,3 +155,12 @@ export interface FirestoreErrorInfo {
     }[];
   };
 }
+
+export interface AdminLog {
+  id?: string;
+  adminEmail: string;
+  action: string;
+  details: string;
+  createdAt: any; // Firestore Timestamp or Date
+}
+

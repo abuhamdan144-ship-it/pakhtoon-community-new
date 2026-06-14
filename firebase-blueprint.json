@@ -199,9 +199,25 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "electionId", "candidateId", "timestamp"]
+    },
+    "AdminLog": {
+      "title": "AdminLog",
+      "description": "Historical logs of admin-executed actions to maintain security and transparency.",
+      "type": "object",
+      "properties": {
+        "adminEmail": { "type": "string", "description": "Email address of the performing admin." },
+        "action": { "type": "string", "description": "The specific action name (such as 'Approve Membership')." },
+        "details": { "type": "string", "description": "Descriptions of the specific record modified." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["adminEmail", "action", "details", "createdAt"]
     }
   },
   "firestore": {
+    "/admin_logs/{logId}": {
+      "schema": "AdminLog",
+      "description": "Admin action recordings."
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "User profiles for authenticated individuals."
