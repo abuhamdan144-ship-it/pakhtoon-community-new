@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Member } from '../types';
 import { CARD_COLORS, getCardColor } from './CardColors';
-import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon } from 'lucide-react';
+import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon, Save } from 'lucide-react';
 import pukhtoonLogo from '../assets/images/pukhtoon_logo_1781303873200.jpg';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -561,6 +561,48 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
 
   if (!isOpen || !memberLocal) return null;
 
+  const handleSaveToDevice = async (canvasRef: React.RefObject<HTMLCanvasElement | null>, filename: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Check if browser supports File System Access API (showSaveFilePicker)
+    if ('showSaveFilePicker' in window) {
+      try {
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('Canvas blob generation failed.');
+
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: 'PNG Image',
+            accept: {
+              'image/png': ['.png'],
+            },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          console.log('User cancelled save operation');
+          return;
+        }
+        console.warn('File System Access API not permitted or failed, using traditional download wrapper', err);
+      }
+    }
+
+    // Fallback native download prompt
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const handleDownloadCard = () => {
     const canvas = cardCanvasRef.current;
     if (!canvas) return;
@@ -818,12 +860,22 @@ Oman Pakhtoon Community Welfare Network`;
               
               <div className="text-center mt-4">
                 {memberLocal.status === 'approved' || isAdmin ? (
-                  <button 
-                    onClick={handleDownloadCard} 
-                    className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
-                  >
-                    <Download size={14} /> Download Identity Card PNG
-                  </button>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button 
+                      onClick={() => handleSaveToDevice(cardCanvasRef, `OPC-Card-${memberLocal.name.replace(/\s+/g, '-')}.png`)} 
+                      id="save-card-to-device"
+                      className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
+                    >
+                      <Save size={14} className="text-amber-400" /> Save to Device
+                    </button>
+                    <button 
+                      onClick={handleDownloadCard} 
+                      id="download-card-traditional"
+                      className="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 text-xs px-4 py-2.5 rounded shadow-xs transition duration-155 cursor-pointer border border-slate-300"
+                    >
+                      <Download size={14} /> Standard Download
+                    </button>
+                  </div>
                 ) : (
                   <div className="bg-amber-100 border border-amber-200 text-amber-950 rounded-lg p-3 inline-block max-w-sm text-xs font-semibold">
                     🔒 Card download is locked until your membership application is approved by the administrator.
@@ -852,12 +904,22 @@ Oman Pakhtoon Community Welfare Network`;
               </p>
               <div className="text-center mt-4">
                 {memberLocal.status === 'approved' || isAdmin ? (
-                  <button 
-                    onClick={handleDownloadCert} 
-                    className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
-                  >
-                    <Download size={14} /> Download Association Certificate PNG
-                  </button>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button 
+                      onClick={() => handleSaveToDevice(certCanvasRef, `OPC-Certificate-${memberLocal.name.replace(/\s+/g, '-')}.png`)} 
+                      id="save-cert-to-device"
+                      className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
+                    >
+                      <Save size={14} className="text-amber-400" /> Save to Device
+                    </button>
+                    <button 
+                      onClick={handleDownloadCert} 
+                      id="download-cert-traditional"
+                      className="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 text-xs px-4 py-2.5 rounded shadow-xs transition duration-155 cursor-pointer border border-slate-300"
+                    >
+                      <Download size={14} /> Standard Download
+                    </button>
+                  </div>
                 ) : (
                   <div className="bg-amber-105 border border-amber-200 text-amber-955 rounded-lg p-3 inline-block max-w-sm text-xs font-semibold">
                     🔒 Certificate download is locked until your membership has been approved by the administrator.
@@ -886,12 +948,22 @@ Oman Pakhtoon Community Welfare Network`;
               </p>
               <div className="text-center mt-4">
                 {memberLocal.status === 'approved' || isAdmin ? (
-                  <button 
-                    onClick={handleDownloadReceipt} 
-                    className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
-                  >
-                    <Download size={14} /> Download Payment Receipt PNG
-                  </button>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button 
+                      onClick={() => handleSaveToDevice(receiptCanvasRef, `OPC-Payment-Receipt-${memberLocal.name.replace(/\s+/g, '-')}.png`)} 
+                      id="save-receipt-to-device"
+                      className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
+                    >
+                      <Save size={14} className="text-amber-400" /> Save to Device
+                    </button>
+                    <button 
+                      onClick={handleDownloadReceipt} 
+                      id="download-receipt-traditional"
+                      className="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 text-xs px-4 py-2.5 rounded shadow-xs transition duration-155 cursor-pointer border border-slate-300"
+                    >
+                      <Download size={14} /> Standard Download
+                    </button>
+                  </div>
                 ) : (
                   <div className="bg-amber-105 border border-amber-200 text-amber-955 rounded-lg p-3 inline-block max-w-sm text-xs font-semibold">
                     🔒 Receipt download is locked until your membership receipt verification is approved by the admin.
