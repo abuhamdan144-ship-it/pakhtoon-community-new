@@ -1233,7 +1233,7 @@ export default function App() {
               </section>
 
               {/* DONATION ACCOUNTS BANK ACCOUNT INFO */}
-              <section className="bg-emerald-900 text-white rounded-xl shadow-lg p-6 sm:p-8 space-y-4 border-2 border-amber-500/20">
+              <section className="bg-[#4f0700] text-white rounded-xl shadow-lg p-6 sm:p-8 space-y-4 border-2 border-amber-500/20">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h3 className="text-2xl font-serif font-bold text-amber-400">Community Welfare Fund</h3>
