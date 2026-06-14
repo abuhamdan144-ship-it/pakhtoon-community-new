@@ -1208,24 +1208,49 @@ export default function App() {
                     </p>
                   </motion.div>
                 </div>
-                {/* Expand / Collapse Dashboard Toggle Button */}
-                <div className="pt-6 flex justify-center z-20 relative">
+                {/* Expand / Collapse Dashboard Toggle Button & Onboarding Quick Links */}
+                <div className="pt-6 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 z-20 relative font-sans">
                   <button
                     onClick={() => setShowPortalMainContent(!showPortalMainContent)}
-                    className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider shadow-lg flex items-center gap-2 transition cursor-pointer select-none"
+                    className="bg-emerald-800 border border-emerald-700/60 hover:bg-emerald-750 text-white active:scale-95 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-2 transition cursor-pointer select-none"
                     id="toggle-main-content-btn"
                   >
                     {showPortalMainContent ? (
                       <>
-                        <span>Hide Community Feed &amp; Sections</span>
-                        <span className="bg-emerald-950/25 px-2 py-0.5 rounded-full text-[9px] font-black">ON</span>
+                        <span>Hide Community Feed</span>
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-[9px] font-black">ON</span>
                       </>
                     ) : (
                       <>
-                        <span>Show Community Feed &amp; Sections</span>
-                        <span className="bg-emerald-950/25 px-2 py-0.5 rounded-full text-[9px] font-black">OFF</span>
+                        <span>Show Community Feed</span>
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-[9px] font-black">OFF</span>
                       </>
                     )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setCurrentPage('register');
+                      setRegisterTab('submit');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5 transition cursor-pointer"
+                    id="register-here-btn"
+                  >
+                    <span>Register Here</span>
+                    <span className="bg-emerald-950/25 text-[9px] px-2 py-0.5 rounded-full font-black">NEW</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setCurrentPage('register');
+                      setRegisterTab('lookup');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="bg-white/10 border border-white/25 hover:bg-white/15 active:scale-95 text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1.5 transition cursor-pointer"
+                    id="lookup-registered-btn"
+                  >
+                    <span>Registered Members</span>
                   </button>
                 </div>
               </div>
