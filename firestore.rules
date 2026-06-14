@@ -151,7 +151,8 @@ service cloud.firestore {
     // Cabinet Meetings Collection Rules
     match /cabinet_meetings/{meetingId} {
       allow read: if isSignedIn();
-      allow create, delete: if isAdmin() && isValidCabinetMeeting(request.resource.data);
+      allow create: if (isAdmin() || isSignedIn()) && isValidCabinetMeeting(request.resource.data);
+      allow delete: if isAdmin();
       allow update: if isAdmin() || (isSignedIn() && resource.data.status == 'active');
     }
 

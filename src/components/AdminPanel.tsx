@@ -5370,6 +5370,146 @@ export default function AdminPanel({
           </div>
         )}
 
+        {/* CABINET ASSEMBLY MEETINGS TAB */}
+        {activeTab === 'meetings' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-bold font-serif text-emerald-950">Cabinet Assembly Meetings & Debates</h3>
+                <p className="text-xs text-slate-500">
+                  Manage council meetings, propose live questions/topics, track ballot distributions, and complete resolutions.
+                </p>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleMeetingSubmit} className="max-w-2xl bg-slate-50 p-6 rounded-lg border border-slate-200 space-y-4 text-left">
+              <h4 className="font-bold text-sm text-slate-800">
+                {mId ? 'Modify Legislative Assembly Topic' : 'Schedule New Live Resolution Campaign'}
+              </h4>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Legislative Resolution / Question *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Should we expand repatriation budget limits?"
+                    value={mAgenda}
+                    onChange={(e) => setMAgenda(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded p-2 text-xs focus:outline-emerald-800 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Detailed Background Context & Motive Description *</label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Provide explanatory briefing..."
+                    value={mDescription}
+                    onChange={(e) => setMDescription(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded p-2 text-xs focus:outline-emerald-800 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Assembly State *</label>
+                  <select
+                    value={mStatus}
+                    onChange={(e) => setMStatus(e.target.value as any)}
+                    className="bg-white border rounded p-2 text-xs focus:outline-emerald-800 font-sans cursor-pointer"
+                  >
+                    <option value="scheduled">Scheduled (Archived Draft)</option>
+                    <option value="active">Active (Voting Open)</option>
+                    <option value="completed">Completed (Voting Blocked / Archived)</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    className="bg-emerald-900 border border-emerald-950 text-white hover:bg-emerald-800 text-[11px] font-bold py-2 px-4 rounded transition cursor-pointer font-sans shadow-sm"
+                  >
+                    {mId ? 'Update Proposal' : 'Launch Proposal'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetMeetingForm}
+                    className="bg-slate-300 hover:bg-slate-400 text-slate-800 text-[11px] font-bold py-2 px-4 rounded transition cursor-pointer font-sans shadow-2xs"
+                  >
+                    Reset Form
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* List */}
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+              <div className="p-4 border-b bg-slate-50">
+                <h4 className="font-bold text-xs text-slate-700">All Assemblies Records ({meetings.length})</h4>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b text-slate-600 font-bold">
+                    <tr>
+                      <th className="p-3">Agenda / Question</th>
+                      <th className="p-3">Motive Background</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Ballots Cast</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-slate-600">
+                    {meetings.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-400 italic">No assemblies records catalogued.</td>
+                      </tr>
+                    ) : (
+                      meetings.map((mt) => {
+                        const totalVotes = Object.keys(mt.votes || {}).length;
+                        return (
+                          <tr key={mt.id} className="hover:bg-slate-50/50">
+                            <td className="p-3 font-bold text-slate-800 max-w-xs truncate">{mt.agenda}</td>
+                            <td className="p-3 text-slate-500 max-w-sm truncate">{mt.description}</td>
+                            <td className="p-3 whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                mt.status === 'active' 
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                                  : mt.status === 'completed'
+                                  ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                                  : 'bg-amber-100 text-amber-800 border border-amber-200'
+                              }`}>
+                                {mt.status}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono font-bold text-slate-700">{totalVotes} members voted</td>
+                            <td className="p-3 text-right whitespace-nowrap space-x-2">
+                              <button
+                                onClick={() => handleEditMeeting(mt)}
+                                className="text-blue-600 hover:bg-blue-50 py-1 px-2.5 rounded transition cursor-pointer text-[11px] font-bold font-sans"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMeeting(mt.id!)}
+                                className="text-red-605 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded transition cursor-pointer text-[11px] font-bold font-sans"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* SYSTEM ACTIVITY LOGTAB */}
         {activeTab === 'logs' && (
           <div className="space-y-6">

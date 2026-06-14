@@ -69,6 +69,7 @@ import AnimatedCounter from './components/AnimatedCounter';
 import FormSubmitButton from './components/FormSubmitButton';
 import { CARD_COLORS } from './components/CardColors';
 import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
+import { translations, languageNames, Language } from './translations';
 
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
@@ -219,6 +220,15 @@ export default function App() {
   const [rEmail, setREmail] = useState('');
   const [rCardColor, setRCardColor] = useState('emerald');
   const [registerTab, setRegisterTab] = useState<'submit' | 'lookup'>('submit');
+  const [language, setLanguage] = useState<Language>(() => {
+    const stored = localStorage.getItem('opc_lang');
+    return (stored as Language) || 'en';
+  });
+  const t = translations[language];
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('opc_lang', lang);
+  };
   const [lookupValue, setLookupValue] = useState('');
   const [lookupResult, setLookupResult] = useState<Member | null>(null);
   const [lookupAttempted, setLookupAttempted] = useState(false);
@@ -479,9 +489,9 @@ export default function App() {
       }
     );
 
-    // Cabinet Meetings snapshot (only subscribed if admin is logged in)
+    // Cabinet Meetings snapshot (available to any authenticated user/cabinet officer)
     let unsubscribeMeetings = () => {};
-    if (adminUser) {
+    if (currentUser) {
       unsubscribeMeetings = onSnapshot(
         query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')),
         (snapshot) => {
@@ -505,7 +515,7 @@ export default function App() {
       unsubscribeAds();
       unsubscribeMeetings();
     };
-  }, [adminUser]);
+  }, [adminUser, currentUser]);
 
   // Automatic Dispatch Trigger for specific phone requested by user
   useEffect(() => {
@@ -955,10 +965,10 @@ export default function App() {
             </div>
             <div>
               <span className="font-display font-black text-sm sm:text-base block tracking-tight text-amber-400 leading-none group-hover:text-amber-300 transition">
-                OPC PORTAL
+                {t.portalTitle || 'OPC PORTAL'}
               </span>
               <span className="text-[9px] uppercase tracking-wider text-amber-100/80 block leading-tight mt-0.5 font-medium">
-                Oman Pakhtoon Community
+                {t.omanPakhtoon || 'Oman Pakhtoon Community'}
               </span>
             </div>
           </div>
@@ -966,13 +976,13 @@ export default function App() {
           {/* Desktop Nav links */}
           <nav className="hidden lg:flex items-center gap-1.5 font-medium text-xs">
             {[
-              { id: 'home', label: 'Home Portal' },
-              { id: 'register', label: 'Register Membership' },
-              { id: 'cabinet', label: 'OPC Cabinet' },
-              { id: 'elections', label: 'Cast Vote' },
-              { id: 'report', label: 'Report Incident' },
-              { id: 'chat', label: 'AI Assistant' },
-              { id: 'admin', label: 'Admin Terminal' },
+              { id: 'home', label: t.home || 'Home Portal' },
+              { id: 'register', label: t.register || 'Register Membership' },
+              { id: 'cabinet', label: t.cabinet || 'OPC Cabinet' },
+              { id: 'elections', label: t.elections || 'Cast Vote' },
+              { id: 'report', label: t.report || 'Report Incident' },
+              { id: 'chat', label: t.chat || 'AI Assistant' },
+              { id: 'admin', label: t.admin || 'Admin Terminal' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -988,8 +998,22 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Desktop User Auth Section (Google Sign-In) */}
+          {/* Desktop Language Selector & User Auth Section (Google Sign-In) */}
           <div className="hidden lg:flex items-center gap-3 border-l border-emerald-800/80 pl-4">
+            {/* Language Selector */}
+            <div className="flex items-center gap-1 bg-emerald-950 border border-emerald-800 px-2 py-1.5 rounded-lg text-xs font-semibold">
+              <span className="text-amber-100/70 mr-0.5 text-[10px] uppercase tracking-wider">{t.language || 'Language'}:</span>
+              <select
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value as Language)}
+                className="bg-transparent text-amber-400 font-bold focus:outline-none cursor-pointer text-xs uppercase"
+              >
+                <option value="en" className="bg-emerald-900 text-amber-50">EN</option>
+                <option value="ur" className="bg-emerald-900 text-amber-50">اردو</option>
+                <option value="ps" className="bg-emerald-900 text-amber-50">پښتو</option>
+              </select>
+            </div>
+
             {currentUser ? (
               <div className="flex items-center gap-2">
                 {currentUser.photoURL ? (
@@ -1001,7 +1025,7 @@ export default function App() {
                 )}
                 <div className="text-left">
                   <span className="text-[11px] font-semibold text-amber-305 block max-w-[120px] truncate leading-none">{currentUser.displayName || 'Authorized User'}</span>
-                  <button onClick={handleGoogleSignOut} className="text-[9px] text-amber-140/80 hover:text-amber-300 font-bold tracking-wider uppercase block mt-1 hover:underline transition">Sign Out</button>
+                  <button onClick={handleGoogleSignOut} className="text-[9px] text-amber-140/80 hover:text-amber-300 font-bold tracking-wider uppercase block mt-1 hover:underline transition">{t.signOut || 'Sign Out'}</button>
                 </div>
               </div>
             ) : (
@@ -1010,7 +1034,7 @@ export default function App() {
                 className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 text-xs font-bold px-3 py-1.5 rounded-md shadow transition duration-150 cursor-pointer flex items-center gap-1.5"
               >
                 <img src="https://www.google.com/favicon.ico" alt="Google icon" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
-                Sign In
+                {t.signIn || 'Sign In'}
               </button>
             )}
           </div>
@@ -1057,7 +1081,7 @@ export default function App() {
                       <span className="text-xs font-bold text-amber-400">{currentUser.displayName || 'Authorized Member'}</span>
                     </div>
                     <button onClick={() => { handleGoogleSignOut(); setMobileMenuOpen(false); }} className="text-[10px] bg-emerald-850 hover:bg-emerald-800 text-amber-300 border border-emerald-700 font-bold px-2 py-1 rounded">
-                      Sign Out
+                      {t.signOut || 'Sign Out'}
                     </button>
                   </div>
                 ) : (
@@ -1069,19 +1093,39 @@ export default function App() {
                     className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs py-2 rounded-md"
                   >
                     <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
-                    Sign In with Google
+                    {t.signIn || 'Sign In'}
                   </button>
                 )}
               </div>
 
+              {/* Mobile Language Selection Buttons */}
+              <div className="flex items-center justify-between border-b border-emerald-800 pb-3 mb-3">
+                <span className="text-[11px] font-bold text-amber-200/90 tracking-wider font-sans uppercase">{t.language || 'Language'}:</span>
+                <div className="flex gap-1.5">
+                  {(['en', 'ur', 'ps'] as Language[]).map((langKey) => (
+                    <button
+                      key={langKey}
+                      onClick={() => handleLanguageChange(langKey)}
+                      className={`px-3 py-1 rounded text-xs font-bold transition ${
+                        language === langKey 
+                          ? 'bg-amber-500 text-emerald-950 shadow-xs' 
+                          : 'bg-emerald-900 text-amber-100 hover:bg-emerald-850'
+                      }`}
+                    >
+                      {langKey === 'en' ? 'English' : langKey === 'ur' ? 'اردو' : 'پښتو'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {[
-                { id: 'home', label: 'Homepage Dashboard' },
-                { id: 'register', label: 'New Member Registry' },
-                { id: 'cabinet', label: 'OPC Cabinet Directory' },
-                { id: 'elections', label: 'OPC Polls / Elections' },
-                { id: 'report', label: 'Welfare Report Claim' },
-                { id: 'chat', label: 'AI assistant Chat' },
-                { id: 'admin', label: 'Administrative Access' },
+                { id: 'home', label: t.home || 'Home Portal' },
+                { id: 'register', label: t.register || 'Register Membership' },
+                { id: 'cabinet', label: t.cabinet || 'OPC Cabinet' },
+                { id: 'elections', label: t.elections || 'Cast Vote' },
+                { id: 'report', label: t.report || 'Report Incident' },
+                { id: 'chat', label: t.chat || 'AI Assistant' },
+                { id: 'admin', label: t.admin || 'Admin Terminal' },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1133,7 +1177,7 @@ export default function App() {
 
                 <div className="space-y-2">
                   <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-extrabold tracking-widest px-3 py-1 rounded-full select-none">
-                    SULTANATE OF OMAN CHAPTER
+                    {t.omanChapter || 'SULTANATE OF OMAN CHAPTER'}
                   </span>
                   <motion.h1 
                     initial={{ opacity: 0, x: -20, scale: 0.97 }}
@@ -1141,12 +1185,11 @@ export default function App() {
                     transition={{ duration: 0.6, ease: "easeOut" }}
                     className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight"
                   >
-                    Oman Pakhtoon Community <span className="text-amber-400">Portal</span>
+                    {t.welcomeTitle || 'Oman Pakhtoon Community'} <span className="text-amber-400">{t.welcomeSubtitle || 'Portal'}</span>
                   </motion.h1>
                 </div>
                 <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
-                  The primary network providing general assistance, lifetime welfare claim support, 
-                  and cooperative services for the diaspora Pakhtoon tribes living in Muscat, Salalah, Sohar and across Oman.
+                  {t.heroDescription || 'The primary network providing general assistance, lifetime welfare claim support, and cooperative services for the diaspora Pakhtoon tribes living in Muscat, Salalah, Sohar and across Oman.'}
                 </p>
 
                 {/* Metric stats card badges */}
@@ -1159,7 +1202,7 @@ export default function App() {
                     className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Verified Members
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.registeredMembers || 'Verified Members'}
                     </span>
                     <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={totalApprovedMembers} />
@@ -1173,7 +1216,7 @@ export default function App() {
                     className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Welfare donations
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.activeFunds || 'Welfare donations'}
                     </span>
                     <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={accumulativeFunds} decimals={3} prefix="OMR " />
@@ -1201,7 +1244,7 @@ export default function App() {
                     className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> welfare cases
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.reportedIncidents || 'welfare cases'}
                     </span>
                     <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={reportedIncidentCount} />
@@ -1534,11 +1577,22 @@ export default function App() {
                 <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
                   Embassy of Pakistan, Muscat
                 </h2>
-                <div className="bg-white border rounded-xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-1 md:col-span-2">
+                <div className="bg-white border rounded-xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-6 relative overflow-hidden">
+                  {/* Pakistan Flag Subtle Background Watermark */}
+                  <div className="absolute inset-0 pointer-events-none opacity-[0.06] flex items-center justify-center z-0">
+                    <svg viewBox="0 0 400 300" className="w-full max-w-lg aspect-4/3 select-none">
+                      <rect width="400" height="300" fill="#01411C" />
+                      <rect width="100" height="300" fill="#FFFFFF" />
+                      <circle cx="250" cy="150" r="66" fill="#FFFFFF" />
+                      <circle cx="268" cy="140" r="63" fill="#01411C" />
+                      <polygon points="268,103 273,115 285,115 275,123 278,135 268,127 258,135 261,123 251,115 263,115" fill="#FFFFFF" />
+                    </svg>
+                  </div>
+
+                  <div className="space-y-1 md:col-span-2 relative z-10">
                     <h3 className="font-serif text-lg font-bold text-emerald-905">Muscat Consulate Coordination</h3>
                     <p className="text-xs text-slate-500 max-w-xl">
-                      The Embassy coordinates critical consular services including dead body repatriation, 
+                       The Embassy coordinates critical consular services including dead body repatriation, 
                       emergency outpasses, and legal aid. Maintain these details up-to-date.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 text-xs font-sans">
@@ -1553,7 +1607,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-emerald-950/5 border border-emerald-900/10 p-5 rounded-lg space-y-3.5 text-xs">
+                  <div className="bg-emerald-950/5 border border-emerald-900/10 p-5 rounded-lg space-y-3.5 text-xs relative z-10">
                     <h4 className="font-bold text-emerald-950 flex items-center gap-1.5 border-b pb-1.5">
                       <HelpCircle size={15} /> Emergency Consular Numbers
                     </h4>
@@ -2228,7 +2282,13 @@ export default function App() {
         {/* CABINET & MEMBERS DIRECTORY */}
         {currentPage === 'cabinet' && (
           <div className="container mx-auto max-w-7xl px-4 py-8 fade-in">
-            <CabinetPanel cabinet={cabinet} members={members} />
+            <CabinetPanel 
+              cabinet={cabinet} 
+              members={members} 
+              meetings={meetings} 
+              currentUser={currentUser} 
+              isAdmin={!!adminUser} 
+            />
           </div>
         )}
 
@@ -2483,7 +2543,7 @@ export default function App() {
         {/* AI ASSISTANT CHATBOT */}
         {currentPage === 'chat' && (
           <div className="container mx-auto max-w-4xl px-4 py-8 fade-in">
-            <AIAssistant />
+            <AIAssistant language={language} />
           </div>
         )}
 

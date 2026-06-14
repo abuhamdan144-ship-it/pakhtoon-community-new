@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, Search, MessageSquare, Bot, User, RefreshCw, ChevronRight } from 'lucide-react';
+import { translations } from '../translations';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -7,19 +8,37 @@ interface ChatMessage {
   sources?: { title: string; url: string }[];
 }
 
-export default function AIAssistant() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: 'model',
-      text: "As-salamu alaykum! I am the Oman Pakhtoon Community Welfare Assistant. I can assist you with understanding membership rules, welfare claims, Dead Body repatriation guidelines, consular emergency resources, and live Omani visa policies. How can I assist you today?"
-    }
-  ]);
+interface AIAssistantProps {
+  language?: 'en' | 'ur' | 'ps';
+}
+
+const greetings = {
+  en: "As-salamu alaykum! I am the Oman Pakhtoon Community Welfare Assistant. I can assist you with understanding membership rules, welfare claims, Dead Body repatriation guidelines, consular emergency resources, and live Omani visa policies. How can I assist you today?",
+  ur: "السلام علیکم! میں عمان پختون کمیونٹی فلاحی معاون ہوں۔ میں آپ کی رکنیت کے قوانین، فلاحی دعووں، وفات پا جانے والے بھائیوں کی میت کی واپسی کے رہنما خطوط، قونصلر ہنگامی وسائل اور عمان کی ویزا پالیسیوں کو سمجھنے میں مدد کر سکتا ہوں۔ میں آج آپ کی کیا مدد کر سکتا ہوں؟",
+  ps: "السلام علیکم! زه د عمان پښتون ټولنې فلاحي مرستندوی یم. زه تاسو سره د غړیتوب قواعدو، د فلاحي مرستو دعوې، وطن ته د مړي د لېږدولو لارښوونې، د سفارت بیړني حالت او د عمان ژوندي ویزې تګلارو په پوهیدو کې مرسته کولی شم. نن زه ستا څه مرسته کولی شم؟"
+};
+
+export default function AIAssistant({ language = 'en' }: AIAssistantProps) {
+  const t = translations[language] || translations.en;
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [useSearch, setUseSearch] = useState(false);
   const [useThinking, setUseThinking] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize initial greeting when language changes
+  useEffect(() => {
+    if (messages.length <= 1) {
+      setMessages([
+        {
+          role: 'model',
+          text: greetings[language] || greetings.en
+        }
+      ]);
+    }
+  }, [language]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -53,6 +72,7 @@ export default function AIAssistant() {
       // System instructions ensuring standard humble representation
       const systemInstruction = `You are the Oman Pakhtoon Community (OPC) AI Assistant. 
       You communicate in a polite, helpful, and culturally respectful tone (respecting Pakhtoon traditions and Omani laws).
+      Always communicate and reply primarily in the user's selected language: ${language === 'ur' ? 'Urdu' : language === 'ps' ? 'Pashto' : 'English'}, or code-switch naturally to help them understand. Only use other languages if specifically requested.
       You assist Pakhtoon community members in Sultanate of Oman (Muscat, Salalah, Sohar, Nizwa, etc.) with questions about:
       1. Dead body repatriation procedures (Muscat to Pakistan)
       2. Medical assistance reports and welfare fund claims
@@ -167,12 +187,16 @@ export default function AIAssistant() {
             onClick={() => setMessages([
               {
                 role: 'model',
-                text: "Conversation thread history has been reset. How can I assist you with Oman Pakhtoon support?"
+                text: language === 'ur' 
+                  ? "بات چیت کی تاریخ کو دوبارہ ترتیب دے دیا گیا ہے۔ میں عمان پختون سپورٹ کے ساتھ آپ کی مدد کیسے کر سکتا ہوں؟" 
+                  : language === 'ps'
+                  ? "د کتنې تاریخ بیرته تنظیم شو. زه څنګه د عمان پښتون ملاتړ سره مرسته کولی شم؟"
+                  : "Conversation thread history has been reset. How can I assist you with Oman Pakhtoon support?"
               }
             ])}
             className="w-full inline-flex justify-center items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded text-[11px] font-bold transition cursor-pointer"
           >
-            <RefreshCw size={11} /> Reset Chat History
+            <RefreshCw size={11} /> {language === 'ur' ? 'چیٹ کی تاریخ دوبارہ ترتیب دیں' : language === 'ps' ? 'د چیټ تاریخ بیا تنظیم کړئ' : 'Reset Chat History'}
           </button>
         </div>
       </div>
@@ -186,9 +210,9 @@ export default function AIAssistant() {
             <Bot size={18} />
           </div>
           <div>
-            <span className="font-serif font-bold text-sm text-emerald-950 block">OPC Welfare Assistant</span>
+            <span className="font-serif font-bold text-sm text-emerald-950 block">{t.aiTitle || 'OPC Welfare Assistant'}</span>
             <span className="text-[10px] text-slate-500 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Multilingual Support (English, Pashto, Urdu)
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> {language === 'ur' ? 'کثیر لسانی معاونت (انگریزی، پشتو، اردو)' : language === 'ps' ? 'څو ژبنی ملاتړ (پښتو، اردو، انګلیسي)' : 'Multilingual Support (English, Pashto, Urdu)'}
             </span>
           </div>
         </div>
@@ -293,7 +317,7 @@ export default function AIAssistant() {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             disabled={loading}
-            placeholder={useSearch ? "Ask live visa rules or airline queries with Search..." : "Type a help message for the OPC representative assistant..."}
+            placeholder={useSearch ? (language === 'ur' ? "سرچ کا استعمال کرتے ہوئے لائیو سوالات پوچھیں..." : language === 'ps' ? "د لټون په مرسته ژوندۍ پوښتنې وپوښتئ..." : "Ask live visa rules or airline queries with Search...") : (t.aiPlaceholder || "Type a help message for the OPC representative assistant...")}
             className="flex-1 px-3.5 py-2 border rounded-lg text-xs focus:outline-emerald-800 bg-slate-50/50 disabled:opacity-60"
           />
           <button
