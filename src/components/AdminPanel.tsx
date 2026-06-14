@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
+import AnimatedCounter from './AnimatedCounter';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp 
@@ -1709,6 +1711,24 @@ export default function AdminPanel({
   const pendingMembers = members.filter(m => m.status === 'pending');
   const approvedMembers = members.filter(m => m.status === 'approved');
 
+  const parseMemberDate = (val: any) => {
+    if (!val) return null;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val.seconds) return new Date(val.seconds * 1000);
+    if (val instanceof Date) return val;
+    const parsed = new Date(val);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const overduePendingCount = useMemo(() => {
+    return pendingMembers.filter(m => {
+      const d = parseMemberDate(m.createdAt);
+      if (!d) return false;
+      const hours = (Date.now() - d.getTime()) / (1000 * 60 * 60);
+      return hours > 48;
+    }).length;
+  }, [pendingMembers]);
+
   const filteredPending = pendingMembers.filter(m => {
     const q = memberSearchQuery.toLowerCase().trim();
     if (!q) return true;
@@ -2269,28 +2289,66 @@ export default function AdminPanel({
             <h3 className="text-xl font-bold font-serif text-emerald-950 mb-3">Community Snapshot</h3>
             
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+                className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
+              >
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approved Members</p>
-                <p className="text-3xl font-serif font-bold text-emerald-900 mt-1">{approvedMembers.length}</p>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
+                <p className="text-3xl font-serif font-bold text-emerald-900 mt-1">
+                  <AnimatedCounter value={approvedMembers.length} />
+                </p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
+              >
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Applications</p>
-                <p className="text-3xl font-serif font-bold text-amber-600 mt-1">{pendingMembers.length}</p>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
+                <p className="text-3xl font-serif font-bold text-amber-600 mt-1">
+                  <AnimatedCounter value={pendingMembers.length} />
+                </p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+                className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
+              >
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Donations Accrued</p>
-                <p className="text-3xl font-serif font-bold text-emerald-900 mt-1">OMR {totalDonations.toFixed(3)}</p>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
+                <p className="text-3xl font-serif font-bold text-emerald-900 mt-1">
+                  <AnimatedCounter value={totalDonations} decimals={3} prefix="OMR " />
+                </p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
+              >
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Welfare Logs</p>
                 <p className="text-3xl font-serif font-bold text-blue-900 mt-1">
-                  {incidents.filter(i => i.status !== 'closed').length}
+                  <AnimatedCounter value={incidents.filter(i => i.status !== 'closed').length} />
                 </p>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.25 }}
+                className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
+              >
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ad Sponsor Billing</p>
-                <p className="text-3xl font-serif font-bold text-teal-900 mt-1">OMR {totalAdRevenue.toFixed(3)}</p>
-              </div>
+                <p className="text-3xl font-serif font-bold text-teal-900 mt-1">
+                  <AnimatedCounter value={totalAdRevenue} decimals={3} prefix="OMR " />
+                </p>
+              </motion.div>
             </div>
 
             {/* MEMBERSHIP PROCESSING STATUS CHARTS */}
@@ -2995,9 +3053,16 @@ export default function AdminPanel({
 
             {/* PENDING APPLICATIONS */}
             <div>
-              <span className="text-sm font-bold text-slate-700 block border-b pb-1.5 mb-3">
-                Awaiting Review ({filteredPending.length})
-              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-1.5 mb-3 gap-2">
+                <span className="text-sm font-bold text-slate-700">
+                  Awaiting Review ({filteredPending.length})
+                </span>
+                {overduePendingCount > 0 && (
+                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded text-xs font-bold animate-pulse">
+                    <span className="text-amber-600">⚠️</span> {overduePendingCount} application{overduePendingCount > 1 ? 's' : ''} pending for &gt; 48 hours
+                  </span>
+                )}
+              </div>
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-emerald-950 text-amber-300">
@@ -3030,31 +3095,60 @@ export default function AdminPanel({
                         </td>
                       </tr>
                     ) : (
-                      sortedPending.map((m) => (
-                        <tr key={m.id} className="hover:bg-slate-50/50">
-                          <td className="p-3 font-semibold text-emerald-950">
-                            {m.name} <p className="text-[10px] font-normal text-slate-400">f: {m.father}</p>
-                          </td>
-                          <td className="p-3 font-mono">{m.cnic}</td>
-                          <td className="p-3">{m.district}</td>
-                          <td className="p-3">{m.address}</td>
-                          <td className="p-3">{m.phone}</td>
-                          <td className="p-3 text-right space-x-1 whitespace-nowrap">
-                            <button 
-                              onClick={() => handleApproveMember(m)}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleRejectMember(m.id!)}
-                              className="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      sortedPending.map((m) => {
+                        const createdDate = parseMemberDate(m.createdAt);
+                        const hoursInQueue = createdDate ? Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60)) : 0;
+                        const isOverdue = hoursInQueue > 48;
+
+                        return (
+                          <tr 
+                            key={m.id} 
+                            className={`transition duration-150 ${
+                              isOverdue 
+                                ? 'bg-amber-50 hover:bg-amber-100 border-l-4 border-l-amber-500' 
+                                : 'hover:bg-slate-50/50'
+                            }`}
+                          >
+                            <td className="p-3 font-semibold text-emerald-950">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{m.name}</span>
+                                {isOverdue && (
+                                  <span 
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-200 text-amber-900 border border-amber-300 animate-pulse"
+                                    title={`Pending for ${hoursInQueue} hours`}
+                                  >
+                                    🕒 Delayed ({hoursInQueue}h)
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] font-normal text-slate-400 mt-0.5">f: {m.father}</p>
+                              {createdDate && (
+                                <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                                  Applied: {createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} ({hoursInQueue}h ago)
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono">{m.cnic}</td>
+                            <td className="p-3">{m.district}</td>
+                            <td className="p-3">{m.address}</td>
+                            <td className="p-3">{m.phone}</td>
+                            <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                              <button 
+                                onClick={() => handleApproveMember(m)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => handleRejectMember(m.id!)}
+                                className="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded text-xs font-bold transition cursor-pointer"
+                              >
+                                Reject
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

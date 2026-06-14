@@ -64,6 +64,8 @@ import AIAssistant from './components/AIAssistant';
 import CountdownTimer from './components/CountdownTimer';
 import CabinetPanel from './components/CabinetPanel';
 import LiveCardPreview from './components/LiveCardPreview';
+import AnimatedCounter from './components/AnimatedCounter';
+import FormSubmitButton from './components/FormSubmitButton';
 import { CARD_COLORS } from './components/CardColors';
 import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
 
@@ -132,6 +134,30 @@ const getPositionPriority = (pos: string): number => {
   if (cleanPos.includes('organizer')) return 13;
   if (cleanPos.includes('member') || cleanPos.includes('committee')) return 14;
   return CABINET_POSITION_ORDER.length;
+};
+
+const feedContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const feedItemVariants = {
+  hidden: { opacity: 0, y: 15, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 100,
+      damping: 15,
+    },
+  },
 };
 
 export default function App() {
@@ -1105,9 +1131,14 @@ export default function App() {
                   <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-extrabold tracking-widest px-3 py-1 rounded-full select-none">
                     SULTANATE OF OMAN CHAPTER
                   </span>
-                  <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight">
+                  <motion.h1 
+                    initial={{ opacity: 0, x: -20, scale: 0.97 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight"
+                  >
                     Oman Pakhtoon Community <span className="text-amber-400">Portal</span>
-                  </h1>
+                  </motion.h1>
                 </div>
                 <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
                   The primary network providing general assistance, lifetime welfare claim support, 
@@ -1116,24 +1147,48 @@ export default function App() {
 
                 {/* Metric stats card badges */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 max-w-3xl mx-auto z-10">
-                  <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center"
+                  >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Verified Members
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">{totalApprovedMembers}</p>
-                  </div>
-                  <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
+                    <p className="text-3xl font-bold font-serif text-white mt-1.5">
+                      <AnimatedCounter value={totalApprovedMembers} />
+                    </p>
+                  </motion.div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center"
+                  >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Welfare donations
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">OMR {accumulativeFunds.toFixed(3)}</p>
-                  </div>
-                  <div className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center">
+                    <p className="text-3xl font-bold font-serif text-white mt-1.5">
+                      <AnimatedCounter value={accumulativeFunds} decimals={3} prefix="OMR " />
+                    </p>
+                  </motion.div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center"
+                  >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> welfare cases
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">{reportedIncidentCount}</p>
-                  </div>
+                    <p className="text-3xl font-bold font-serif text-white mt-1.5">
+                      <AnimatedCounter value={reportedIncidentCount} />
+                    </p>
+                  </motion.div>
                 </div>
                 {/* Expand / Collapse Dashboard Toggle Button */}
                 <div className="pt-6 flex justify-center z-20 relative">
@@ -1321,13 +1376,14 @@ export default function App() {
                       </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={pubDonorLoading}
+                    <FormSubmitButton
+                      isLoading={pubDonorLoading}
+                      isSuccess={pubDonorSuccess}
+                      label="Log Transfer Claim & Submit Dues"
+                      successLabel="Donation Claim Logged Successfully!"
                       className="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold py-2.5 px-4 rounded text-xs tracking-wider uppercase shadow hover:shadow-md transition active:scale-95 text-center flex items-center justify-center gap-1.5 cursor-pointer font-sans"
-                    >
-                      {pubDonorLoading ? 'Submitting Transfer Claim...' : 'Log Transfer Claim & Submit Dues'}
-                    </button>
+                      successClassName="w-full bg-emerald-600 text-white font-bold py-2.5 px-4 rounded text-xs tracking-wider uppercase shadow transition text-center flex items-center justify-center gap-1.5 font-sans"
+                    />
                   </form>
                 </div>
               </section>
@@ -1408,7 +1464,12 @@ export default function App() {
                     View Full Directory &rarr;
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <motion.div 
+                  variants={feedContainerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                >
                   {cabinet.length === 0 ? (
                     <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-medium font-serif w-full col-span-full">
                       The official OPC cabinet bears directory is loaded as soon as an administrator sets up credentials.
@@ -1425,7 +1486,7 @@ export default function App() {
                       })
                       .slice(0, 8) // Show top 8 on home page, rest available in full tab directory
                       .map((cm) => (
-                        <div key={cm.id} className="bg-white border rounded-xl shadow-xs overflow-hidden text-center p-5 space-y-3 hover:shadow-md transition">
+                        <motion.div key={cm.id} variants={feedItemVariants} className="bg-white border rounded-xl shadow-xs overflow-hidden text-center p-5 space-y-3 hover:shadow-md transition">
                           {cm.photo ? (
                             <img src={cm.photo} alt={cm.name} className="w-24 h-24 rounded-full object-cover border-4 border-amber-400 mx-auto" />
                           ) : (
@@ -1444,10 +1505,10 @@ export default function App() {
                               Mob: {cm.phone}
                             </p>
                           )}
-                        </div>
+                        </motion.div>
                       ))
                   )}
-                </div>
+                </motion.div>
               </section>
 
               {/* BULLETINS NEWS SECTION */}
@@ -1455,14 +1516,19 @@ export default function App() {
                 <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
                   Community Announcements &amp; bulletins
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <motion.div 
+                  variants={feedContainerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                >
                   {news.length === 0 ? (
                     <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-medium font-serif col-span-full">
                       No announcement bulletins published. Active bulletins will appear here.
                     </div>
                   ) : (
                     news.map((item) => (
-                      <div key={item.id} className="bg-white border rounded-xl overflow-hidden shadow-xs text-left h-full flex flex-col justify-between">
+                      <motion.div key={item.id} variants={feedItemVariants} className="bg-white border rounded-xl overflow-hidden shadow-xs text-left h-full flex flex-col justify-between">
                         <div>
                           {item.image && (
                             <img src={item.image} alt={item.title} className="w-full h-44 object-cover border-b" />
@@ -1479,10 +1545,10 @@ export default function App() {
                             </p>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))
                   )}
-                </div>
+                </motion.div>
               </section>
 
               {/* INCIDENTS WELFARE REPORTS LIST */}
@@ -1490,14 +1556,19 @@ export default function App() {
                 <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
                   Welfare &amp; Incident Reports (Audit Queue)
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <motion.div 
+                  variants={feedContainerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
                   {incidents.filter(i => i.status === 'published').length === 0 ? (
                     <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-serif col-span-full">
                       No reviewed welfare reports published for assistance. Submit claims via the "Report Incident" tab.
                     </div>
                   ) : (
                     incidents.filter(i => i.status === 'published').map((item) => (
-                      <div key={item.id} className="bg-white border-l-4 border-l-red-651 border-y border-r rounded-r-xl p-5 text-left flex flex-col justify-between">
+                      <motion.div key={item.id} variants={feedItemVariants} className="bg-white border-l-4 border-l-red-651 border-y border-r rounded-r-xl p-5 text-left flex flex-col justify-between">
                         <div className="space-y-3">
                           <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-extrabold tracking-wide ${
                             item.type === 'death' ? 'bg-red-100 text-red-800' :
@@ -1514,10 +1585,10 @@ export default function App() {
                           <span>Reported: {item.date}</span>
                           <span className="font-mono">Contact: {item.contact}</span>
                         </div>
-                      </div>
+                      </motion.div>
                     ))
                   )}
-                </div>
+                </motion.div>
               </section>
 
               {/* PAKISTAN EMBASSY MUSCAT COORDINATES */}
@@ -1900,13 +1971,14 @@ export default function App() {
                     )}
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={rLoading}
+                  <FormSubmitButton
+                    isLoading={rLoading}
+                    isSuccess={rSuccess}
+                    label="Submit Membership Request"
+                    successLabel="Application Submitted Successfully!"
                     className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-150 cursor-pointer shadow disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                  >
-                    {rLoading ? 'Submitting Application...' : 'Submit Membership Request'}
-                  </button>
+                    successClassName="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-md shadow inline-flex items-center justify-center gap-1.5"
+                  />
                 </form>
               </div>
 
@@ -2451,13 +2523,14 @@ export default function App() {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={iLoading}
+                  <FormSubmitButton
+                    isLoading={iLoading}
+                    isSuccess={iSuccess}
+                    label="File Incident Report Request"
+                    successLabel="Incident Report Filed Successfully!"
                     className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-155 cursor-pointer shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
-                  >
-                    {iLoading ? 'Submitting Report Context...' : 'File Incident Report Request'}
-                  </button>
+                    successClassName="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-md shadow flex items-center justify-center gap-1.5"
+                  />
                 </form>
               </>
             )}
