@@ -269,7 +269,7 @@ export default function AdminPanel({
   const [memberSortOrder, setMemberSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Member Directory Custom State
-  const [dirStatus, setDirStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [dirStatus, setDirStatus] = useState<'all' | 'active' | 'pending' | 'archived'>('all');
   const [dirDistrict, setDirDistrict] = useState<string>('all');
   const [dirRegDate, setDirRegDate] = useState<'all' | '7days' | '30days' | '90days' | 'custom'>('all');
   const [dirSearch, setDirSearch] = useState<string>('');
@@ -278,6 +278,10 @@ export default function AdminPanel({
   const [dirSortBy, setDirSortBy] = useState<'name' | 'createdAt' | 'district' | 'status'>('createdAt');
   const [dirSortOrder, setDirSortOrder] = useState<'asc' | 'desc'>('desc');
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+
+  // Daily Registration Trends State
+  const [dailyTrendsTimeframe, setDailyTrendsTimeframe] = useState<'7days' | '14days' | '30days' | '90days' | 'all'>('30days');
+  const [dailyTrendsStatus, setDailyTrendsStatus] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
 
   const [incidentSearchQuery, setIncidentSearchQuery] = useState('');
   const [incidentSortField, setIncidentSortField] = useState<'type' | 'name' | 'date' | 'status' | null>(null);
@@ -1767,8 +1771,117 @@ export default function AdminPanel({
     });
   };
 
+  const highlightMatch = (text: string, query: string) => {
+    if (!query || !query.trim() || !text) return <>{text || ''}</>;
+    const q = query.trim();
+    const escapedQuery = q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const parts = text.split(regex);
+    return (
+      <>
+        {parts.map((part, index) => 
+          part.toLowerCase() === q.toLowerCase() ? (
+            <mark key={index} className="bg-amber-200 text-emerald-950 font-bold px-0.5 rounded-sm shadow-xs animate-pulse">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
   const sortedPending = sortMembersArray(filteredPending);
   const sortedAllMembers = sortMembersArray(filteredAllMembers);
+
+  const dailyRegistrationTrendsData = useMemo(() => {
+    const getParsedDate = (val: any) => {
+      if (!val) return null;
+      if (typeof val.toDate === 'function') {
+        return val.toDate();
+      }
+      if (val.seconds) {
+        return new Date(val.seconds * 1000);
+      }
+      if (val instanceof Date) {
+        return val;
+      }
+      const parsed = new Date(val);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+      return null;
+    };
+
+    const now = new Date();
+    let cutoffDate: Date | null = null;
+    if (dailyTrendsTimeframe === '7days') {
+      cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (dailyTrendsTimeframe === '14days') {
+      cutoffDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    } else if (dailyTrendsTimeframe === '30days') {
+      cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (dailyTrendsTimeframe === '90days') {
+      cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    const dayMap: { [key: string]: { approved: number; pending: number; rejected: number; total: number } } = {};
+
+    // Generate keys for all days in range to ensure a continuous line chart with zero counts
+    if (cutoffDate) {
+      const temp = new Date(cutoffDate.getTime());
+      while (temp <= now) {
+        const y = temp.getFullYear();
+        const m = String(temp.getMonth() + 1).padStart(2, '0');
+        const d = String(temp.getDate()).padStart(2, '0');
+        dayMap[`${y}-${m}-${d}`] = { approved: 0, pending: 0, rejected: 0, total: 0 };
+        temp.setDate(temp.getDate() + 1);
+      }
+    }
+
+    members.forEach(m => {
+      const d = getParsedDate(m.createdAt);
+      if (!d) return;
+      if (cutoffDate && d < cutoffDate) return;
+      if (d > now) return; // avoid future anomalies
+
+      const y = d.getFullYear();
+      const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(d.getDate()).padStart(2, '0');
+      const key = `${y}-${monthStr}-${dayStr}`;
+
+      if (!dayMap[key]) {
+        dayMap[key] = { approved: 0, pending: 0, rejected: 0, total: 0 };
+      }
+
+      const status = m.status || 'pending';
+      if (status === 'approved') {
+        dayMap[key].approved++;
+      } else if (status === 'rejected') {
+        dayMap[key].rejected++;
+      } else {
+        dayMap[key].pending++;
+      }
+      dayMap[key].total++;
+    });
+
+    const sortedKeys = Object.keys(dayMap).sort();
+    return sortedKeys.map(key => {
+      const parts = key.split('-');
+      const dateObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      const label = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const stats = dayMap[key];
+      return {
+        key,
+        label,
+        'Daily Registrations': stats.total,
+        'Approved': stats.approved,
+        'Pending': stats.pending,
+        'Archived/Rejected': stats.rejected,
+      };
+    });
+  }, [members, dailyTrendsTimeframe]);
 
   // Dynamic lists, filters and sorting for Admin Member Directory Interface
   const uniqueDistricts = useMemo(() => {
@@ -1793,8 +1906,11 @@ export default function AdminPanel({
 
     return members.filter(m => {
       // 1. Status Filter
-      if (dirStatus !== 'all' && m.status !== dirStatus) {
-        return false;
+      if (dirStatus !== 'all') {
+        const mappedStatus = dirStatus === 'active' ? 'approved' : dirStatus === 'archived' ? 'rejected' : 'pending';
+        if (m.status !== mappedStatus) {
+          return false;
+        }
       }
 
       // 2. District Filter
@@ -2515,6 +2631,121 @@ export default function AdminPanel({
               )}
             </div>
 
+            {/* DAILY MEMBER REGISTRATION TRENDS LINE CHART */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                    <Users size={16} className="text-emerald-800" /> Daily Registration Velocity
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Track daily new member signups and trace temporal conversion density
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-500 mr-1">Timeframe:</span>
+                  {[
+                    { id: '7days', label: '7 Days' },
+                    { id: '14days', label: '14 Days' },
+                    { id: '30days', label: '30 Days' },
+                    { id: '90days', label: '90 Days' },
+                    { id: 'all', label: 'All Time' }
+                  ].map(tf => (
+                    <button
+                      key={tf.id}
+                      type="button"
+                      onClick={() => setDailyTrendsTimeframe(tf.id as any)}
+                      className={`px-2.5 py-1 rounded text-xs font-bold uppercase transition duration-150 cursor-pointer ${
+                        dailyTrendsTimeframe === tf.id
+                          ? 'bg-emerald-800 text-white shadow-sm'
+                          : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {members.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 font-medium">
+                  <Users size={32} className="mx-auto mb-2 text-slate-300 animate-bounce" />
+                  No member profiles loaded in the database yet.
+                </div>
+              ) : (
+                <div className="bg-white border border-slate-200 p-4 md:p-5 rounded-xl">
+                  <div className="h-72 my-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={dailyRegistrationTrendsData}
+                        margin={{ top: 15, right: 15, left: -20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis 
+                          dataKey="label" 
+                          stroke="#64748b" 
+                          fontSize={10} 
+                          tickLine={false} 
+                          axisLine={false} 
+                        />
+                        <YAxis 
+                          stroke="#047857" 
+                          fontSize={10} 
+                          tickLine={false} 
+                          axisLine={false} 
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '11px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                          }}
+                        />
+                        <Legend 
+                          verticalAlign="top" 
+                          height={36} 
+                          iconType="circle"
+                          iconSize={8}
+                          wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Daily Registrations"
+                          stroke="#047857"
+                          strokeWidth={2.5}
+                          activeDot={{ r: 6 }}
+                          dot={{ r: 3 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Approved"
+                          stroke="#10b981"
+                          strokeWidth={1.5}
+                          strokeDasharray="3 3"
+                          dot={{ r: 2 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Pending"
+                          stroke="#d97706"
+                          strokeWidth={1.5}
+                          strokeDasharray="3 3"
+                          dot={{ r: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-3 flex justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <span>📈 <strong>Registration Density State:</strong> Visualizes the daily enrollment rate. Adjust the timeframe indicators in the top right to focus on shorter or longer periods.</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* WELFARE FUND DONATIONS INSIGHTS */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
@@ -3004,13 +3235,15 @@ export default function AdminPanel({
                 </span>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Welfare Fund Accruals</span>
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between" id="onboarding-amount-card">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Member Onboarding Amount</span>
                 <div className="mt-2">
                   <span className="text-2xl font-serif font-black text-emerald-900 font-sans">
-                    OMR {sortedDirectoryMembers.filter(m => m.status === 'approved').reduce((sum, m) => sum + (m.feeAmount || 0), 0).toFixed(3)}
+                    OMR {(sortedDirectoryMembers.filter(m => m.status === 'approved').length * 5).toFixed(3)}
                   </span>
-                  <span className="text-[10px] text-emerald-800 font-semibold block mt-1">Collected from approved items</span>
+                  <span className="text-[10px] text-emerald-800 font-semibold block mt-1">
+                    OMR 5 per member (Total: OMR {(members.filter(m => m.status === 'approved').length * 5).toFixed(3)})
+                  </span>
                 </div>
               </div>
 
@@ -3021,6 +3254,43 @@ export default function AdminPanel({
                   <p className="truncate">Status: <strong className="capitalize">{dirStatus === 'all' ? 'All statuses' : dirStatus}</strong></p>
                   <p className="truncate">Period: <strong>{dirRegDate === 'all' ? 'All time' : dirRegDate === 'custom' ? 'Custom Range' : `Past ${dirRegDate.replace('days', ' Days')}`}</strong></p>
                 </div>
+              </div>
+            </div>
+
+            {/* STATUS TABBED FILTER UI */}
+            <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-1 w-full sm:w-auto">
+                {[
+                  { id: 'all', label: 'All Members', colorClass: 'bg-slate-100 text-slate-800 border-slate-200', activeClass: 'bg-slate-900 text-white shadow-sm border-slate-900', count: members.length },
+                  { id: 'active', label: '🟢 Active', colorClass: 'text-emerald-800 bg-emerald-50 border-emerald-200', activeClass: 'bg-emerald-800 text-white shadow-sm border-emerald-800', count: members.filter(m => m.status === 'approved').length },
+                  { id: 'pending', label: '🟡 Pending', colorClass: 'text-amber-800 bg-amber-50 border-amber-200', activeClass: 'bg-amber-500 text-white shadow-sm border-amber-500', count: members.filter(m => m.status === 'pending').length },
+                  { id: 'archived', label: '🔴 Archived', colorClass: 'text-red-800 bg-red-50 border-red-200', activeClass: 'bg-red-650 text-white shadow-sm border-red-650', count: members.filter(m => m.status === 'rejected').length }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setDirStatus(tab.id as any)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-150 cursor-pointer border ${
+                      dirStatus === tab.id
+                        ? tab.activeClass
+                        : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-950'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                      dirStatus === tab.id
+                        ? 'bg-white/20 text-white'
+                        : tab.colorClass
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden sm:flex items-center gap-2 text-slate-400 text-xs pr-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="font-semibold text-slate-500">Live Member Database Linked</span>
               </div>
             </div>
 
@@ -3044,6 +3314,7 @@ export default function AdminPanel({
                     {dirSearch && (
                       <button
                         onClick={() => setDirSearch('')}
+                        type="button"
                         className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600"
                       >
                         <X size={13} />
@@ -3076,9 +3347,9 @@ export default function AdminPanel({
                     className="w-full py-2 px-3 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
                   >
                     <option value="all">All Statuses</option>
-                    <option value="approved">Approved &amp; Issued</option>
-                    <option value="pending">Awaiting Review</option>
-                    <option value="rejected">Rejected / Hold</option>
+                    <option value="active">Active (Approved)</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="archived">Archived (Rejected)</option>
                   </select>
                 </div>
 
@@ -3197,12 +3468,18 @@ export default function AdminPanel({
 
                         return (
                           <React.Fragment key={m.id}>
-                            <tr className={`hover:bg-slate-50/50 transition duration-150 ${isExpanded ? 'bg-emerald-50/20' : ''}`}>
+                            <tr 
+                              onClick={() => setExpandedMemberId(isExpanded ? null : m.id || null)}
+                              className={`hover:bg-slate-50/50 cursor-pointer transition duration-150 ${isExpanded ? 'bg-emerald-50/20' : ''}`}
+                            >
                               {/* Toggle Expand Arrow */}
                               <td className="p-3.5 pl-5 text-center">
                                 <button
                                   type="button"
-                                  onClick={() => setExpandedMemberId(isExpanded ? null : m.id || null)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedMemberId(isExpanded ? null : m.id || null);
+                                  }}
                                   className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-100 transition focus:outline-none cursor-pointer"
                                   title={isExpanded ? "Collapse Details" : "Expand Details"}
                                 >
@@ -3230,8 +3507,8 @@ export default function AdminPanel({
                                     </div>
                                   )}
                                   <div>
-                                    <span className="font-semibold text-emerald-955 block text-sm">{m.name}</span>
-                                    <span className="text-[10px] text-slate-400 block">s/o: {m.father}</span>
+                                    <span className="font-semibold text-emerald-955 block text-sm">{highlightMatch(m.name || '', dirSearch)}</span>
+                                    <span className="text-[10px] text-slate-400 block">s/o: {highlightMatch(m.father || '', dirSearch)}</span>
                                   </div>
                                 </div>
                               </td>
@@ -3239,16 +3516,16 @@ export default function AdminPanel({
                               {/* District / Address */}
                               <td className="p-3.5">
                                 <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 mb-0.5">
-                                  {m.district || 'Unassigned'}
+                                  {highlightMatch(m.district || 'Unassigned', dirSearch)}
                                 </span>
                                 <span className="text-[10px] text-slate-500 block truncate max-w-xs" title={m.address}>
-                                  {m.address}
+                                  {highlightMatch(m.address || '', dirSearch)}
                                 </span>
                               </td>
 
                               {/* Phone / whatsapp Contact */}
                               <td className="p-3.5 font-sans">
-                                <span className="block text-slate-800 font-semibold">{m.phone}</span>
+                                <span className="block text-slate-800 font-semibold">{highlightMatch(m.phone || '', dirSearch)}</span>
                                 {m.whatsapp && (
                                   <span className="text-[10px] text-emerald-800 font-medium flex items-center gap-0.5">
                                     🟢 WhatsApp Active
@@ -3260,7 +3537,7 @@ export default function AdminPanel({
                               <td className="p-3.5 text-slate-500 font-medium">
                                 <span className="block">{regDateStr}</span>
                                 {m.membershipId && (
-                                  <span className="text-[10px] text-emerald-800 font-mono block font-bold">ID: {m.membershipId}</span>
+                                  <span className="text-[10px] text-emerald-800 font-mono block font-bold">ID: {highlightMatch(m.membershipId, dirSearch)}</span>
                                 )}
                               </td>
 
@@ -3290,7 +3567,10 @@ export default function AdminPanel({
                               <td className="p-3.5 text-right pr-5 whitespace-nowrap space-x-1.5">
                                 <button
                                   type="button"
-                                  onClick={() => onViewDocuments(m)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewDocuments(m);
+                                  }}
                                   className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-950 bg-amber-400 hover:bg-amber-500 px-2.5 py-1.5 rounded transition cursor-pointer"
                                   title="View legal identity card, payment verification receipt, and certificate PDFs"
                                 >
@@ -3298,7 +3578,8 @@ export default function AdminPanel({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setEditingMember(m);
                                     setEditName(m.name || '');
                                     setEditFather(m.father || '');
@@ -3335,19 +3616,19 @@ export default function AdminPanel({
                                       <div className="grid grid-cols-2 gap-2 text-xs">
                                         <div className="space-y-0.5">
                                           <span className="text-slate-400 text-[10px] block">Father Name:</span>
-                                          <span className="font-semibold text-slate-800">{m.father}</span>
+                                          <span className="font-semibold text-slate-800">{highlightMatch(m.father || '', dirSearch)}</span>
                                         </div>
                                         <div className="space-y-0.5">
                                           <span className="text-slate-400 text-[10px] block">CNIC / Passport:</span>
-                                          <span className="font-mono font-semibold text-slate-800">{m.cnic}</span>
+                                          <span className="font-mono font-semibold text-slate-800">{highlightMatch(m.cnic || '', dirSearch)}</span>
                                         </div>
                                         <div className="space-y-0.5">
                                           <span className="text-slate-400 text-[10px] block">Occupation:</span>
-                                          <span className="font-semibold text-slate-700">{m.occupation || 'N/A'}</span>
+                                          <span className="font-semibold text-slate-700">{highlightMatch(m.occupation || '', dirSearch)}</span>
                                         </div>
                                         <div className="space-y-0.5">
                                           <span className="text-slate-400 text-[10px] block">Registered Email:</span>
-                                          <span className="font-semibold text-slate-700 lowercase truncate block">{m.email || 'N/A'}</span>
+                                          <span className="font-semibold text-slate-700 lowercase truncate block">{highlightMatch(m.email || '', dirSearch)}</span>
                                         </div>
                                       </div>
                                     </div>
@@ -3358,11 +3639,11 @@ export default function AdminPanel({
                                       <div className="grid grid-cols-1 gap-2 text-xs">
                                         <div className="space-y-0.5">
                                           <span className="text-slate-400 text-[10px] block">Resident Al Address (Oman):</span>
-                                          <span className="font-medium text-slate-800 leading-relaxed">{m.address}</span>
+                                          <span className="font-medium text-slate-800 leading-relaxed">{highlightMatch(m.address || '', dirSearch)}</span>
                                         </div>
                                         <div className="space-y-0.5">
                                           <span className="text-slate-400 text-[10px] block">Emergency Contact:</span>
-                                          <span className="font-semibold text-slate-800">{m.emergency || 'None'}</span>
+                                          <span className="font-semibold text-slate-800">{highlightMatch(m.emergency || '', dirSearch)}</span>
                                         </div>
                                       </div>
                                     </div>
