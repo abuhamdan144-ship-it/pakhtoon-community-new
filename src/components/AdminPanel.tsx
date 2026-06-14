@@ -78,7 +78,7 @@ export default function AdminPanel({
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'founder' | 'elections' | 'ads' | 'workspace' | 'meetings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'directory' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'founder' | 'elections' | 'ads' | 'workspace' | 'meetings'>('overview');
 
   // --- Form States for Admin Add/Edits ---
   
@@ -267,6 +267,18 @@ export default function AdminPanel({
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [memberSortField, setMemberSortField] = useState<'name' | 'createdAt' | 'district' | null>(null);
   const [memberSortOrder, setMemberSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Member Directory Custom State
+  const [dirStatus, setDirStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [dirDistrict, setDirDistrict] = useState<string>('all');
+  const [dirRegDate, setDirRegDate] = useState<'all' | '7days' | '30days' | '90days' | 'custom'>('all');
+  const [dirSearch, setDirSearch] = useState<string>('');
+  const [dirStartDate, setDirStartDate] = useState<string>('');
+  const [dirEndDate, setDirEndDate] = useState<string>('');
+  const [dirSortBy, setDirSortBy] = useState<'name' | 'createdAt' | 'district' | 'status'>('createdAt');
+  const [dirSortOrder, setDirSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+
   const [incidentSearchQuery, setIncidentSearchQuery] = useState('');
   const [incidentSortField, setIncidentSortField] = useState<'type' | 'name' | 'date' | 'status' | null>(null);
   const [incidentSortOrder, setIncidentSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -1758,6 +1770,178 @@ export default function AdminPanel({
   const sortedPending = sortMembersArray(filteredPending);
   const sortedAllMembers = sortMembersArray(filteredAllMembers);
 
+  // Dynamic lists, filters and sorting for Admin Member Directory Interface
+  const uniqueDistricts = useMemo(() => {
+    const set = new Set<string>();
+    members.forEach(m => {
+      if (m.district && m.district.trim()) {
+        set.add(m.district.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [members]);
+
+  const filteredDirectoryMembers = useMemo(() => {
+    const getParsedDateLocal = (val: any) => {
+      if (!val) return null;
+      if (typeof val.toDate === 'function') return val.toDate();
+      if (val.seconds) return new Date(val.seconds * 1000);
+      if (val instanceof Date) return val;
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    return members.filter(m => {
+      // 1. Status Filter
+      if (dirStatus !== 'all' && m.status !== dirStatus) {
+        return false;
+      }
+
+      // 2. District Filter
+      if (dirDistrict !== 'all' && m.district?.trim().toLowerCase() !== dirDistrict.trim().toLowerCase()) {
+        return false;
+      }
+
+      // 3. Search Query Check
+      if (dirSearch.trim()) {
+        const q = dirSearch.toLowerCase().trim();
+        const matches = (
+          (m.name || '').toLowerCase().includes(q) ||
+          (m.phone || '').toLowerCase().includes(q) ||
+          (m.father || '').toLowerCase().includes(q) ||
+          (m.membershipId || '').toLowerCase().includes(q) ||
+          (m.cnic || '').toLowerCase().includes(q) ||
+          (m.district || '').toLowerCase().includes(q) ||
+          (m.address || '').toLowerCase().includes(q) ||
+          (m.occupation || '').toLowerCase().includes(q)
+        );
+        if (!matches) return false;
+      }
+
+      // 4. Registration Date Range Filter
+      if (dirRegDate !== 'all') {
+        const regDateObj = getParsedDateLocal(m.createdAt);
+        if (!regDateObj) return false;
+
+        const now = new Date();
+        if (dirRegDate === '7days') {
+          const limit = new Date();
+          limit.setDate(now.getDate() - 7);
+          if (regDateObj < limit) return false;
+        } else if (dirRegDate === '30days') {
+          const limit = new Date();
+          limit.setDate(now.getDate() - 30);
+          if (regDateObj < limit) return false;
+        } else if (dirRegDate === '90days') {
+          const limit = new Date();
+          limit.setDate(now.getDate() - 90);
+          if (regDateObj < limit) return false;
+        } else if (dirRegDate === 'custom') {
+          if (dirStartDate) {
+            const start = new Date(dirStartDate);
+            start.setHours(0, 0, 0, 0);
+            if (regDateObj < start) return false;
+          }
+          if (dirEndDate) {
+            const end = new Date(dirEndDate);
+            end.setHours(23, 59, 59, 999);
+            if (regDateObj > end) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [members, dirStatus, dirDistrict, dirSearch, dirRegDate, dirStartDate, dirEndDate]);
+
+  const sortedDirectoryMembers = useMemo(() => {
+    const getParsedDateLocal = (val: any) => {
+      if (!val) return null;
+      if (typeof val.toDate === 'function') return val.toDate();
+      if (val.seconds) return new Date(val.seconds * 1000);
+      if (val instanceof Date) return val;
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    return [...filteredDirectoryMembers].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      if (dirSortBy === 'name') {
+        valA = (a.name || '').toLowerCase();
+        valB = (b.name || '').toLowerCase();
+      } else if (dirSortBy === 'district') {
+        valA = (a.district || '').toLowerCase();
+        valB = (b.district || '').toLowerCase();
+      } else if (dirSortBy === 'status') {
+        valA = (a.status || '').toLowerCase();
+        valB = (b.status || '').toLowerCase();
+      } else if (dirSortBy === 'createdAt') {
+        valA = getParsedDateLocal(a.createdAt)?.getTime() || 0;
+        valB = getParsedDateLocal(b.createdAt)?.getTime() || 0;
+      }
+
+      if (valA < valB) return dirSortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return dirSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredDirectoryMembers, dirSortBy, dirSortOrder]);
+
+  const exportDirectoryMembers = () => {
+    const headers = [
+      'Membership ID', 'Status', 'Full Name', "Father's Name", 'CNIC/Passport',
+      'Phone', 'WhatsApp', 'District', 'Oman Address', 'Occupation',
+      'Emergency Contact', 'Registration Date', 'Approved Date', 'Fee Amount (OMR)',
+      'Payment Method', 'Payment Reference', 'Receipt Number'
+    ];
+
+    const formatRowDate = (val: any) => {
+      if (!val) return '';
+      if (typeof val.toDate === 'function') return val.toDate().toLocaleString();
+      if (val.seconds) return new Date(val.seconds * 1000).toLocaleString();
+      return new Date(val).toLocaleString();
+    };
+
+    const rows = sortedDirectoryMembers.map(m => [
+      m.membershipId || '',
+      m.status || '',
+      m.name || '',
+      m.father || '',
+      m.cnic || '',
+      m.phone || '',
+      m.whatsapp || '',
+      m.district || '',
+      m.address || '',
+      m.occupation || '',
+      m.emergency || '',
+      formatRowDate(m.createdAt),
+      formatRowDate(m.approvedAt),
+      m.feeAmount || 0,
+      m.paymentMethod || '',
+      m.paymentReference || '',
+      m.receiptNumber || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const statusPart = dirStatus !== 'all' ? `-${dirStatus}` : '';
+    const distPart = dirDistrict !== 'all' ? `-${dirDistrict.replace(/\s+/g, '_')}` : '';
+    const datePart = dirRegDate !== 'all' ? `-${dirRegDate}` : '';
+    link.setAttribute('download', `opc-directory-export${statusPart}${distPart}${datePart}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderSortIndicator = (field: 'name' | 'createdAt' | 'district') => {
     if (memberSortField !== field) {
       return <ArrowUpDown size={12} className="text-slate-400 opacity-60 inline-block align-middle ml-1" />;
@@ -1929,6 +2113,7 @@ export default function AdminPanel({
         {[
           { id: 'overview', label: 'Overview', icon: Users },
           { id: 'members', label: 'Member Queue', icon: Users },
+          { id: 'directory', label: 'Member Directory', icon: Search },
           { id: 'cabinet', label: 'Cabinet', icon: Award },
           { id: 'donations', label: 'Donation Ledgers', icon: DollarSign },
           { id: 'incidents', label: 'Welfare Claims', icon: AlertTriangle },
@@ -2741,6 +2926,524 @@ export default function AdminPanel({
                           </td>
                         </tr>
                       ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MEMBER DIRECTORY SEARCH INTERFACE */}
+        {activeTab === 'directory' && (
+          <div className="space-y-6 fade-in">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-2xl font-serif text-emerald-950 font-black flex items-center gap-2">
+                  <Search size={22} className="text-emerald-800" /> Executive Member Directory
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  High-Powered Attribute Filter and Registry Query Suite for Welfare Management.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5">
+                <button
+                  onClick={exportDirectoryMembers}
+                  className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-4 py-2.5 rounded-lg text-xs transition duration-150 cursor-pointer shadow-sm flex items-center gap-1.5"
+                  title="Export currently filtered search directory as CSV"
+                >
+                  <FileSpreadsheet size={14} /> Export Directory CSV ({sortedDirectoryMembers.length})
+                </button>
+                <button
+                  onClick={() => {
+                    setDirStatus('all');
+                    setDirDistrict('all');
+                    setDirRegDate('all');
+                    setDirSearch('');
+                    setDirStartDate('');
+                    setDirEndDate('');
+                    setExpandedMemberId(null);
+                  }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2.5 rounded-lg text-xs transition duration-150 cursor-pointer border border-slate-300 flex items-center gap-1.5"
+                  title="Reset all search queries and active filter states"
+                >
+                  <RefreshCw size={14} /> Reset Filters
+                </button>
+              </div>
+            </div>
+
+            {/* DIRECTORY SNAPSHOT BENTO METRICS */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Matched Members</span>
+                <div className="flex items-baseline gap-1.5 mt-2">
+                  <span className="text-3xl font-serif font-black text-emerald-900">{sortedDirectoryMembers.length}</span>
+                  <span className="text-xs text-slate-400">/ {members.length} total</span>
+                </div>
+                <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-3">
+                  <div 
+                    className="bg-emerald-700 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${(sortedDirectoryMembers.length / (members.length || 1)) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Group Approved Ratio</span>
+                <div className="flex items-baseline gap-1.5 mt-1.5">
+                  <span className="text-3xl font-serif font-black text-emerald-900">
+                    {((sortedDirectoryMembers.filter(m => m.status === 'approved').length / (sortedDirectoryMembers.length || 1)) * 100).toFixed(0)}%
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    ({sortedDirectoryMembers.filter(m => m.status === 'approved').length} approved)
+                  </span>
+                </div>
+                <span className="text-[9px] text-slate-400 mt-2 block">
+                  Pending: {sortedDirectoryMembers.filter(m => m.status === 'pending').length} | Rejected: {sortedDirectoryMembers.filter(m => m.status === 'rejected').length}
+                </span>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Welfare Fund Accruals</span>
+                <div className="mt-2">
+                  <span className="text-2xl font-serif font-black text-emerald-900 font-sans">
+                    OMR {sortedDirectoryMembers.filter(m => m.status === 'approved').reduce((sum, m) => sum + (m.feeAmount || 0), 0).toFixed(3)}
+                  </span>
+                  <span className="text-[10px] text-emerald-800 font-semibold block mt-1">Collected from approved items</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Filter Overview</span>
+                <div className="mt-2 space-y-1 text-[11px] text-slate-600">
+                  <p className="truncate">District: <strong>{dirDistrict === 'all' ? 'All Districts' : dirDistrict}</strong></p>
+                  <p className="truncate">Status: <strong className="capitalize">{dirStatus === 'all' ? 'All statuses' : dirStatus}</strong></p>
+                  <p className="truncate">Period: <strong>{dirRegDate === 'all' ? 'All time' : dirRegDate === 'custom' ? 'Custom Range' : `Past ${dirRegDate.replace('days', ' Days')}`}</strong></p>
+                </div>
+              </div>
+            </div>
+
+            {/* DYNAMIC SEARCH AND FILTER CONTROLS GRID */}
+            <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-inner space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Search Term */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Search Keywords</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                      <Search size={14} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search name, phone, CNIC, etc."
+                      value={dirSearch}
+                      onChange={(e) => setDirSearch(e.target.value)}
+                      className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                    />
+                    {dirSearch && (
+                      <button
+                        onClick={() => setDirSearch('')}
+                        className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* District Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Filter by District</label>
+                  <select
+                    value={dirDistrict}
+                    onChange={(e) => setDirDistrict(e.target.value)}
+                    className="w-full py-2 px-3 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                  >
+                    <option value="all">All Districts ({uniqueDistricts.length})</option>
+                    {uniqueDistricts.map(dist => (
+                      <option key={dist} value={dist}>{dist}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Operational Status</label>
+                  <select
+                    value={dirStatus}
+                    onChange={(e) => setDirStatus(e.target.value as any)}
+                    className="w-full py-2 px-3 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="approved">Approved &amp; Issued</option>
+                    <option value="pending">Awaiting Review</option>
+                    <option value="rejected">Rejected / Hold</option>
+                  </select>
+                </div>
+
+                {/* Date Register Filter */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Registration Date</label>
+                  <select
+                    value={dirRegDate}
+                    onChange={(e) => setDirRegDate(e.target.value as any)}
+                    className="w-full py-2 px-3 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 focus:outline-none focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                  >
+                    <option value="all">All Registered Dates</option>
+                    <option value="7days">Past 7 Days</option>
+                    <option value="30days">Past 30 Days</option>
+                    <option value="90days">Past 90 Days</option>
+                    <option value="custom">Custom Date Range...</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Custom Date Picker Inputs */}
+              {dirRegDate === 'custom' && (
+                <div className="grid grid-cols-2 gap-4 max-w-md bg-white border border-slate-200 p-3 rounded-lg animate-slide-up">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">From Date</span>
+                    <input
+                      type="date"
+                      value={dirStartDate}
+                      onChange={(e) => setDirStartDate(e.target.value)}
+                      className="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-emerald-700 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">To Date</span>
+                    <input
+                      type="date"
+                      value={dirEndDate}
+                      onChange={(e) => setDirEndDate(e.target.value)}
+                      className="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-emerald-700 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Advanced Sorting Controls */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-600">Sort By Attribute:</span>
+                  <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
+                    {[
+                      { id: 'createdAt', label: 'Registration Date' },
+                      { id: 'name', label: 'Alphabetical Name' },
+                      { id: 'district', label: 'Tribe / District' },
+                      { id: 'status', label: 'Review Status' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setDirSortBy(opt.id as any)}
+                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                          dirSortBy === opt.id 
+                            ? 'bg-emerald-900 text-amber-300' 
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDirSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-900 bg-white border border-slate-200 hover:bg-slate-105 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                  >
+                    {dirSortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                    {dirSortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* EXPANDABLE MASTER DIRECTORY RECORDS LIST */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-md">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[800px]">
+                  <thead className="bg-emerald-950 text-amber-300 font-bold">
+                    <tr>
+                      <th className="p-3.5 pl-5 w-12 text-center">Detail</th>
+                      <th className="p-3.5">Member Details</th>
+                      <th className="p-3.5">District / Residence</th>
+                      <th className="p-3.5">Primary Contact</th>
+                      <th className="p-3.5">Registration Time</th>
+                      <th className="p-3.5">Status</th>
+                      <th className="p-3.5 text-right pr-5">Quick Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {sortedDirectoryMembers.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-16 text-center text-slate-400 font-medium">
+                          <Search size={36} className="mx-auto mb-2 text-slate-300 animate-pulse" />
+                          No members matching selected filters. Refine district, status, dates, or search term.
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedDirectoryMembers.map((m) => {
+                        const isExpanded = expandedMemberId === m.id;
+                        const regDateStr = m.createdAt
+                          ? (m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt.seconds ? m.createdAt.seconds * 1000 : m.createdAt)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                          : 'Unknown';
+
+                        const initials = (m.name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+                        return (
+                          <React.Fragment key={m.id}>
+                            <tr className={`hover:bg-slate-50/50 transition duration-150 ${isExpanded ? 'bg-emerald-50/20' : ''}`}>
+                              {/* Toggle Expand Arrow */}
+                              <td className="p-3.5 pl-5 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedMemberId(isExpanded ? null : m.id || null)}
+                                  className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-100 transition focus:outline-none cursor-pointer"
+                                  title={isExpanded ? "Collapse Details" : "Expand Details"}
+                                >
+                                  {isExpanded ? (
+                                    <span className="block text-emerald-800 font-bold">▼</span>
+                                  ) : (
+                                    <span className="block text-slate-400">▶</span>
+                                  )}
+                                </button>
+                              </td>
+
+                              {/* Member Photo & Name Details */}
+                              <td className="p-3.5">
+                                <div className="flex items-center gap-3 animate-fade-in">
+                                  {m.photo ? (
+                                    <img 
+                                      src={m.photo} 
+                                      alt={m.name} 
+                                      className="w-9 h-9 rounded-full object-cover border border-slate-200 bg-slate-50 flex-shrink-0"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-emerald-900 text-amber-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                      {initials}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <span className="font-semibold text-emerald-955 block text-sm">{m.name}</span>
+                                    <span className="text-[10px] text-slate-400 block">s/o: {m.father}</span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* District / Address */}
+                              <td className="p-3.5">
+                                <span className="inline-block bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 mb-0.5">
+                                  {m.district || 'Unassigned'}
+                                </span>
+                                <span className="text-[10px] text-slate-500 block truncate max-w-xs" title={m.address}>
+                                  {m.address}
+                                </span>
+                              </td>
+
+                              {/* Phone / whatsapp Contact */}
+                              <td className="p-3.5 font-sans">
+                                <span className="block text-slate-800 font-semibold">{m.phone}</span>
+                                {m.whatsapp && (
+                                  <span className="text-[10px] text-emerald-800 font-medium flex items-center gap-0.5">
+                                    🟢 WhatsApp Active
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Created At / Reg Time */}
+                              <td className="p-3.5 text-slate-500 font-medium">
+                                <span className="block">{regDateStr}</span>
+                                {m.membershipId && (
+                                  <span className="text-[10px] text-emerald-800 font-mono block font-bold">ID: {m.membershipId}</span>
+                                )}
+                              </td>
+
+                              {/* Status Badge */}
+                              <td className="p-3.5">
+                                {m.status === 'approved' && (
+                                  <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-2 rounded-full py-0.5 text-[10px] font-bold border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                    Approved
+                                  </span>
+                                )}
+                                {m.status === 'pending' && (
+                                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-2 rounded-full py-0.5 text-[10px] font-bold border border-amber-200">
+                                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                                    Pending
+                                  </span>
+                                )}
+                                {m.status === 'rejected' && (
+                                  <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-2 rounded-full py-0.5 text-[10px] font-bold border border-red-200">
+                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                                    Rejected
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Quick Actions */}
+                              <td className="p-3.5 text-right pr-5 whitespace-nowrap space-x-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => onViewDocuments(m)}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-950 bg-amber-400 hover:bg-amber-500 px-2.5 py-1.5 rounded transition cursor-pointer"
+                                  title="View legal identity card, payment verification receipt, and certificate PDFs"
+                                >
+                                  <FileIcon size={12} /> Documents
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMember(m);
+                                    setEditName(m.name || '');
+                                    setEditFather(m.father || '');
+                                    setEditCnic(m.cnic || '');
+                                    setEditDistrict(m.district || '');
+                                    setEditPhone(m.phone || '');
+                                    setEditWhatsapp(m.whatsapp || '');
+                                    setEditAddress(m.address || '');
+                                    setEditOccupation(m.occupation || '');
+                                    setEditEmergency(m.emergency || '');
+                                    setEditStatus(m.status || 'pending');
+                                    setEditMembershipId(m.membershipId || '');
+                                    setEditFeeAmount(String(m.feeAmount || '5'));
+                                    setEditPaymentMethod(m.paymentMethod || 'Bank Transfer');
+                                    setEditPaymentReference(m.paymentReference || '');
+                                  }}
+                                  className="text-emerald-800 hover:text-white p-1.5 rounded hover:bg-emerald-900 inline-block align-middle transition cursor-pointer border border-slate-200 hover:border-emerald-900"
+                                  title="Edit full member properties profile"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                              </td>
+                            </tr>
+
+                            {/* Dropdown Profile Detail Card */}
+                            {isExpanded && (
+                              <tr className="bg-slate-50/80 animate-fade-in border-y border-slate-200">
+                                <td colSpan={7} className="p-6 pl-14">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    
+                                    {/* Primary Info */}
+                                    <div className="bg-white border p-4 rounded-xl space-y-2 shadow-xs">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wide border-b pb-1">Primary Identification &amp; Job</span>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Father Name:</span>
+                                          <span className="font-semibold text-slate-800">{m.father}</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">CNIC / Passport:</span>
+                                          <span className="font-mono font-semibold text-slate-800">{m.cnic}</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Occupation:</span>
+                                          <span className="font-semibold text-slate-700">{m.occupation || 'N/A'}</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Registered Email:</span>
+                                          <span className="font-semibold text-slate-700 lowercase truncate block">{m.email || 'N/A'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Residence, Emergency Contacts */}
+                                    <div className="bg-white border p-4 rounded-xl space-y-2 shadow-xs">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wide border-b pb-1">Welfare, Safety &amp; Emergency Contacts</span>
+                                      <div className="grid grid-cols-1 gap-2 text-xs">
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Resident Al Address (Oman):</span>
+                                          <span className="font-medium text-slate-800 leading-relaxed">{m.address}</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Emergency Contact:</span>
+                                          <span className="font-semibold text-slate-800">{m.emergency || 'None'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Registry Finance Ledger details */}
+                                    <div className="bg-white border p-4 rounded-xl space-y-2 shadow-xs">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wide border-b pb-1">Welfare Dues / Payment Details</span>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Dues Paid:</span>
+                                          <span className="font-black text-emerald-900">OMR {m.feeAmount || 0}</span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <span className="text-slate-400 text-[10px] block">Payment Method:</span>
+                                          <span className="font-semibold text-slate-700">{m.paymentMethod || 'N/A'}</span>
+                                        </div>
+                                        <div className="space-y-0.5 col-span-2">
+                                          <span className="text-slate-400 text-[10px] block">Txn Reference:</span>
+                                          <span className="font-mono text-slate-700 font-medium truncate block">{m.paymentReference || 'N/A'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                  </div>
+
+                                  {/* Attached Documents Section */}
+                                  {m.driveAttachments && m.driveAttachments.length > 0 && (
+                                    <div className="mt-4 bg-white border border-slate-200 p-4 rounded-xl space-y-2 shadow-xs">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wide border-b pb-1 flex items-center gap-1">
+                                        <Paperclip size={12} className="text-slate-400" /> Attached Administrative Verification Documents ({m.driveAttachments.length})
+                                      </span>
+                                      <div className="flex flex-wrap gap-2 pt-1">
+                                        {m.driveAttachments.map((file) => (
+                                          <a
+                                            key={file.id}
+                                            href={file.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-150 transition cursor-pointer"
+                                          >
+                                            <FileIcon size={12} />
+                                            <span className="max-w-[180px] truncate">{file.name}</span>
+                                            <ExternalLink size={10} className="text-emerald-700 flex-shrink-0" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Inline Admin Approval Panel */}
+                                  {m.status === 'pending' && (
+                                    <div className="mt-4 bg-amber-50/60 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                      <div className="space-y-0.5">
+                                        <p className="text-xs font-bold text-amber-955">Awaiting Registration Approval</p>
+                                        <p className="text-[11px] text-slate-500 leading-relaxed">Confirm payment and administrative credentials match before issuing the official RFID membership ID.</p>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleApproveMember(m)}
+                                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow-sm cursor-pointer"
+                                        >
+                                          Approve Registration
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRejectMember(m.id!)}
+                                          className="bg-red-650 hover:bg-red-750 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow-sm cursor-pointer"
+                                        >
+                                          Reject
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
