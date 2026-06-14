@@ -127,6 +127,7 @@ export interface SponsoredAd {
   start: string;
   end: string;
   image: string; // base64 URL
+  video?: string; // base64 video URL or video file string
   createdAt: any;
 }
 

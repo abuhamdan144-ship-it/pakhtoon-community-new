@@ -5,9 +5,9 @@ import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWi
 import { 
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit 
 } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError } from '../firebase';
 import { 
-  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile, AdminLog 
+  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile, AdminLog, OperationType 
 } from '../types';
 import { 
   Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, FileDown, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
@@ -248,6 +248,7 @@ export default function AdminPanel({
   const [adStart, setAdStart] = useState('');
   const [adEnd, setAdEnd] = useState('');
   const [adImage, setAdImage] = useState('');
+  const [adVideo, setAdVideo] = useState('');
 
   // Edit member modal state
   const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -331,6 +332,7 @@ export default function AdminPanel({
     }, (error) => {
       console.error("Error fetching admin logs:", error);
       setLogsLoading(false);
+      handleFirestoreError(error, OperationType.GET, 'admin_logs');
     });
 
     return () => unsubscribe();
@@ -968,10 +970,11 @@ export default function AdminPanel({
       method: adMethod,
       start: adStart,
       end: adEnd,
+      image: adImage || '',
+      video: adVideo || '',
     };
-    if (adImage) data.image = adImage;
-    if (!adId && !adImage) {
-      alert('Please upload a visual slider image banner.');
+    if (!adId && !adImage && !adVideo) {
+      alert('Please upload a visual slider image banner or an awareness video.');
       return;
     }
 
@@ -1000,7 +1003,8 @@ export default function AdminPanel({
     setAdMethod(ad.method);
     setAdStart(ad.start);
     setAdEnd(ad.end);
-    setAdImage(ad.image);
+    setAdImage(ad.image || '');
+    setAdVideo(ad.video || '');
   };
 
   const handleDeleteAd = async (id: string) => {
@@ -1019,6 +1023,7 @@ export default function AdminPanel({
     setAdStart('');
     setAdEnd('');
     setAdImage('');
+    setAdVideo('');
   };
 
   const handleAdImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1026,6 +1031,14 @@ export default function AdminPanel({
     if (file) {
       const base64 = await getBase64(file);
       setAdImage(base64);
+    }
+  };
+
+  const handleAdVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const base64 = await getBase64(file);
+      setAdVideo(base64);
     }
   };
 
@@ -4962,22 +4975,39 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Upload wide banner Image (e.g. 1200x400) *</label>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleAdImageChange}
-                  className="w-full text-xs"
-                />
-              </div>
-
-              {adImage && (
-                <div>
-                  <p className="text-[10px] text-slate-400 mb-1">Banner Image Preview:</p>
-                  <img src={adImage} alt="Ad sponsor upload result" className="h-16 w-48 object-cover border rounded border-slate-300" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border border-dashed border-slate-200 p-3 rounded-lg">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Option A: Upload Wide Banner Image (dimensions: ~1200x400)</label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleAdImageChange}
+                    className="w-full text-xs"
+                  />
+                  {adImage && (
+                    <div className="mt-2">
+                      <p className="text-[10px] text-slate-400 mb-1">Banner Image Preview:</p>
+                      <img src={adImage} alt="Ad sponsor upload result" className="h-16 w-full object-cover border rounded border-slate-300 bg-slate-100" />
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="border border-dashed border-slate-200 p-3 rounded-lg">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Option B: Upload Community Awareness Video (MP4/WebM/etc)</label>
+                  <input 
+                    type="file" 
+                    accept="video/*" 
+                    onChange={handleAdVideoChange}
+                    className="w-full text-xs"
+                  />
+                  {adVideo && (
+                    <div className="mt-2">
+                      <p className="text-[10px] text-slate-400 mb-1">Awareness Video Preview:</p>
+                      <video src={adVideo} controls className="h-16 w-full object-cover border rounded border-slate-300 bg-black" />
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="flex gap-2">
                 <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-4 py-2 rounded text-xs cursor-pointer">
@@ -4995,7 +5025,7 @@ export default function AdminPanel({
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="p-3">Banner Asset</th>
+                    <th className="p-3">Banner / Video Asset</th>
                     <th className="p-3 font-sans">Sponsor</th>
                     <th className="p-3 font-sans">Budget Paid</th>
                     <th className="p-3">Schedule</th>
@@ -5011,7 +5041,16 @@ export default function AdminPanel({
                     ads.map(ad => (
                       <tr key={ad.id} className="hover:bg-slate-50/45">
                         <td className="p-3">
-                          <img src={ad.image} alt={ad.name} className="h-8 w-20 object-cover border rounded shadow-xs" />
+                          {ad.video ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-emerald-700 font-bold bg-emerald-55/60 border border-emerald-200 px-1 py-0.5 rounded text-[9px] uppercase">Video 🎥</span>
+                              <video src={ad.video} className="h-8 w-20 object-cover border rounded shadow-xs bg-black" muted />
+                            </div>
+                          ) : ad.image ? (
+                            <img src={ad.image} alt={ad.name} className="h-8 w-20 object-cover border rounded shadow-xs" />
+                          ) : (
+                            <span className="text-[10px] text-slate-400">No media URL</span>
+                          )}
                         </td>
                         <td className="p-3 font-semibold text-emerald-950">{ad.name}</td>
                         <td className="p-3 font-bold text-emerald-900">{Number(ad.amount).toFixed(3)} OMR</td>

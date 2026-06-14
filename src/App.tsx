@@ -930,6 +930,9 @@ export default function App() {
   const accumulativeFunds = donations
     .filter(d => d.status === 'approved')
     .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const accumulativeOnboardingAmount = members
+    .filter(m => m.status === 'approved')
+    .reduce((sum, m) => sum + (m.feeAmount !== undefined ? Number(m.feeAmount) : 5), 0);
   const reportedIncidentCount = incidents.filter(i => i.status === 'published').length;
 
   return (
@@ -1147,18 +1150,18 @@ export default function App() {
                 </p>
 
                 {/* Metric stats card badges */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 max-w-3xl mx-auto z-10">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-4 max-w-5xl mx-auto z-10">
                   <motion.div 
                     initial={{ opacity: 0, y: 15 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.1 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center"
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Verified Members
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Verified Members
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">
+                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={totalApprovedMembers} />
                     </p>
                   </motion.div>
@@ -1167,12 +1170,12 @@ export default function App() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center"
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Welfare donations
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Welfare donations
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">
+                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={accumulativeFunds} decimals={3} prefix="OMR " />
                     </p>
                   </motion.div>
@@ -1180,13 +1183,27 @@ export default function App() {
                     initial={{ opacity: 0, y: 15 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-4 backdrop-blur-xs text-center"
+                    transition={{ duration: 0.5, delay: 0.25 }}
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> welfare cases
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Onboarding Dues
                     </span>
-                    <p className="text-3xl font-bold font-serif text-white mt-1.5">
+                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
+                      <AnimatedCounter value={accumulativeOnboardingAmount} decimals={3} prefix="OMR " />
+                    </p>
+                  </motion.div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
+                  >
+                    <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> welfare cases
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={reportedIncidentCount} />
                     </p>
                   </motion.div>

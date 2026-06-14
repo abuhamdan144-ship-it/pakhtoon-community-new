@@ -17,7 +17,7 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
     return true;
   };
 
-  const activeAds = ads.filter(ad => isActive(ad) && ad.image);
+  const activeAds = ads.filter(ad => isActive(ad) && (ad.image || ad.video));
 
   useEffect(() => {
     if (activeAds.length <= 1) return;
@@ -55,15 +55,26 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
           rel="noopener noreferrer" 
           className="block w-full h-full relative"
         >
-          <span className="absolute top-3 left-3 bg-amber-600 text-emerald-950 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full z-10 shadow-sm">
-            Sponsored
+          <span className="absolute top-3 left-3 bg-amber-600 text-emerald-950 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full z-10 shadow-sm animate-pulse">
+            {currentAd.video ? '🔔 Awareness Video' : 'Sponsored'}
           </span>
           
-          <img 
-            src={currentAd.image} 
-            alt={currentAd.name} 
-            className="w-full h-full object-contain bg-emerald-950/40 transition-all"
-          />
+          {currentAd.video ? (
+            <video 
+              src={currentAd.video} 
+              className="w-full h-full object-contain bg-black transition-all"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <img 
+              src={currentAd.image} 
+              alt={currentAd.name} 
+              className="w-full h-full object-contain bg-emerald-950/40 transition-all"
+            />
+          )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/95 via-transparent to-transparent" />
           
