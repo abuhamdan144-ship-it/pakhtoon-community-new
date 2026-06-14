@@ -22,6 +22,7 @@ export interface Member {
   dispatchedAt?: any; // Firestore Timestamp
   driveAttachments?: { id: string; name: string; url: string; mimeType?: string; }[];
   email?: string;
+  cardColor?: string;
 }
 
 export interface Donation {
@@ -85,6 +86,19 @@ export interface EmbassySetting {
   email?: string;
   hours?: string;
   website?: string;
+}
+
+export interface FounderProfile {
+  name?: string;
+  position?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  est?: string;
+  photo?: string; // base64 URL or custom uploaded photo
+  quote?: string;
+  bio1?: string;
+  bio2?: string;
 }
 
 export interface Candidate {

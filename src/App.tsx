@@ -52,7 +52,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 import { 
-  Member, Donation, CabinetMember, CabinetMeeting, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd 
+  Member, Donation, CabinetMember, CabinetMeeting, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, FounderProfile 
 } from './types';
 
 // Importing sub-components
@@ -63,6 +63,8 @@ import AdminPanel from './components/AdminPanel';
 import AIAssistant from './components/AIAssistant';
 import CountdownTimer from './components/CountdownTimer';
 import CabinetPanel from './components/CabinetPanel';
+import LiveCardPreview from './components/LiveCardPreview';
+import { CARD_COLORS } from './components/CardColors';
 import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
 
 import { motion, AnimatePresence } from 'motion/react';
@@ -157,6 +159,7 @@ export default function App() {
   const [news, setNews] = useState<NewsAnnouncement[]>([]);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [embassy, setEmbassy] = useState<EmbassySetting>({});
+  const [founderProfile, setFounderProfile] = useState<FounderProfile>({});
   const [elections, setElections] = useState<Election[]>([]);
   const [ads, setAds] = useState<SponsoredAd[]>([]);
   const [meetings, setMeetings] = useState<CabinetMeeting[]>([]);
@@ -187,6 +190,7 @@ export default function App() {
   const [rSuccess, setRSuccess] = useState(false);
   const [rLoading, setRLoading] = useState(false);
   const [rEmail, setREmail] = useState('');
+  const [rCardColor, setRCardColor] = useState('emerald');
   const [registerTab, setRegisterTab] = useState<'submit' | 'lookup'>('submit');
   const [lookupValue, setLookupValue] = useState('');
   const [lookupResult, setLookupResult] = useState<Member | null>(null);
@@ -413,6 +417,19 @@ export default function App() {
       }
     );
 
+    // Founder setting snapshot
+    const unsubscribeFounder = onSnapshot(
+      doc(db, 'settings', 'founder'),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setFounderProfile(snapshot.data() as FounderProfile);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/founder');
+      }
+    );
+
     // Elections snapshot
     const unsubscribeElections = onSnapshot(
       query(collection(db, 'elections'), orderBy('createdAt', 'desc')),
@@ -456,6 +473,7 @@ export default function App() {
       unsubscribeNews();
       unsubscribeIncidents();
       unsubscribeEmbassy();
+      unsubscribeFounder();
       unsubscribeElections();
       unsubscribeAds();
       unsubscribeMeetings();
@@ -531,6 +549,7 @@ export default function App() {
           paymentMethod: rPayMethod,
           paymentReference: rPayRef.trim(),
           email: rEmail.trim(),
+          cardColor: rCardColor,
           createdAt: Timestamp.now()
         });
       } catch (fErr) {
@@ -551,6 +570,7 @@ export default function App() {
       setRFeeAmount('5');
       setRPayMethod('Bank Transfer');
       setRPayRef('');
+      setRCardColor('emerald');
       setREmail(currentUser?.email || '');
     } catch (err: any) {
       alert('Error registering: ' + err.message);
@@ -1322,11 +1342,11 @@ export default function App() {
                   <div
                     onClick={() => setFounderModalOpen(true)}
                     className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 p-1 shadow-md shrink-0 flex items-center justify-center overflow-hidden cursor-pointer hover:scale-105 transition duration-300"
-                    title="View Al-Haj Muhammad Amin Profile"
+                    title={`View ${founderProfile.name || 'Al-Haj Muhammad Amin'} Profile`}
                   >
                     <img
-                      src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256&h=256"
-                      alt="Al-Haj Muhammad Amin"
+                      src={founderProfile.photo || 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256&h=256'}
+                      alt={founderProfile.name || 'Al-Haj Muhammad Amin'}
                       referrerPolicy="no-referrer"
                       className="w-full h-full rounded-full object-cover"
                     />
@@ -1339,12 +1359,12 @@ export default function App() {
                         onClick={() => setFounderModalOpen(true)}
                         className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight cursor-pointer hover:text-amber-800 transition"
                       >
-                        Al-Haj Muhammad Amin
+                        {founderProfile.name || 'Al-Haj Muhammad Amin'}
                       </h3>
-                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">Founder & President of Oman Pakhtoon Community (OPC)</p>
+                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">{founderProfile.position || 'Founder & President of Oman Pakhtoon Community (OPC)'}</p>
                     </div>
-                    <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative">
-                      "The Sultanate of Oman has been a second home to thousands of our Pakhtoon brothers who have contributed with their passion, labor, and dedication to the rise of this brotherly nation. We established OPC with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of hardship. From general emergency relief to repatriation support, we protect our family. Register with us, stay law-abiding, contribute to our community funds, and keep up the proud legacy of service in Oman."
+                    <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative text-wrap break-words">
+                      "{founderProfile.quote || 'The Sultanate of Oman has been a second home to thousands of our Pakhtoon brothers who have contributed with their passion, labor, and dedication to the rise of this brotherly nation. We established OPC with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of hardship. From general emergency relief to repatriation support, we protect our family. Register with us, stay law-abiding, contribute to our community funds, and keep up the proud legacy of service in Oman.'}"
                     </blockquote>
                     <div className="pt-4 border-t border-amber-200/50 flex flex-col sm:flex-row gap-4 items-center justify-between font-sans">
                       <p className="text-[11px] text-slate-400 italic">
@@ -1647,7 +1667,7 @@ export default function App() {
             })()}
 
             {registerTab === 'submit' && (
-              <div className="max-w-3xl mx-auto space-y-6">
+              <div className="max-w-6xl mx-auto space-y-6">
                 {rSuccess && (
                   <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg p-5 text-center shadow-xs">
                     <span className="text-emerald-700 block font-bold text-lg mb-1">Registration Request Sent</span>
@@ -1658,7 +1678,9 @@ export default function App() {
                   </div>
                 )}
 
-                <form onSubmit={handleRegisterSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  <div className="lg:col-span-7">
+                    <form onSubmit={handleRegisterSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
@@ -1887,7 +1909,57 @@ export default function App() {
                   </button>
                 </form>
               </div>
-            )}
+
+              {/* Real-time Side Preview and Custom Color Choices Panel */}
+              <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-6">
+                <LiveCardPreview
+                  name={rName}
+                  father={rFather}
+                  district={rDistrict}
+                  phone={rPhone}
+                  photo={rPhoto}
+                  cardColor={rCardColor}
+                />
+
+                <div className="bg-white rounded-xl shadow-md p-6 border border-slate-200 text-left space-y-4">
+                  <div>
+                    <h4 className="font-serif font-bold text-slate-900 text-sm">
+                      Select Card Color Option
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Customize your official OPC identity card color palette.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2.5">
+                    {CARD_COLORS.map((col) => {
+                      const isSelected = rCardColor === col.id;
+                      return (
+                        <button
+                          key={col.id}
+                          type="button"
+                          onClick={() => setRCardColor(col.id)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold select-none cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'border-transparent bg-slate-900 text-white shadow-xs' 
+                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <span 
+                            className="w-4 h-4 rounded-full border border-black/10 inline-block shrink-0" 
+                            style={{ backgroundColor: col.primary, borderColor: col.labelColor }}
+                          />
+                          <span>{col.label}</span>
+                          {isSelected && <span className="text-[10px] text-amber-400 font-extrabold font-sans">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
             {registerTab === 'lookup' && (
               <div className="space-y-6 max-w-2xl mx-auto fade-in">
@@ -2409,6 +2481,7 @@ export default function App() {
             incidents={incidents}
             news={news}
             embassy={embassy}
+            founderProfile={founderProfile}
             elections={elections}
             ads={ads}
             meetings={meetings}
@@ -2454,6 +2527,7 @@ export default function App() {
       <FounderProfileModal 
         isOpen={founderModalOpen}
         onClose={() => setFounderModalOpen(false)}
+        profile={founderProfile}
       />
 
       {/* Floating Back to Top Button */}

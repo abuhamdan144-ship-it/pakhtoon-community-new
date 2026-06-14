@@ -1,12 +1,27 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Award, Phone, Mail, MapPin, ShieldCheck, Heart, Users, Star, Calendar } from 'lucide-react';
+import { FounderProfile } from '../types';
 
 interface FounderProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  profile?: FounderProfile;
 }
 
-export default function FounderProfileModal({ isOpen, onClose }: FounderProfileModalProps) {
+const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=400&h=400';
+
+export default function FounderProfileModal({ isOpen, onClose, profile }: FounderProfileModalProps) {
+  const name = profile?.name || 'Al-Haj Muhammad Amin';
+  const position = profile?.position || 'President, Oman Pakhtoon Community';
+  const phone = profile?.phone || '+968 99111870';
+  const email = profile?.email || 'president@opcoman.org';
+  const address = profile?.address || 'Muscat Headquarters, Sultanate of Oman';
+  const est = profile?.est || 'Welfare Board Established in 2018';
+  const photo = profile?.photo || DEFAULT_PHOTO;
+  const quote = profile?.quote || 'Oman is our second home. By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride.';
+  const bio1 = profile?.bio1 || 'Al-Haj Muhammad Amin is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the Oman Pakhtoon Community (OPC) registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.';
+  const bio2 = profile?.bio2 || 'Under his direct personal guidance, the organization has shifted from an informal network into a fully structured, law-abiding diaspora association that handles essential legal support, medical assistance, repatriation files, and cultural integrations with exceptional meticulousness.';
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -49,8 +64,8 @@ export default function FounderProfileModal({ isOpen, onClose }: FounderProfileM
                 {/* Image frame */}
                 <div className="relative mx-auto w-40 h-40 sm:w-48 sm:h-48 rounded-full border-4 border-amber-400 p-1.5 shadow-xl bg-emerald-990/50 flex items-center justify-center overflow-hidden shrink-0">
                   <img
-                    src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=400&h=400"
-                    alt="Al-Haj Muhammad Amin"
+                    src={photo}
+                    alt={name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full rounded-full object-cover shadow-inner"
                   />
@@ -65,10 +80,10 @@ export default function FounderProfileModal({ isOpen, onClose }: FounderProfileM
                     OPC Chief Patron & Founder
                   </p>
                   <h3 className="text-xl sm:text-2xl font-serif font-extrabold tracking-tight">
-                    Al-Haj Muhammad Amin
+                    {name}
                   </h3>
-                  <p className="text-xs text-slate-300 font-sans italic">
-                    President, Oman Pakhtoon Community
+                  <p className="text-xs text-slate-300 font-sans italic animate-pulse">
+                    {position}
                   </p>
                 </div>
               </div>
@@ -79,25 +94,25 @@ export default function FounderProfileModal({ isOpen, onClose }: FounderProfileM
                   <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-amber-400">
                     <MapPin size={14} />
                   </div>
-                  <span>Muscat Headquarters, Sultanate of Oman</span>
+                  <span>{address}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-amber-400">
                     <Phone size={14} />
                   </div>
-                  <span className="font-mono">+968 99111870</span>
+                  <span className="font-mono">{phone}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-amber-400">
                     <Mail size={14} />
                   </div>
-                  <span>president@opcoman.org</span>
+                  <span>{email}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-amber-400">
                     <Calendar size={14} />
                   </div>
-                  <span>Welfare Board Established in 2018</span>
+                  <span>{est}</span>
                 </div>
               </div>
             </div>
@@ -109,7 +124,7 @@ export default function FounderProfileModal({ isOpen, onClose }: FounderProfileM
                   <span className="text-[10px] font-extrabold text-amber-700 tracking-wider uppercase bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-full inline-block">
                     Inspirational Profile & Vision
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-serif font-extrabold text-emerald-950 tracking-tight mt-2.5">
+                  <h2 className="text-2xl sm:text-3xl font-serif font-extrabold text-emerald-950 tracking-tight mt-2.5 max-w-md">
                     Bridging Diaspora, Anchoring Welfare
                   </h2>
                 </div>
@@ -117,11 +132,12 @@ export default function FounderProfileModal({ isOpen, onClose }: FounderProfileM
                 {/* Biography Paragraphs */}
                 <div className="text-slate-700 text-xs sm:text-sm leading-relaxed space-y-4">
                   <p>
-                    <strong>Al-Haj Muhammad Amin</strong> is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the <strong>Oman Pakhtoon Community (OPC)</strong> registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.
+                    <strong>{name}</strong> is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the <strong>Oman Pakhtoon Community (OPC)</strong> registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.
                   </p>
                   <p>
-                    Under his direct personal guidance, the organization has shifted from an informal network into a fully structured, law-abiding diaspora association that handles essential legal support, medical assistance, repatriation files, and cultural integrations with exceptional meticulousness.
+                    {bio1}
                   </p>
+                  {bio2 && <p>{bio2}</p>}
                 </div>
 
                 {/* Core Contributions List */}
@@ -165,7 +181,7 @@ export default function FounderProfileModal({ isOpen, onClose }: FounderProfileM
               {/* Founder quote */}
               <div className="pt-6 border-t border-slate-200">
                 <blockquote className="border-l-4 border-amber-500 pl-4 py-1 italic text-slate-600 text-[13px] leading-relaxed">
-                  "Oman is our second home. By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride."
+                  "{quote}"
                 </blockquote>
               </div>
             </div>

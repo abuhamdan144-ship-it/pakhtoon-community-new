@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp 
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { 
-  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting 
+  Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile 
 } from '../types';
 import { 
   Users, Award, DollarSign, AlertTriangle, Newspaper, Globe, Vote, Disc, LogOut, CheckCircle2, XCircle, Plus, Trash2, Edit2, Share2, FileSpreadsheet, FileDown, X, Search, ArrowUpDown, ArrowUp, ArrowDown, Cloud, Database, Link2, RefreshCw, Paperclip, FolderPlus, ExternalLink, File as FileIcon 
@@ -51,6 +51,7 @@ interface AdminPanelProps {
   incidents: IncidentReport[];
   news: NewsAnnouncement[];
   embassy: EmbassySetting;
+  founderProfile?: FounderProfile;
   elections: Election[];
   ads: SponsoredAd[];
   meetings: CabinetMeeting[];
@@ -68,7 +69,7 @@ const getBase64 = (file: File): Promise<string> => {
 };
 
 export default function AdminPanel({
-  user, members, cabinet, donations, incidents, news, embassy, elections, ads, meetings, onViewDocuments
+  user, members, cabinet, donations, incidents, news, embassy, founderProfile, elections, ads, meetings, onViewDocuments
 }: AdminPanelProps) {
   // Login State
   const [loginEmail, setLoginEmail] = useState('');
@@ -77,9 +78,120 @@ export default function AdminPanel({
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'elections' | 'ads' | 'workspace' | 'meetings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'founder' | 'elections' | 'ads' | 'workspace' | 'meetings'>('overview');
 
   // --- Form States for Admin Add/Edits ---
+  
+  // Founder form state
+  const [fName, setFName] = useState('');
+  const [fPosition, setFPosition] = useState('');
+  const [fPhone, setFPhone] = useState('');
+  const [fEmail, setFEmail] = useState('');
+  const [fAddress, setFAddress] = useState('');
+  const [fEst, setFEst] = useState('');
+  const [fPhoto, setFPhoto] = useState('');
+  const [fQuote, setFQuote] = useState('');
+  const [fBio1, setFBio1] = useState('');
+  const [fBio2, setFBio2] = useState('');
+  const [fSuccess, setFSuccess] = useState(false);
+  const [founderSaveLoading, setFounderSaveLoading] = useState(false);
+
+  useEffect(() => {
+    if (founderProfile) {
+      setFName(founderProfile.name || 'Al-Haj Muhammad Amin');
+      setFPosition(founderProfile.position || 'President, Oman Pakhtoon Community');
+      setFPhone(founderProfile.phone || '+968 99111870');
+      setFEmail(founderProfile.email || 'president@opcoman.org');
+      setFAddress(founderProfile.address || 'Muscat Headquarters, Sultanate of Oman');
+      setFEst(founderProfile.est || 'Welfare Board Established in 2018');
+      setFPhoto(founderProfile.photo || '');
+      setFQuote(founderProfile.quote || 'Oman is our second home. By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride.');
+      setFBio1(founderProfile.bio1 || 'Al-Haj Muhammad Amin is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the Oman Pakhtoon Community (OPC) registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.');
+      setFBio2(founderProfile.bio2 || 'Under his direct personal guidance, the organization has shifted from an informal network into a fully structured, law-abiding diaspora association that handles essential legal support, medical assistance, repatriation files, and cultural integrations with exceptional meticulousness.');
+    }
+  }, [founderProfile]);
+  
+  // Memoized data for Monthly Donation Trends
+  const donationChartData = useMemo(() => {
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    
+    const getParsedDate = (val: any) => {
+      if (!val) return null;
+      if (typeof val.toDate === 'function') {
+        return val.toDate();
+      }
+      if (val.seconds) {
+        return new Date(val.seconds * 1000);
+      }
+      if (val instanceof Date) {
+        return val;
+      }
+      const parsed = new Date(val);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+      return null;
+    };
+
+    const groups: { [key: string]: { amount: number; count: number } } = {};
+
+    donations.forEach(d => {
+      let dateObj: Date | null = null;
+      if (d.date) {
+        dateObj = getParsedDate(d.date);
+      }
+      if (!dateObj && d.createdAt) {
+        dateObj = getParsedDate(d.createdAt);
+      }
+      if (!dateObj) return;
+
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+      if (!groups[key]) {
+        groups[key] = { amount: 0, count: 0 };
+      }
+      
+      if (d.status !== 'rejected') {
+        groups[key].amount += Number(d.amount) || 0;
+        groups[key].count += 1;
+      }
+    });
+
+    const sortedKeys = Object.keys(groups).sort();
+
+    if (sortedKeys.length === 0) {
+      // Return beautiful trend mock/placeholder slots if empty, representing the last 6 months
+      const now = new Date();
+      const result = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        result.push({
+          label,
+          'Amount (OMR)': 0,
+          'Donation Count': 0
+        });
+      }
+      return result;
+    }
+
+    return sortedKeys.map(key => {
+      const [year, monthStr] = key.split('-');
+      const monthIndex = parseInt(monthStr, 10) - 1;
+      const label = `${monthNames[monthIndex]} ${year}`;
+      const stats = groups[key];
+      return {
+        label,
+        'Amount (OMR)': Number(stats.amount.toFixed(3)),
+        'Donation Count': stats.count
+      };
+    });
+  }, [donations]);
   
   // Cabinet Meetings form state
   const [mId, setMId] = useState('');
@@ -652,6 +764,50 @@ export default function AdminPanel({
       setTimeout(() => setEmbSuccess(false), 3000);
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  // Save founder profile settings
+  const handleFounderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFounderSaveLoading(true);
+    setFSuccess(false);
+    try {
+      const data: FounderProfile = {
+        name: fName.trim(),
+        position: fPosition.trim(),
+        phone: fPhone.trim(),
+        email: fEmail.trim(),
+        address: fAddress.trim(),
+        est: fEst.trim(),
+        photo: fPhoto,
+        quote: fQuote.trim(),
+        bio1: fBio1.trim(),
+        bio2: fBio2.trim()
+      };
+      await setDoc(doc(db, 'settings', 'founder'), data);
+      setFSuccess(true);
+      setTimeout(() => setFSuccess(false), 3000);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setFounderSaveLoading(false);
+    }
+  };
+
+  const handleFounderPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      try {
+        const file = e.target.files[0];
+        if (file.size > 1200000) {
+          alert('Image size exceeds 1.2MB limit. Please compress and choose a smaller picture.');
+          return;
+        }
+        const b64 = await getBase64(file);
+        setFPhoto(b64);
+      } catch (err) {
+        console.error("Error setting founder portrait image:", err);
+      }
     }
   };
 
@@ -1778,6 +1934,7 @@ export default function AdminPanel({
           { id: 'incidents', label: 'Welfare Claims', icon: AlertTriangle },
           { id: 'news', label: 'Announcements', icon: Newspaper },
           { id: 'embassy', label: 'Muscat Consulate', icon: LocationIcon },
+          { id: 'founder', label: 'Founder Profile Settings', icon: Award },
           { id: 'elections', label: 'Elections & Polls', icon: Vote },
           { id: 'ads', label: 'Sponsor Ads', icon: Disc },
           { id: 'workspace', label: 'Google Sync Hub', icon: Cloud },
@@ -2168,6 +2325,115 @@ export default function AdminPanel({
                     <div className="text-[10px] text-slate-400 mt-2 flex justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                       <span>💡 <strong>Registry Fact:</strong> Cumulative Volume displays overall community membership registrations gathered over time.</span>
                     </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* WELFARE FUND DONATIONS INSIGHTS */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                    <DollarSign size={16} className="text-emerald-800" /> Welfare Fund Donation Insights
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">Track aggregate contribution trends and donation counts over months</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-850">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Sync Active
+                  </span>
+                </div>
+              </div>
+
+              {donations.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 font-medium bg-white border border-slate-200 rounded-xl">
+                  <DollarSign size={32} className="mx-auto mb-2 text-slate-300 animate-bounce" />
+                  No donations registered in the database yet. New contributions will show up here.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+                  <div className="bg-white border border-slate-200 p-4 md:p-5 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">Monthly Welfare Fund Trend</h5>
+                      <p className="text-[11px] text-slate-400">Visualization of monthly accrued donations (left axis, OMR) and the volume of independent contributions (right axis)</p>
+                    </div>
+
+                    <div className="h-72 mt-5 mb-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={donationChartData}
+                          margin={{ top: 15, right: 15, left: -10, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis 
+                            dataKey="label" 
+                            stroke="#64748b" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                          />
+                          <YAxis 
+                            yAxisId="left"
+                            stroke="#047857" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            tickFormatter={(v) => `${v} OMR`}
+                          />
+                          <YAxis 
+                            yAxisId="right"
+                            orientation="right"
+                            stroke="#0284c7" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#1e293b',
+                              border: 'none',
+                              borderRadius: '8px',
+                              color: '#fff',
+                              fontSize: '11px',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                          />
+                          <Legend 
+                            verticalAlign="top" 
+                            height={36} 
+                            iconType="circle"
+                            iconSize={8}
+                            wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                          />
+                          <Line 
+                            yAxisId="left"
+                            type="monotone" 
+                            dataKey="Amount (OMR)" 
+                            stroke="#047857" 
+                            strokeWidth={2.5}
+                            activeDot={{ r: 6 }}
+                            dot={{ r: 3 }}
+                          />
+                          <Line 
+                            yAxisId="right"
+                            type="monotone" 
+                            dataKey="Donation Count" 
+                            stroke="#0284c7" 
+                            strokeWidth={2}
+                            strokeDasharray="4 4"
+                            dot={{ r: 3 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 mt-2 flex justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <span>💡 <strong>Welfare Fact:</strong> OMR values depict localized financial assets accrued inside the verified community fund.</span>
+                    </div>
+
                   </div>
                 </div>
               )}
@@ -3145,6 +3411,183 @@ export default function AdminPanel({
               <button type="submit" className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold p-2.5 rounded text-xs cursor-pointer">
                 Save Embassy Settings
               </button>
+            </form>
+          </div>
+        )}
+
+        {/* FOUNDER TAB */}
+        {activeTab === 'founder' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold font-serif text-emerald-950 font-sans">Patron-Founder Profile Customization</h3>
+            <p className="text-xs text-slate-500 max-w-2xl font-sans">
+              Modify the public presentation, quotes, contact details, and biographic narratives of the OPC patron/founder. Changes applied here will update both the homepage founder's message section and the detailed bio presentation pop-up.
+            </p>
+
+            <form onSubmit={handleFounderSubmit} className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-6 max-w-4xl">
+              <h4 className="font-bold text-sm text-emerald-950 border-b pb-2 flex items-center gap-2">
+                <Award size={16} className="text-amber-500" />
+                Personal Profile &amp; Bio Information
+              </h4>
+
+              {fSuccess && (
+                <div id="founder-save-alert-success" className="bg-emerald-50 text-emerald-800 text-xs p-3.5 rounded-lg font-semibold border border-emerald-200 flex items-center gap-2">
+                  <CheckCircle2 size={16} /> Modified founder settings saved successfully! Live profile is updated.
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Photo Upload Panel */}
+                <div className="md:col-span-1 bg-white p-5 rounded-xl border border-slate-200 flex flex-col items-center justify-between text-center space-y-4">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Portrait Image</span>
+                  
+                  <div className="relative w-36 h-36 rounded-full border-4 border-amber-400 p-1 bg-slate-105 overflow-hidden flex items-center justify-center">
+                    <img 
+                      src={fPhoto || 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256&h=256'} 
+                      alt="Founder Upload Preview" 
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
+
+                  <div className="w-full">
+                    <label className="block text-[11px] font-bold text-slate-650 cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-300 py-2 px-3 rounded-lg transition duration-150">
+                      Upload Portrait photo JPEG/PNG
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleFounderPhotoUpload} 
+                        className="hidden" 
+                      />
+                    </label>
+                    <span className="text-[9px] text-slate-400 block mt-1.5 leading-relaxed">
+                      Recommended square ratio. Max file payload size 1.2MB.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Identity Information inputs */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Founder Full Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={fName} 
+                        onChange={e => setFName(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
+                        placeholder="Al-Haj Muhammad Amin"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Founder Position</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={fPosition} 
+                        onChange={e => setFPosition(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
+                        placeholder="President, Oman Pakhtoon Community"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Oman Contact phone</label>
+                      <input 
+                        type="text" 
+                        value={fPhone} 
+                        onChange={e => setFPhone(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800 font-mono"
+                        placeholder="+968 99111870"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Official EMail</label>
+                      <input 
+                        type="email" 
+                        value={fEmail} 
+                        onChange={e => setFEmail(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
+                        placeholder="president@opcoman.org"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Muscat Headquarters address</label>
+                      <input 
+                        type="text" 
+                        value={fAddress} 
+                        onChange={e => setFAddress(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
+                        placeholder="Muscat Headquarters, Sultanate of Oman"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Board Established Statement</label>
+                      <input 
+                        type="text" 
+                        value={fEst} 
+                        onChange={e => setFEst(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
+                        placeholder="Welfare Board Established in 2018"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Inspiration Quote */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-emerald-950">Inspirational Vision statement / Message Quote</label>
+                <textarea 
+                  rows={3}
+                  required
+                  value={fQuote} 
+                  onChange={e => setFQuote(e.target.value)}
+                  className="w-full px-4 py-2 text-sm border rounded-lg bg-white focus:outline-emerald-800 text-wrap break-words"
+                  placeholder="Insert inspiring quote displayed on the primary landing page card..."
+                />
+              </div>
+
+              {/* Detailed Biographic Paragraphs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-650">Biographic Narrative paragraph 1</label>
+                  <textarea 
+                    rows={6}
+                    required
+                    value={fBio1} 
+                    onChange={e => setFBio1(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border rounded-lg bg-white focus:outline-emerald-800 leading-relaxed text-wrap break-words"
+                    placeholder="First detailed biography block displayed in the pop-up modal..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-650">Biographic Narrative paragraph 2</label>
+                  <textarea 
+                    rows={6}
+                    value={fBio2} 
+                    onChange={e => setFBio2(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border rounded-lg bg-white focus:outline-emerald-800 leading-relaxed text-wrap break-words"
+                    placeholder="Optional second detailed biography block..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3">
+                <button 
+                  type="submit" 
+                  disabled={founderSaveLoading}
+                  className={`bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-6 py-2.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-2 shadow-xs transition ${founderSaveLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {founderSaveLoading ? 'Updating Database...' : 'Save Profile Changes'}
+                </button>
+              </div>
             </form>
           </div>
         )}

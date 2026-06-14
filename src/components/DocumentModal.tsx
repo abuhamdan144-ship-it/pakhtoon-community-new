@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Member } from '../types';
+import { CARD_COLORS, getCardColor } from './CardColors';
 import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon } from 'lucide-react';
 import pukhtoonLogo from '../assets/images/pukhtoon_logo_1781303873200.jpg';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
@@ -143,10 +144,11 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
 
         ctx.clearRect(0, 0, W, H);
         
-        // Background gradient
+        // Background gradient using dynamic palette
+        const selectedPalette = getCardColor(memberLocal.cardColor || 'emerald');
         const grad = ctx.createLinearGradient(0, 0, W, H);
-        grad.addColorStop(0, '#1b4d3e');
-        grad.addColorStop(1, '#0e2e25');
+        grad.addColorStop(0, selectedPalette.primary);
+        grad.addColorStop(1, selectedPalette.secondary);
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 
@@ -157,7 +159,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.fillRect(0, 12, W, 6);
 
         // Gold border
-        ctx.strokeStyle = '#d4af37';
+        ctx.strokeStyle = selectedPalette.labelColor;
         ctx.lineWidth = 6;
         ctx.strokeRect(8, 26, W - 16, H - 34);
 
@@ -175,7 +177,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
           ctx.beginPath();
           ctx.arc(102, 88, 48, 0, Math.PI * 2);
           ctx.closePath();
-          ctx.strokeStyle = '#d4af37';
+          ctx.strokeStyle = selectedPalette.labelColor;
           ctx.lineWidth = 2;
           ctx.stroke();
           ctx.save();
@@ -185,7 +187,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         }
 
         // Header Text
-        ctx.fillStyle = '#d4af37';
+        ctx.fillStyle = selectedPalette.labelColor;
         ctx.font = 'bold 36px Georgia, serif';
         ctx.textAlign = 'center';
         ctx.fillText('OMAN PAKHTOON COMMUNITY', W / 2 + 40, 90);
@@ -203,10 +205,10 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
 
           const row = (label: string, val: string) => {
             ctx.font = '15px "Segoe UI", Arial, sans-serif';
-            ctx.fillStyle = '#d4af37';
+            ctx.fillStyle = selectedPalette.labelColor;
             ctx.fillText(label.toUpperCase(), x, y);
             ctx.font = 'bold 24px "Segoe UI", Arial, sans-serif';
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = selectedPalette.textColor;
             ctx.fillText(val || '-', x, y + 24);
             y += lh;
           };
@@ -219,21 +221,21 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
 
           // Issued & expiry
           ctx.font = '15px "Segoe UI", Arial, sans-serif';
-          ctx.fillStyle = '#d4af37';
+          ctx.fillStyle = selectedPalette.labelColor;
           ctx.fillText('ISSUED: ' + new Date(memberLocal.approvedAt?.seconds ? memberLocal.approvedAt.seconds * 1000 : Date.now()).toLocaleDateString('en-GB'), x, H - 46);
           ctx.textAlign = 'right';
           ctx.fillText('Valid: Lifetime Member', W - 40, H - 46);
         };
 
         // Profile photo box
-        ctx.strokeStyle = '#d4af37';
+        ctx.strokeStyle = selectedPalette.labelColor;
         ctx.lineWidth = 3;
         ctx.strokeRect(60, 165, 210, 255);
 
         if (photoImg) {
           ctx.drawImage(photoImg, 60, 165, 210, 255);
         } else {
-          ctx.fillStyle = '#1b4d3e';
+          ctx.fillStyle = selectedPalette.secondary;
           ctx.fillRect(61, 166, 208, 253);
           ctx.fillStyle = '#faf6ed';
           ctx.font = 'bold 80px Georgia, serif';
@@ -761,7 +763,7 @@ Oman Pakhtoon Community Welfare Network`;
               <span className="text-xs font-semibold text-emerald-800 uppercase tracking-wider block mb-3">
                 Membership Identity Card Preview (1011x638)
               </span>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto mb-4">
                 <canvas 
                   ref={cardCanvasRef} 
                   width="1011" 
@@ -769,16 +771,64 @@ Oman Pakhtoon Community Welfare Network`;
                   className="w-full max-w-[560px] mx-auto bg-emerald-950 border border-slate-300 rounded-lg shadow-sm block"
                 />
               </div>
-              <p className="text-center text-[11px] text-slate-400 mt-2 italic">
-                Optimized high-resolution print template. Custom photo overlay, logo, and Omani colors embedded.
+
+              {/* Color Selection Choice for Member */}
+              <div className="mt-4 max-w-[560px] mx-auto border-t pt-4 border-slate-200">
+                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block mb-2.5 text-center">
+                  Theme Palette Color Choice
+                </span>
+                <div className="flex justify-center gap-3">
+                  {CARD_COLORS.map((col) => {
+                    const isSelected = (memberLocal.cardColor || 'emerald') === col.id;
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={async () => {
+                          const updated = { ...memberLocal, cardColor: col.id };
+                          setMemberLocal(updated);
+                          if (memberLocal.id) {
+                            try {
+                              await updateDoc(doc(db, 'members', memberLocal.id), {
+                                cardColor: col.id
+                              });
+                            } catch (e) {
+                              console.warn("Could not immediately update cardColor in Firestore:", e);
+                            }
+                          }
+                        }}
+                        title={col.label}
+                        className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center cursor-pointer ${
+                          isSelected ? 'scale-110 shadow-md ring-2 ring-emerald-600/60' : 'hover:scale-105 opacity-80'
+                        }`}
+                        style={{ backgroundColor: col.primary, borderColor: col.labelColor }}
+                      >
+                        {isSelected && (
+                          <span className="text-xs font-bold font-sans" style={{ color: col.labelColor }}>✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <p className="text-center text-[11px] text-slate-400 mt-3 italic">
+                Optimized high-resolution print template. Custom photo overlay, logo, and selected color palette applied.
               </p>
+              
               <div className="text-center mt-4">
-                <button 
-                  onClick={handleDownloadCard} 
-                  className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
-                >
-                  <Download size={14} /> Download Identity Card PNG
-                </button>
+                {memberLocal.status === 'approved' || isAdmin ? (
+                  <button 
+                    onClick={handleDownloadCard} 
+                    className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
+                  >
+                    <Download size={14} /> Download Identity Card PNG
+                  </button>
+                ) : (
+                  <div className="bg-amber-100 border border-amber-200 text-amber-950 rounded-lg p-3 inline-block max-w-sm text-xs font-semibold">
+                    🔒 Card download is locked until your membership application is approved by the administrator.
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -801,12 +851,18 @@ Oman Pakhtoon Community Welfare Network`;
                 Sleek double border lining with OP Community emblem watermark, president and general secretary signature.
               </p>
               <div className="text-center mt-4">
-                <button 
-                  onClick={handleDownloadCert} 
-                  className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
-                >
-                  <Download size={14} /> Download Association Certificate PNG
-                </button>
+                {memberLocal.status === 'approved' || isAdmin ? (
+                  <button 
+                    onClick={handleDownloadCert} 
+                    className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
+                  >
+                    <Download size={14} /> Download Association Certificate PNG
+                  </button>
+                ) : (
+                  <div className="bg-amber-105 border border-amber-200 text-amber-955 rounded-lg p-3 inline-block max-w-sm text-xs font-semibold">
+                    🔒 Certificate download is locked until your membership has been approved by the administrator.
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -829,12 +885,18 @@ Oman Pakhtoon Community Welfare Network`;
                 Itemized transaction breakdown with secure paid verification stamp, OP logo and finance logs.
               </p>
               <div className="text-center mt-4">
-                <button 
-                  onClick={handleDownloadReceipt} 
-                  className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
-                >
-                  <Download size={14} /> Download Payment Receipt PNG
-                </button>
+                {memberLocal.status === 'approved' || isAdmin ? (
+                  <button 
+                    onClick={handleDownloadReceipt} 
+                    className="inline-flex items-center gap-1.5 font-bold tracking-wider uppercase bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs px-5 py-2.5 rounded shadow-sm hover:shadow transition duration-155 cursor-pointer"
+                  >
+                    <Download size={14} /> Download Payment Receipt PNG
+                  </button>
+                ) : (
+                  <div className="bg-amber-105 border border-amber-200 text-amber-955 rounded-lg p-3 inline-block max-w-sm text-xs font-semibold">
+                    🔒 Receipt download is locked until your membership receipt verification is approved by the admin.
+                  </div>
+                )}
               </div>
             </div>
           )}
