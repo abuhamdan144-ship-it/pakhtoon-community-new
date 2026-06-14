@@ -57,6 +57,7 @@ import {
 
 // Importing sub-components
 import SponsoredBillboard from './components/SponsoredBillboard';
+import OmanDistrictMap from './components/OmanDistrictMap';
 import DocumentModal from './components/DocumentModal';
 import FounderProfileModal from './components/FounderProfileModal';
 import AdminPanel from './components/AdminPanel';
@@ -1318,117 +1319,7 @@ export default function App() {
                   </a>
                 </div>
 
-                {/* Public Donation Claim Form */}
-                <div className="border-t border-emerald-800/60 pt-6 mt-6 max-w-xl">
-                  <h4 className="font-bold text-sm text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <DollarSign size={16} /> Log Your Donation / Submit Payment Claim
-                  </h4>
-                  <p className="text-xs text-emerald-100/70 mb-4 leading-relaxed">
-                    If you have already processed a transfer to our official Bank Dhofar account or via Mobile Wallet, please enter your transfer details below to submit a claim. Once approved by the OPC Admin, your dynamic payment receipt will be generated.
-                  </p>
 
-                  {pubDonorSuccess && (
-                    <div className="bg-emerald-950 border border-emerald-700 text-emerald-300 rounded-lg p-4 mb-4 text-xs font-sans">
-                      <p className="font-bold mb-1">✓ Donation Claim Logged Successfully!</p>
-                      <p className="text-emerald-300/80 leading-relaxed">
-                        Thank you for your generous contribution. Your claim has been queued for OPC executive board review. You will be able to search and download your official PDF Payment Receipt using your contact mobile number as soon as it is approved.
-                      </p>
-                    </div>
-                  )}
-
-                  {pubDonorError && (
-                    <div className="bg-red-950 border border-red-800 text-red-300 rounded-lg p-3 mb-4 text-xs">
-                      {pubDonorError}
-                    </div>
-                  )}
-
-                  <form onSubmit={handlePublicDonationSubmit} className="space-y-4 text-left">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1 font-sans">Donor Name *</label>
-                        <input 
-                          type="text"
-                          required
-                          value={pubDonorName}
-                          onChange={(e) => setPubDonorName(e.target.value)}
-                          placeholder="e.g. Javed Swati"
-                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1 font-sans">Mobile Phone Number *</label>
-                        <input 
-                          type="tel"
-                          required
-                          value={pubDonorPhone}
-                          onChange={(e) => setPubDonorPhone(e.target.value)}
-                          placeholder="e.g. +968 99111870"
-                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500 font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Amount Donated (OMR) *</label>
-                        <input 
-                          type="number"
-                          step="0.001"
-                          min="0.001"
-                          required
-                          value={pubDonorAmount}
-                          onChange={(e) => setPubDonorAmount(e.target.value)}
-                          placeholder="0.000"
-                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500 font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Transfer Date *</label>
-                        <input 
-                          type="date"
-                          required
-                          value={pubDonorDate}
-                          onChange={(e) => setPubDonorDate(e.target.value)}
-                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500 font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans">
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Payment Channel *</label>
-                        <select 
-                          value={pubDonorMethod}
-                          onChange={(e) => setPubDonorMethod(e.target.value as any)}
-                          className="w-full h-9 px-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500"
-                        >
-                          <option value="Bank Transfer">Bank Transfer (BankDhofar)</option>
-                          <option value="Cash">Cash Handover</option>
-                          <option value="Mobile Wallet">Mobile Wallet / Pay</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-emerald-250 mb-1">Memo / Reference Code</label>
-                        <input 
-                          type="text"
-                          value={pubDonorNote}
-                          onChange={(e) => setPubDonorNote(e.target.value)}
-                          placeholder="e.g., Bank transaction reference"
-                          className="w-full px-3 py-2 text-xs rounded bg-emerald-950 border border-emerald-800 text-white focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-                    </div>
-
-                    <FormSubmitButton
-                      isLoading={pubDonorLoading}
-                      isSuccess={pubDonorSuccess}
-                      label="Log Transfer Claim & Submit Dues"
-                      successLabel="Donation Claim Logged Successfully!"
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold py-2.5 px-4 rounded text-xs tracking-wider uppercase shadow hover:shadow-md transition active:scale-95 text-center flex items-center justify-center gap-1.5 cursor-pointer font-sans"
-                      successClassName="w-full bg-emerald-600 text-white font-bold py-2.5 px-4 rounded text-xs tracking-wider uppercase shadow transition text-center flex items-center justify-center gap-1.5 font-sans"
-                    />
-                  </form>
-                </div>
               </section>
 
               {/* FOUNDER'S MESSAGE SECTION */}
@@ -1554,45 +1445,7 @@ export default function App() {
                 </motion.div>
               </section>
 
-              {/* BULLETINS NEWS SECTION */}
-              <section className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                  Community Announcements &amp; bulletins
-                </h2>
-                <motion.div 
-                  variants={feedContainerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 md:grid-cols-3 gap-6"
-                >
-                  {news.length === 0 ? (
-                    <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-medium font-serif col-span-full">
-                      No announcement bulletins published. Active bulletins will appear here.
-                    </div>
-                  ) : (
-                    news.map((item) => (
-                      <motion.div key={item.id} variants={feedItemVariants} className="bg-white border rounded-xl overflow-hidden shadow-xs text-left h-full flex flex-col justify-between">
-                        <div>
-                          {item.image && (
-                            <img src={item.image} alt={item.title} className="w-full h-44 object-cover border-b" />
-                          )}
-                          <div className="p-5 space-y-2">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                              <Calendar size={12} /> {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('en-GB') : ''}
-                            </span>
-                            <h4 className="font-serif font-bold text-emerald-950 text-base leading-snug">
-                              {item.title}
-                            </h4>
-                            <p className="text-xs text-slate-500 line-clamp-4 leading-relaxed whitespace-pre-line">
-                              {item.content}
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </motion.div>
-              </section>
+
 
               {/* INCIDENTS WELFARE REPORTS LIST */}
               <section className="space-y-4">
@@ -1699,6 +1552,11 @@ export default function App() {
                     </a>
                   </div>
                 </div>
+              </section>
+
+              {/* OMAN GEOSPATIAL DISTRICT DISTRIBUTION MAP */}
+              <section className="space-y-4">
+                <OmanDistrictMap members={members} />
               </section>
 
                 </motion.div>

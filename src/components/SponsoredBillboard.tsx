@@ -62,7 +62,7 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
           <img 
             src={currentAd.image} 
             alt={currentAd.name} 
-            className="w-full h-full object-cover transition-all"
+            className="w-full h-full object-contain bg-emerald-950/40 transition-all"
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/95 via-transparent to-transparent" />

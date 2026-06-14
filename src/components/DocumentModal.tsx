@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Member } from '../types';
 import { CARD_COLORS, getCardColor } from './CardColors';
-import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon, Save } from 'lucide-react';
+import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon, Save, MessageSquare, Copy, Check } from 'lucide-react';
 import pukhtoonLogo from '../assets/images/pukhtoon_logo_1781303873200.jpg';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -41,6 +41,8 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
 
   const [isConnectingDrive, setIsConnectingDrive] = useState(false);
   const [driveError, setDriveError] = useState<string | null>(null);
+  const [customWhatsAppPhone, setCustomWhatsAppPhone] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   const cardCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const certCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -115,6 +117,8 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
       setSendSuccess(false);
       setDispatchLogs([]);
       setActiveTab('card');
+      setCustomWhatsAppPhone(member.whatsapp || member.phone || '');
+      setIsCopied(false);
     }
   }, [member, isOpen]);
 
@@ -703,7 +707,8 @@ Sincerely,
 Executive Cabinet Committee
 Oman Pakhtoon Community Welfare Network`;
 
-    const cleanPhone = (memberLocal.whatsapp || memberLocal.phone || '').replace(/[^\d+]/g, '');
+    const targetPhone = customWhatsAppPhone || memberLocal.whatsapp || memberLocal.phone || '';
+    const cleanPhone = targetPhone.replace(/[^\d+]/g, '');
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
 
@@ -882,6 +887,76 @@ Oman Pakhtoon Community Welfare Network`;
                   </div>
                 )}
               </div>
+
+              {/* WHATSAPP CARD dispatch options */}
+              {(memberLocal.status === 'approved' || isAdmin) && (
+                <div className="mt-5 border-t border-slate-200 pt-5 max-w-[560px] mx-auto text-left">
+                  <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="text-emerald-700 shrink-0" size={17} />
+                      <span className="font-bold font-serif text-emerald-950 text-sm">Send Membership Card &amp; Welcomes via WhatsApp</span>
+                    </div>
+                    
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Transmit the formal diaspora credential notification message containing registration statistics, approved membership ID, and lifetime active status directly.
+                    </p>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Recipient WhatsApp Number (With Country Code)
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="text"
+                          value={customWhatsAppPhone}
+                          onChange={(e) => setCustomWhatsAppPhone(e.target.value)}
+                          placeholder="e.g. +96899111870"
+                          className="bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-800 flex-1 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
+                        />
+                        <a
+                          href={getWhatsAppShareLink()}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs py-1.5 px-4 rounded transition inline-flex items-center justify-center gap-1.5 shrink-0"
+                        >
+                          <Send size={12} /> Send via WhatsApp
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="border border-emerald-100/60 rounded bg-white p-3 space-y-2">
+                      <div className="flex justify-between items-center pb-1 border-b border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-405 uppercase tracking-wide">Prefilled Message Track</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const amountPaid = memberLocal.feeAmount !== undefined ? memberLocal.feeAmount : 5;
+                            const refText = memberLocal.paymentReference ? `(Ref: ${memberLocal.paymentReference})` : '';
+                            const text = `OMAN PAKHTOON COMMUNITY\n\nDear Brother ${memberLocal.name},\n\nCongratulations! Your official OPC Diaspora Membership registration has been reviewed and APPROVED by the Executive Cabinet.\n\nHere is your issued credential package:\n📌 Membership ID: ${memberLocal.membershipId || 'OPC-ISSUED'}\n📌 Status: Lifetime Active\n💰 Registration Fee Paid: ${amountPaid.toFixed(3)} OMR ${refText}\n\nWe have enclosed your custom:\n1️⃣ Digital Membership ID Card\n2️⃣ Lifetime Certificate of Association\n3️⃣ Official Automated Payment Receipt\n\nPlease keep this copy secure as part of your permanent records. Thank you for your support and integration within the Sultanate of Oman.\n\nSincerely,\nExecutive Cabinet Committee\nOman Pakhtoon Community Welfare Network`;
+                            navigator.clipboard.writeText(text);
+                            setIsCopied(true);
+                            setTimeout(() => setIsCopied(false), 2000);
+                          }}
+                          className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold tracking-wider uppercase inline-flex items-center gap-1 transition cursor-pointer"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check size={11} className="text-emerald-600 font-bold" /> Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={11} /> Copy Text content
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono whitespace-pre-line leading-relaxed max-h-24 overflow-y-auto bg-slate-50/50 p-2 rounded">
+                        {`OMAN PAKHTOON COMMUNITY\nDear Brother ${memberLocal.name},\nCongratulations! Your official OPC Diaspora membership has been approved.\nMembership ID: ${memberLocal.membershipId || 'OPC-ISSUED'}\nStatus: Lifetime Active`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
