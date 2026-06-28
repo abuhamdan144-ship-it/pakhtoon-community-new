@@ -250,30 +250,29 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
 
         // Emergency Helplines Section
         ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        ctx.fillRect(60, 455, W - 120, 75);
+        ctx.fillRect(60, 452, W - 120, 80);
         ctx.strokeStyle = selectedPalette.labelColor + '44';
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(60, 455, W - 120, 75);
+        ctx.strokeRect(60, 452, W - 120, 80);
 
         // Title
-        ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+        ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = selectedPalette.labelColor;
         ctx.textAlign = 'center';
-        ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 475);
+        ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 470);
 
         // Columns
         ctx.font = '13px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#ffffff';
-        
-        // Column 1: President
         ctx.textAlign = 'center';
-        ctx.fillText('PRESIDENT: +968 96164017', W / 2 - 270, 505);
         
-        // Column 2: Muscat
-        ctx.fillText('MUSCAT: +968 99111870', W / 2, 505);
+        // Row 1
+        ctx.fillText('PRESIDENT: +968 96164017', W / 2 - 210, 494);
+        ctx.fillText('CO-PRESIDENT: +968 95079400', W / 2 + 210, 494);
         
-        // Column 3: Salalah
-        ctx.fillText('SALALAH: +968 96766876', W / 2 + 270, 505);
+        // Row 2
+        ctx.fillText('MUSCAT: +968 99111870', W / 2 - 210, 516);
+        ctx.fillText('SALALAH: +968 96766876', W / 2 + 210, 516);
       };
 
       // --- Draw Certificate of Membership (1400x990) ---
