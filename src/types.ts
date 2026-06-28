@@ -23,6 +23,10 @@ export interface Member {
   driveAttachments?: { id: string; name: string; url: string; mimeType?: string; }[];
   email?: string;
   cardColor?: string;
+  emailSent?: boolean;
+  emailSentAt?: any;
+  emailStatus?: string;
+  emailError?: string;
 }
 
 export interface Donation {

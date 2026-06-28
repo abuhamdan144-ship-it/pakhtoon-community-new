@@ -65,6 +65,13 @@ export const translations = {
     aiTitle: 'OPC AI Welfare Assistant',
     aiSubtitle: 'Speak or type any question regarding OPC membership, registered executive guidelines, Benazir Income Support, embassy support, or repatriation procedures in Oman.',
     aiPlaceholder: 'How can OPC support a fellow brother with medical emergency repatriation...',
+    
+    // Notifications / Alerts
+    electionAlerts: 'Election Alerts',
+    activePoll: 'Active Poll',
+    voted: 'Ballot SECURED',
+    voteNow: 'Vote Now',
+    noActiveElections: 'No active elections at the moment.',
   },
   ur: {
     // Navigation / Header
@@ -124,6 +131,13 @@ export const translations = {
     aiTitle: 'او پی سی فلاحی اے آئی اسسٹنٹ',
     aiSubtitle: 'او پی سی ممبرشپ، رجسٹریشن کے رہنما خطوط، سفارت خانے کی معاونت، یا عمان میں میت کی واپسی کے طریقہ کار کے بارے میں کوئی بھی سوال پوچھیں یا ٹائپ کریں۔',
     aiPlaceholder: 'او پی سی کس طرح ہنگامی طبی صورت حال یا میت کی واپسی میں مدد کر سکتا ہے...',
+    
+    // Notifications / Alerts
+    electionAlerts: 'انتخابی انتباہات',
+    activePoll: 'فعال پول',
+    voted: 'ووٹ محفوظ ہو گیا',
+    voteNow: 'ابھی ووٹ دیں',
+    noActiveElections: 'اس وقت کوئی فعال انتخابی سائیکل نہیں ہے۔',
   },
   ps: {
     // Navigation / Header
@@ -183,5 +197,12 @@ export const translations = {
     aiTitle: 'د او پی سي د فلاحي چارو هوښیار مرستندوی',
     aiSubtitle: 'د او پی سي غړیتوب، د ثبت لارښوونو، سفارت ملاتړ، یا عمان کې هیواد ته بیرته ستنیدلو په اړه پوښتنې په پښتو یا انګلیسي کې وپوښتئ.',
     aiPlaceholder: 'زه څنګه کولای شم په عمان کی د پښتون ورور عاجل طبي حالت یا مرستي لپاره راپور ورکړم...',
+    
+    // Notifications / Alerts
+    electionAlerts: 'د ټاکنو خبرتیاوې',
+    activePoll: 'فعال ټولپوښتنه',
+    voted: 'رایه خوندي شوه',
+    voteNow: 'اوس رایه ورکړئ',
+    noActiveElections: 'اوس مهال د ټاکنو کومه فعاله دوره نشته.',
   }
 };

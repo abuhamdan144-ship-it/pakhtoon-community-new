@@ -247,6 +247,33 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
           ctx.fillText((memberLocal.name || '?').charAt(0).toUpperCase(), 165, 305);
         }
         drawInfoText();
+
+        // Emergency Helplines Section
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillRect(60, 455, W - 120, 75);
+        ctx.strokeStyle = selectedPalette.labelColor + '44';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(60, 455, W - 120, 75);
+
+        // Title
+        ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = selectedPalette.labelColor;
+        ctx.textAlign = 'center';
+        ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 475);
+
+        // Columns
+        ctx.font = '13px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        
+        // Column 1: President
+        ctx.textAlign = 'center';
+        ctx.fillText('PRESIDENT: +968 96164017', W / 2 - 270, 505);
+        
+        // Column 2: Muscat
+        ctx.fillText('MUSCAT: +968 99111870', W / 2, 505);
+        
+        // Column 3: Salalah
+        ctx.fillText('SALALAH: +968 96766876', W / 2 + 270, 505);
       };
 
       // --- Draw Certificate of Membership (1400x990) ---

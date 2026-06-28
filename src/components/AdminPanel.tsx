@@ -512,6 +512,22 @@ export default function AdminPanel({
     }
   };
 
+  // Re-queue or retry sending registration credentials email
+  const handleResendCredentialsEmail = async (member: Member) => {
+    if (!member.id) return;
+    try {
+      await updateDoc(doc(db, 'members', member.id), {
+        emailSent: false,
+        emailStatus: null,
+        emailError: null
+      });
+      await logAdminAction('Retry Email Notification', `Reset email notification state to retry SMTP delivery for ${member.name} (${member.email || 'N/A'})`);
+      alert(`Email dispatch re-queued successfully! The background polling service will attempt SMTP delivery shortly.`);
+    } catch (err: any) {
+      alert('Error re-queuing email delivery: ' + err.message);
+    }
+  };
+
   const handleRejectMember = async (id: string) => {
     if (!confirm('Reject this application?')) return;
     try {
@@ -3808,11 +3824,61 @@ export default function AdminPanel({
                                           <span className="text-slate-400 text-[10px] block">Occupation:</span>
                                           <span className="font-semibold text-slate-700">{highlightMatch(m.occupation || '', dirSearch)}</span>
                                         </div>
-                                        <div className="space-y-0.5">
+                                        <div className="space-y-0.5 col-span-2">
                                           <span className="text-slate-400 text-[10px] block">Registered Email:</span>
                                           <span className="font-semibold text-slate-700 lowercase truncate block">{highlightMatch(m.email || '', dirSearch)}</span>
                                         </div>
                                       </div>
+
+                                      {/* Email Dispatch & Notification Tracker */}
+                                      {m.status === 'approved' && (
+                                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-col gap-1.5 text-[11px]">
+                                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Notification Delivery Status</span>
+                                          {m.emailSent ? (
+                                            m.emailStatus === 'failed_smtp_fallback' ? (
+                                              <div className="bg-red-50 border border-red-200 text-red-800 p-2.5 rounded-lg space-y-1.5 shadow-2xs">
+                                                <div className="flex items-start gap-1">
+                                                  <AlertTriangle size={13} className="text-red-600 mt-0.5 flex-shrink-0" />
+                                                  <div>
+                                                    <p className="font-bold">SMTP Dispatch Failed (Zoho Blocked)</p>
+                                                    <p className="text-[10px] text-red-700 leading-tight">Your outbound SMTP relay service blocked/deferred this email ("Unusual sending activity detected"). To fix this, unblock your Zoho email account or click below to retry after unblocking.</p>
+                                                  </div>
+                                                </div>
+                                                {m.emailError && (
+                                                  <p className="text-[9px] bg-red-100/50 p-1 rounded font-mono text-red-900 truncate">
+                                                    Error: {m.emailError}
+                                                  </p>
+                                                )}
+                                                <div className="flex items-center gap-1.5 pt-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleResendCredentialsEmail(m)}
+                                                    className="bg-white hover:bg-slate-100 border border-red-300 hover:border-red-400 text-red-800 text-[10px] font-bold px-2 py-1 rounded transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                                                  >
+                                                    <RefreshCw size={10} /> Retry SMTP Dispatch
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="bg-emerald-50 border border-emerald-150 text-emerald-800 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                                                <CheckCircle2 size={12} className="text-emerald-600 flex-shrink-0" />
+                                                <div>
+                                                  <p className="font-bold leading-tight">Official Welcome Email Sent</p>
+                                                  <p className="text-[10px] text-emerald-700 leading-none">Delivered successfully to registered mailbox.</p>
+                                                </div>
+                                              </div>
+                                            )
+                                          ) : (
+                                            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                                              <RefreshCw size={12} className="text-amber-600 animate-spin flex-shrink-0" />
+                                              <div>
+                                                <p className="font-bold leading-tight">SMTP Delivery Queued</p>
+                                                <p className="text-[10px] text-amber-700 leading-none">The background service is preparing delivery...</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
 
                                     {/* Residence, Emergency Contacts */}

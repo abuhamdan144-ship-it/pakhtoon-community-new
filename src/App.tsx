@@ -75,7 +75,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
 
 import { 
-  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle, Quote, ArrowUp, DollarSign 
+  Phone, Mail, Calendar, MapPin, Shield, Menu, X, Landmark, FileText, Vote, PlusCircle, HelpCircle, UserCheck, MessageSquare, Search, UserPlus, CreditCard, Award, CheckCircle, Quote, ArrowUp, DollarSign, Bell 
 } from 'lucide-react';
 
 // Help helper for base64 image scaling
@@ -225,6 +225,7 @@ export default function App() {
     return (stored as Language) || 'en';
   });
   const t = translations[language];
+  const [bellMenuOpen, setBellMenuOpen] = useState(false);
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
     localStorage.setItem('opc_lang', lang);
@@ -945,6 +946,10 @@ export default function App() {
     .reduce((sum, m) => sum + (m.feeAmount !== undefined ? Number(m.feeAmount) : 5), 0);
   const reportedIncidentCount = incidents.filter(i => i.status === 'published').length;
 
+  // Notification variables for open elections
+  const openElections = elections.filter(el => el.status === 'open');
+  const unvotedOpenCount = openElections.filter(el => !userVotedElections[el.id || '']).length;
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-amber-50/15">
       
@@ -998,7 +1003,7 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Desktop Language Selector & User Auth Section (Google Sign-In) */}
+          {/* Desktop Language Selector, Notification Bell & User Auth Section (Google Sign-In) */}
           <div className="hidden lg:flex items-center gap-3 border-l border-emerald-800/80 pl-4">
             {/* Language Selector */}
             <div className="flex items-center gap-1 bg-emerald-950 border border-emerald-800 px-2 py-1.5 rounded-lg text-xs font-semibold">
@@ -1012,6 +1017,102 @@ export default function App() {
                 <option value="ur" className="bg-emerald-900 text-amber-50">اردو</option>
                 <option value="ps" className="bg-emerald-900 text-amber-50">پښتو</option>
               </select>
+            </div>
+
+            {/* Notification Bell */}
+            <div className="relative" id="notification-bell-container">
+              <button
+                onClick={() => setBellMenuOpen(!bellMenuOpen)}
+                className="relative p-2 rounded-lg bg-emerald-950 border border-emerald-805 hover:bg-emerald-800 transition duration-150 cursor-pointer text-amber-100 flex items-center justify-center h-8.5 w-8.5"
+                title={t.electionAlerts || "Election Alerts"}
+              >
+                <Bell size={15} className={unvotedOpenCount > 0 ? "animate-bounce" : ""} />
+                {unvotedOpenCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white px-1 leading-none shadow-sm animate-pulse">
+                    {unvotedOpenCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {bellMenuOpen && (
+                  <>
+                    {/* Overlay to handle click outside */}
+                    <div 
+                      className="fixed inset-0 z-40 bg-transparent" 
+                      onClick={() => setBellMenuOpen(false)} 
+                    />
+                    
+                    {/* Dropdown Card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 text-left font-sans"
+                    >
+                      <div className="bg-emerald-900 text-amber-50 p-3.5 flex justify-between items-center border-b border-emerald-850">
+                        <span className="font-serif font-bold text-sm flex items-center gap-2">
+                          <Bell size={15} className="text-amber-400" />
+                          {t.electionAlerts || "Election Alerts"}
+                        </span>
+                        {unvotedOpenCount > 0 && (
+                          <span className="bg-amber-400 text-emerald-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+                            {unvotedOpenCount} New
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                        {openElections.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-slate-400 font-sans">
+                            {t.noActiveElections || "No active elections at the moment."}
+                          </div>
+                        ) : (
+                          openElections.map((el) => {
+                            const hasVoted = !!userVotedElections[el.id || ''];
+                            return (
+                              <div key={el.id} className="p-3.5 hover:bg-slate-50 transition flex flex-col gap-2">
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-serif font-bold text-xs text-slate-850 line-clamp-2 leading-tight">
+                                    {el.title}
+                                  </span>
+                                  <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded shrink-0 ${
+                                    hasVoted 
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}>
+                                    {hasVoted ? (t.voted || "Voted") : (t.activePoll || "Active Poll")}
+                                  </span>
+                                </div>
+                                
+                                {!hasVoted && (
+                                  <button
+                                    onClick={() => {
+                                      setCurrentPage('elections');
+                                      setBellMenuOpen(false);
+                                      // Scroll to the cast vote container smoothly
+                                      setTimeout(() => {
+                                        const elSection = document.getElementById('elections-container-anchor');
+                                        if (elSection) {
+                                          elSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }
+                                      }, 100);
+                                    }}
+                                    className="w-full text-center bg-amber-500 hover:bg-amber-600 font-extrabold text-[11px] text-emerald-990 py-1.5 rounded transition shadow-xs focus:outline-none cursor-pointer"
+                                  >
+                                    {t.voteNow || "Vote Now"}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
 
             {currentUser ? (
@@ -1039,13 +1140,111 @@ export default function App() {
             )}
           </div>
 
-          {/* Mobile hamburger toggle */}
-          <button 
-            className="lg:hidden text-amber-400 p-1 rounded-md hover:bg-emerald-800 transition"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          {/* Mobile bell & hamburger toggles */}
+          <div className="lg:hidden flex items-center gap-2">
+            {/* Mobile Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setBellMenuOpen(!bellMenuOpen)}
+                className="relative p-2 rounded-lg bg-emerald-950 border border-emerald-800 hover:bg-emerald-800 transition duration-150 cursor-pointer text-amber-100 flex items-center justify-center h-9 w-9"
+                title={t.electionAlerts || "Election Alerts"}
+              >
+                <Bell size={18} className={unvotedOpenCount > 0 ? "animate-bounce" : ""} />
+                {unvotedOpenCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white px-1 leading-none shadow-sm animate-pulse">
+                    {unvotedOpenCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {bellMenuOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40 bg-black/10" 
+                      onClick={() => setBellMenuOpen(false)} 
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-3 w-72 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 text-left font-sans"
+                    >
+                      <div className="bg-emerald-900 text-amber-50 p-3 flex justify-between items-center border-b border-emerald-850">
+                        <span className="font-serif font-bold text-xs flex items-center gap-1.5">
+                          <Bell size={13} className="text-amber-400" />
+                          {t.electionAlerts || "Election Alerts"}
+                        </span>
+                        {unvotedOpenCount > 0 && (
+                          <span className="bg-amber-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                            {unvotedOpenCount} New
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                        {openElections.length === 0 ? (
+                          <div className="p-4 text-center text-[11px] text-slate-400 font-sans">
+                            {t.noActiveElections || "No active elections at the moment."}
+                          </div>
+                        ) : (
+                          openElections.map((el) => {
+                            const hasVoted = !!userVotedElections[el.id || ''];
+                            return (
+                              <div key={el.id} className="p-3 hover:bg-slate-50 transition flex flex-col gap-1.5">
+                                <div className="flex justify-between items-start gap-1">
+                                  <span className="font-serif font-bold text-[11px] text-slate-850 line-clamp-2 leading-tight">
+                                    {el.title}
+                                  </span>
+                                  <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1 py-0.5 rounded shrink-0 ${
+                                    hasVoted 
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}>
+                                    {hasVoted ? (t.voted || "Voted") : (t.activePoll || "Active Poll")}
+                                  </span>
+                                </div>
+                                
+                                {!hasVoted && (
+                                  <button
+                                    onClick={() => {
+                                      setCurrentPage('elections');
+                                      setBellMenuOpen(false);
+                                      setMobileMenuOpen(false);
+                                      setTimeout(() => {
+                                        const elSection = document.getElementById('elections-container-anchor');
+                                        if (elSection) {
+                                          elSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }
+                                      }, 150);
+                                    }}
+                                    className="w-full text-center bg-amber-500 hover:bg-amber-600 font-black text-[10px] text-emerald-990 py-1.5 rounded transition cursor-pointer"
+                                  >
+                                    {t.voteNow || "Vote Now"}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button 
+              className="text-amber-400 p-1 rounded-md hover:bg-emerald-800 transition flex items-center justify-center h-9 w-9"
+              onClick={() => {
+                setMobileMenuOpen(!mobileMenuOpen);
+                setBellMenuOpen(false);
+              }}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
         {/* Oman Flag Stripe accent */}
@@ -2294,7 +2493,7 @@ export default function App() {
 
         {/* ELECTIONS AND VOTING PAGE */}
         {currentPage === 'elections' && (
-          <div className="container mx-auto max-w-4xl px-4 py-8 fade-in">
+          <div id="elections-container-anchor" className="container mx-auto max-w-4xl px-4 py-8 fade-in">
             <div className="space-y-4 text-center mb-8">
               <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950">Cast Your Vote</h2>
               <p className="text-sm text-slate-500 max-w-xl mx-auto">
