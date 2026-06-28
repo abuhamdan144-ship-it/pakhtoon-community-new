@@ -155,29 +155,27 @@ export default function LiveCardPreview({
 
       // 8.5 Emergency Helplines Section
       ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-      ctx.fillRect(60, 452, W - 120, 80);
+      ctx.fillRect(60, 458, W - 120, 68);
       ctx.strokeStyle = selectedPalette.labelColor + '44';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(60, 452, W - 120, 80);
+      ctx.strokeRect(60, 458, W - 120, 68);
 
       // Title
-      ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+      ctx.font = 'bold 10.5px "Segoe UI", Arial, sans-serif';
       ctx.fillStyle = selectedPalette.labelColor;
       ctx.textAlign = 'center';
-      ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 470);
+      ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 476);
 
       // Columns
-      ctx.font = '13px "Segoe UI", Arial, sans-serif';
+      ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       
-      // Row 1
-      ctx.fillText('PRESIDENT: +968 96164017', W / 2 - 210, 494);
-      ctx.fillText('CO-PRESIDENT: +968 95079400', W / 2 + 210, 494);
-      
-      // Row 2
-      ctx.fillText('MUSCAT: +968 99111870', W / 2 - 210, 516);
-      ctx.fillText('SALALAH: +968 96766876', W / 2 + 210, 516);
+      // Single Row layout with larger font
+      ctx.fillText('PRES: +968 96164017', W / 2 - 330, 508);
+      ctx.fillText('CO-PRES: +968 95079400', W / 2 - 110, 508);
+      ctx.fillText('MUSCAT: +968 99111870', W / 2 + 110, 508);
+      ctx.fillText('SALALAH: +968 96766876', W / 2 + 330, 508);
 
       // 9. Unapproved Draft Overlay/Watermark
       ctx.save();
