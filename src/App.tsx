@@ -67,6 +67,13 @@ import CabinetPanel from './components/CabinetPanel';
 import LiveCardPreview from './components/LiveCardPreview';
 import AnimatedCounter from './components/AnimatedCounter';
 import FormSubmitButton from './components/FormSubmitButton';
+import { 
+  NationalDayAnnouncementBar, 
+  PakistanZindabadSection, 
+  CrescentStarIcon, 
+  PakistaniFlagVector, 
+  fireNationalConfetti 
+} from './components/NationalDayTheme';
 import { CARD_COLORS } from './components/CardColors';
 import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
 import { translations, languageNames, Language } from './translations';
@@ -167,6 +174,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showPortalMainContent, setShowPortalMainContent] = useState(true);
+  const [isNationalThemeActive, setIsNationalThemeActive] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -952,10 +960,16 @@ export default function App() {
   const unvotedOpenCount = openElections.filter(el => !userVotedElections[el.id || '']).length;
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-amber-50/15">
+    <div className={`min-h-screen flex flex-col font-sans ${isNationalThemeActive ? 'bg-emerald-950/5' : 'bg-amber-50/15'}`}>
+      
+      {/* 14 August Independence Day Announcement Bar */}
+      <NationalDayAnnouncementBar 
+        isThemeActive={isNationalThemeActive} 
+        onToggleTheme={() => setIsNationalThemeActive(!isNationalThemeActive)} 
+      />
       
       {/* ----------------- APP NAVBAR HEADER ----------------- */}
-      <header className="sticky top-0 z-50 bg-emerald-900 text-amber-50 shadow-md">
+      <header className={`sticky top-0 z-50 shadow-md ${isNationalThemeActive ? 'bg-[#01411C] text-white border-b border-amber-400/20' : 'bg-emerald-900 text-amber-50'}`}>
         <div className="container mx-auto max-w-7xl px-4 flex justify-between items-center h-16">
           
           <div 
@@ -1367,29 +1381,82 @@ export default function App() {
           <div className="fade-in">
             
             {/* HERO HERO SECTION */}
-            <div className="bg-gradient-to-br from-emerald-950 to-emerald-900 text-white pt-12 pb-8 px-4 text-center border-b border-amber-500/10 relative overflow-hidden">
+            <div className={`pt-12 pb-8 px-4 text-center border-b relative overflow-hidden transition-colors duration-500 ${
+              isNationalThemeActive 
+                ? 'bg-gradient-to-br from-[#01411C] via-[#025624] to-[#013516] text-white border-amber-400/30' 
+                : 'bg-gradient-to-br from-emerald-950 to-emerald-900 text-white border-amber-500/10'
+            }`}>
+              {/* Background Sparkles & Crescent-Star Watermark if Theme Active */}
+              {isNationalThemeActive && (
+                <>
+                  <div className="absolute top-0 right-0 -mt-12 -mr-12 opacity-15 pointer-events-none animate-crescent-glow">
+                    <CrescentStarIcon className="w-80 h-80 text-amber-300" />
+                  </div>
+                  <div className="absolute bottom-0 left-0 -mb-12 -ml-12 opacity-10 pointer-events-none">
+                    <PakistaniFlagVector className="w-64 h-40 opacity-40 flag-wave-element" />
+                  </div>
+                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+                </>
+              )}
+
               <div className="container mx-auto max-w-4xl space-y-5 relative z-10">
                 
-                {/* Visual Emblem Badge Logo */}
-                <div className="mx-auto w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 rounded-full border-2 border-amber-450 shadow-xl overflow-hidden shadow-amber-500/10 flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer">
-                  <img src={logoImg} alt="Pakhtoon Community Crest" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                {/* Visual Emblem Badge Logo with Flag Accent */}
+                <div className="relative inline-block group">
+                  <div className="mx-auto w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 rounded-full border-2 border-amber-450 shadow-xl overflow-hidden shadow-amber-500/10 flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer">
+                    <img src={logoImg} alt="Pakhtoon Community Crest" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                  </div>
+                  {isNationalThemeActive && (
+                    <div className="absolute -bottom-1 -right-1 bg-white p-0.5 rounded-md shadow-md border border-amber-400">
+                      <PakistaniFlagVector className="w-6 h-4" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-extrabold tracking-widest px-3 py-1 rounded-full select-none">
-                    {t.omanChapter || 'DIASPORA COMMUNITY PLATFORM'}
+                  <span className={`text-[10px] font-extrabold tracking-widest px-3.5 py-1 rounded-full select-none inline-flex items-center gap-1.5 uppercase ${
+                    isNationalThemeActive
+                      ? 'bg-amber-400 text-[#01411C] shadow-md border border-amber-300'
+                      : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                  }`}>
+                    {isNationalThemeActive ? (
+                      <>
+                        <CrescentStarIcon className="w-3.5 h-3.5" color="#01411C" />
+                        <span>🇵🇰 14 August – Independence Day 🇵🇰</span>
+                      </>
+                    ) : (
+                      t.omanChapter || 'DIASPORA COMMUNITY PLATFORM'
+                    )}
                   </span>
+
                   <motion.h1 
                     initial={{ opacity: 0, x: -20, scale: 0.97 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
                     className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight"
                   >
-                    {t.welcomeTitle || 'Pakhtoon Community'} <span className="text-amber-400">{t.welcomeSubtitle || 'Portal'}</span>
+                    {isNationalThemeActive ? (
+                      <>
+                        🇵🇰 14 August – Independence Day 🇵🇰
+                      </>
+                    ) : (
+                      <>
+                        {t.welcomeTitle || 'Pakhtoon Community'} <span className="text-amber-400">{t.welcomeSubtitle || 'Portal'}</span>
+                      </>
+                    )}
                   </motion.h1>
+
+                  <p className="text-amber-200/90 text-sm sm:text-lg font-serif font-bold tracking-wide">
+                    {isNationalThemeActive ? 'Pakhtoon Community salutes the nation' : (t.welcomeSubtitle || 'Diaspora Unity Platform')}
+                  </p>
                 </div>
-                <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
-                  {t.heroDescription || 'The primary network providing general social assistance, welfare support, and cooperative cultural services for the diaspora Pakhtoon community.'}
+
+                <p className="text-amber-100/90 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
+                  {isNationalThemeActive ? (
+                    'Celebrating 14 August – Independence Day with honor, unity, faith, and discipline across the Pakhtoon diaspora. Pakistan Zindabad! 🇵🇰'
+                  ) : (
+                    t.heroDescription || 'The primary network providing general social assistance, welfare support, and cooperative cultural services for the diaspora Pakhtoon community.'
+                  )}
                 </p>
 
                 {/* Metric stats card badges */}
@@ -1510,6 +1577,9 @@ export default function App() {
                   id="portal-main-content-container"
                 >
               
+              {/* 14 August Pakistan Zindabad Festive Showcase Section */}
+              {isNationalThemeActive && <PakistanZindabadSection />}
+
               {/* SPONSORED SLIDER BILLBOARD */}
               <section className="space-y-4">
                 <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">

@@ -5,24 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Primary Google SEO Meta Tags -->
-    <title>Pakhtoon Community | Diaspora Unity Platform</title>
-    <meta name="description" content="Official portal of the Pakhtoon Community. Facilitating digital membership registrations, welfare coordination, transparent cabinet voting, and social support." />
-    <meta name="keywords" content="Pakhtoon Community, Pashtun diaspora, Pakhtoon Welfare Association, Community Welfare, KPK overseas community, Pakhtoon Shura elections" />
+    <title>Pakhtoon Community | 14 August Independence Day Celebration 🇵🇰</title>
+    <meta name="description" content="Official portal of the Pakhtoon Community. Celebrating 14 August Independence Day with welfare coordination, digital cards, democratic voting, and community support." />
+    <meta name="keywords" content="14 August Pakistan Independence Day, Pakhtoon Community, Pashtun diaspora, Pakistan Zindabad, Pakhtoon Welfare Association" />
     <meta name="author" content="Pakhtoon Community" />
     <meta name="robots" content="index, follow" />
 
     <!-- Open Graph / Facebook SEO -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Pakhtoon Community | Diaspora Unity Platform" />
-    <meta property="og:description" content="Empowering the Pakhtoon diaspora through digital cards, welfare support coordination, democratic shuras, and community connection." />
+    <meta property="og:title" content="🇵🇰 14 August – Independence Day Celebration | Pakhtoon Community" />
+    <meta property="og:description" content="Pakhtoon Community salutes the nation on 14 August Independence Day. Access membership verification, emergency report support, and community shuras." />
     <meta property="og:image" content="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1200" />
     <meta property="og:site_name" content="Pakhtoon Community" />
 
     <!-- Twitter SEO Metadata -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Pakhtoon Community | Diaspora Unity Platform" />
-    <meta name="twitter:description" content="Access membership verification, emergency report support, and transparent community coordination." />
+    <meta name="twitter:title" content="🇵🇰 14 August Independence Day | Pakhtoon Community" />
+    <meta name="twitter:description" content="Celebrating 14 August Freedom and Unity across the Pakhtoon diaspora." />
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1200" />
+
+    <!-- National Day Patriotic Theme Styles & Keyframes -->
+    <style>
+      :root {
+        --pakistan-green: #01411C;
+        --pakistan-green-light: #02682c;
+        --accent-gold: #fbbf24;
+      }
+      
+      /* Subtle Floating Stars/Sparkles Animation */
+      @keyframes sparkleFloat {
+        0%, 100% {
+          transform: translateY(0px) scale(1);
+          opacity: 0.7;
+        }
+        50% {
+          transform: translateY(-8px) scale(1.15);
+          opacity: 1;
+        }
+      }
+
+      .sparkle-animated {
+        animation: sparkleFloat 3s ease-in-out infinite;
+      }
+
+      /* Flag Waving Motion */
+      @keyframes flagWaveSmooth {
+        0%, 100% { transform: rotate(0deg) skewY(0deg); }
+        25% { transform: rotate(1deg) skewY(1deg); }
+        75% { transform: rotate(-1deg) skewY(-1deg); }
+      }
+
+      .flag-wave-element {
+        animation: flagWaveSmooth 4s ease-in-out infinite;
+      }
+    </style>
 
     <!-- Google Structured Schema Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -31,7 +67,7 @@
         "@type": "NGO",
         "name": "Pakhtoon Community",
         "alternateName": "PC",
-        "description": "A dedicated support network, welfare, and integration portal for the Pakhtoon diaspora living and working across the community.",
+        "description": "Official community portal celebrating 14 August Pakistan Independence Day with digital cards, shuras, and social welfare support.",
         "url": "https://pakhtooncommunity.org",
         "logo": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=150",
         "contactPoint": {
@@ -39,18 +75,12 @@
           "telephone": "",
           "contactType": "Emergency Support and Community Welfare Liaison",
           "availableLanguage": ["English", "Pashto", "Urdu"]
-        },
-        "sameAs": [
-          "https://facebook.com",
-          "https://twitter.com"
-        ]
+        }
       }
     </script>
   </head>
-  <body>
+  <body class="bg-amber-50/15 text-slate-800 antialiased selection:bg-[#01411C] selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
-
