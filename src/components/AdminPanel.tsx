@@ -101,14 +101,14 @@ export default function AdminPanel({
   useEffect(() => {
     if (founderProfile) {
       setFName(founderProfile.name || 'Al-Haj Muhammad Amin');
-      setFPosition(founderProfile.position || 'President, Oman Pakhtoon Community');
+      setFPosition(founderProfile.position || 'President, Pakhtoon Community');
       setFPhone(founderProfile.phone || '+968 99111870');
-      setFEmail(founderProfile.email || 'president@opcoman.org');
-      setFAddress(founderProfile.address || 'Muscat Headquarters, Sultanate of Oman');
+      setFEmail(founderProfile.email || 'president@pakhtooncommunity.org');
+      setFAddress(founderProfile.address || 'Central Headquarters');
       setFEst(founderProfile.est || 'Welfare Board Established in 2018');
       setFPhoto(founderProfile.photo || '');
-      setFQuote(founderProfile.quote || 'Oman is our second home. By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride.');
-      setFBio1(founderProfile.bio1 || 'Al-Haj Muhammad Amin is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the Oman Pakhtoon Community (OPC) registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.');
+      setFQuote(founderProfile.quote || 'By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride.');
+      setFBio1(founderProfile.bio1 || 'Al-Haj Muhammad Amin is a respected community builder, philanthropist, and civic coordinator. Animated by a profound love for his people and culture, he founded the Pakhtoon Community registry and welfare program as an anchor point for thousands of Pakhtoon community members who have dedicated their efforts to brotherhood and welfare support.');
       setFBio2(founderProfile.bio2 || 'Under his direct personal guidance, the organization has shifted from an informal network into a fully structured, law-abiding diaspora association that handles essential legal support, medical assistance, repatriation files, and cultural integrations with exceptional meticulousness.');
     }
   }, [founderProfile]);
@@ -1755,7 +1755,7 @@ export default function AdminPanel({
       const payload = {
         meta: {
           generatedAt: new Date().toISOString(),
-          opcSystem: 'Oman Pakistani Community Executive Panel',
+          opcSystem: 'Pakhtoon Community Executive Panel',
           operator: user?.email || 'admin'
         },
         members,
@@ -2130,8 +2130,8 @@ export default function AdminPanel({
   const exportDirectoryMembers = () => {
     const headers = [
       'Membership ID', 'Status', 'Full Name', "Father's Name", 'CNIC/Passport',
-      'Phone', 'WhatsApp', 'District', 'Oman Address', 'Occupation',
-      'Emergency Contact', 'Registration Date', 'Approved Date', 'Fee Amount (OMR)',
+      'Phone', 'WhatsApp', 'District', 'Address', 'Occupation',
+      'Emergency Contact', 'Registration Date', 'Approved Date',
       'Payment Method', 'Payment Reference', 'Receipt Number'
     ];
 
@@ -2354,10 +2354,9 @@ export default function AdminPanel({
           { id: 'members', label: 'Member Queue', icon: Users },
           { id: 'directory', label: 'Member Directory', icon: Search },
           { id: 'cabinet', label: 'Cabinet', icon: Award },
-          { id: 'donations', label: 'Donation Ledgers', icon: DollarSign },
           { id: 'incidents', label: 'Welfare Claims', icon: AlertTriangle },
           { id: 'news', label: 'Announcements', icon: Newspaper },
-          { id: 'embassy', label: 'Muscat Consulate', icon: LocationIcon },
+          { id: 'embassy', label: 'Consulate & Liaison', icon: LocationIcon },
           { id: 'founder', label: 'Founder Profile Settings', icon: Award },
           { id: 'elections', label: 'Elections & Polls', icon: Vote },
           { id: 'ads', label: 'Sponsor Ads', icon: Disc },
@@ -2424,9 +2423,9 @@ export default function AdminPanel({
                 transition={{ duration: 0.4, delay: 0.15 }}
                 className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
               >
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Donations Accrued</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registered Districts</p>
                 <p className="text-3xl font-serif font-bold text-emerald-900 mt-1">
-                  <AnimatedCounter value={totalDonations} decimals={3} prefix="OMR " />
+                  <AnimatedCounter value={11} />
                 </p>
               </motion.div>
               <motion.div 
@@ -2448,9 +2447,9 @@ export default function AdminPanel({
                 transition={{ duration: 0.4, delay: 0.25 }}
                 className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
               >
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ad Sponsor Billing</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cabinet Members</p>
                 <p className="text-3xl font-serif font-bold text-teal-900 mt-1">
-                  <AnimatedCounter value={totalAdRevenue} decimals={3} prefix="OMR " />
+                  <AnimatedCounter value={cabinet.length} />
                 </p>
               </motion.div>
             </div>
@@ -3186,7 +3185,7 @@ export default function AdminPanel({
                       >
                         Tribe/District {renderSortIndicator('district')}
                       </th>
-                      <th className="p-3">Oman Address</th>
+                      <th className="p-3">Address</th>
                       <th className="p-3">Contact</th>
                       <th className="p-3 text-right">Actions</th>
                     </tr>
@@ -3886,7 +3885,7 @@ export default function AdminPanel({
                                       <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wide border-b pb-1">Welfare, Safety &amp; Emergency Contacts</span>
                                       <div className="grid grid-cols-1 gap-2 text-xs">
                                         <div className="space-y-0.5">
-                                          <span className="text-slate-400 text-[10px] block">Resident Al Address (Oman):</span>
+                                          <span className="text-slate-400 text-[10px] block">Address:</span>
                                           <span className="font-medium text-slate-800 leading-relaxed">{highlightMatch(m.address || '', dirSearch)}</span>
                                         </div>
                                         <div className="space-y-0.5">
@@ -4719,14 +4718,14 @@ export default function AdminPanel({
                         value={fPosition} 
                         onChange={e => setFPosition(e.target.value)}
                         className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
-                        placeholder="President, Oman Pakhtoon Community"
+                        placeholder="President, Pakhtoon Community"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-650 mb-1">Oman Contact phone</label>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Contact phone</label>
                       <input 
                         type="text" 
                         value={fPhone} 
@@ -4736,26 +4735,26 @@ export default function AdminPanel({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-650 mb-1">Official EMail</label>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Official Email</label>
                       <input 
                         type="email" 
                         value={fEmail} 
                         onChange={e => setFEmail(e.target.value)}
                         className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
-                        placeholder="president@opcoman.org"
+                        placeholder="president@pakhtooncommunity.org"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-650 mb-1">Muscat Headquarters address</label>
+                      <label className="block text-xs font-semibold text-slate-650 mb-1">Headquarters address</label>
                       <input 
                         type="text" 
                         value={fAddress} 
                         onChange={e => setFAddress(e.target.value)}
                         className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-emerald-800"
-                        placeholder="Muscat Headquarters, Sultanate of Oman"
+                        placeholder="Central Headquarters"
                       />
                     </div>
                     <div>

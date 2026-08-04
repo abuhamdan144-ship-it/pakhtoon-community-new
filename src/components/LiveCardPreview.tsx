@@ -66,10 +66,10 @@ export default function LiveCardPreview({
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
-      // 2. Oman Flag Stripe top
-      ctx.fillStyle = '#c8102e';
+      // 2. Gold Accent Stripe top
+      ctx.fillStyle = '#1b4d3e';
       ctx.fillRect(0, 0, W, 12);
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = selectedPalette.labelColor;
       ctx.fillRect(0, 12, W, 6);
 
       // 3. Gold border
@@ -104,7 +104,7 @@ export default function LiveCardPreview({
       ctx.fillStyle = selectedPalette.labelColor;
       ctx.font = 'bold 36px Georgia, serif';
       ctx.textAlign = 'center';
-      ctx.fillText('OMAN PAKHTOON COMMUNITY', W / 2 + 40, 90);
+      ctx.fillText('PAKHTOON COMMUNITY', W / 2 + 40, 90);
       ctx.font = '20px "Segoe UI", Arial, sans-serif';
       ctx.fillStyle = '#faf6ed';
       ctx.fillText('MEMBERSHIP IDENTITY CARD', W / 2 + 40, 122);
@@ -164,7 +164,7 @@ export default function LiveCardPreview({
       ctx.font = 'bold 10.5px "Segoe UI", Arial, sans-serif';
       ctx.fillStyle = selectedPalette.labelColor;
       ctx.textAlign = 'center';
-      ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 476);
+      ctx.fillText('🚨 COMMUNITY EMERGENCY CONTACTS', W / 2, 476);
 
       // Columns
       ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
@@ -172,10 +172,9 @@ export default function LiveCardPreview({
       ctx.textAlign = 'center';
       
       // Single Row layout with larger font
-      ctx.fillText('PRES: +968 96164017', W / 2 - 330, 508);
-      ctx.fillText('CO-PRES: +968 95079400', W / 2 - 110, 508);
-      ctx.fillText('MUSCAT: +968 99111870', W / 2 + 110, 508);
-      ctx.fillText('SALALAH: +968 96766876', W / 2 + 330, 508);
+      ctx.fillText('PRESIDENT: REPRES.', W / 2 - 250, 508);
+      ctx.fillText('WELFARE LIAISON', W / 2, 508);
+      ctx.fillText('COMMUNITY CAB.', W / 2 + 250, 508);
 
       // 9. Unapproved Draft Overlay/Watermark
       ctx.save();

@@ -255,9 +255,9 @@ export default function CabinetPanel({
       
       {/* Page Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto mb-8">
-        <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950 text-center w-full">OPC Directory</h2>
+        <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950 text-center w-full">Community Directory</h2>
         <p className="text-xs sm:text-sm text-slate-500 font-sans leading-relaxed text-center">
-          Access the authorized database of Oman Pakhtoon Community representatives, Cabinet officers, and community members.
+          Access the authorized database of Pakhtoon Community representatives, Cabinet officers, and community members.
         </p>
       </div>
 

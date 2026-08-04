@@ -974,7 +974,7 @@ export default function App() {
                 {t.portalTitle || 'OPC PORTAL'}
               </span>
               <span className="text-[9px] uppercase tracking-wider text-amber-100/80 block leading-tight mt-0.5 font-medium">
-                {t.omanPakhtoon || 'Oman Pakhtoon Community'}
+                {t.omanPakhtoon || 'Pakhtoon Community'}
               </span>
             </div>
           </div>
@@ -1248,11 +1248,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* Oman Flag Stripe accent */}
+        {/* Heritage Color Stripe accent */}
         <div className="h-1 flex w-full">
           <div className="h-full bg-emerald-805 flex-1" style={{ backgroundColor: '#1b4d3e' }} />
-          <div className="h-full bg-white flex-1" />
-          <div className="h-full bg-red-651 flex-1" style={{ backgroundColor: '#c8102e' }} />
+          <div className="h-full bg-amber-400 flex-1" style={{ backgroundColor: '#fbbf24' }} />
+          <div className="h-full bg-emerald-950 flex-1" style={{ backgroundColor: '#064e3b' }} />
         </div>
 
         {/* Mobile menu panel with smooth Framer Motion height/opacity transitions */}
@@ -1372,12 +1372,12 @@ export default function App() {
                 
                 {/* Visual Emblem Badge Logo */}
                 <div className="mx-auto w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 rounded-full border-2 border-amber-450 shadow-xl overflow-hidden shadow-amber-500/10 flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer">
-                  <img src={logoImg} alt="Oman Pakhtoon Community Crest" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                  <img src={logoImg} alt="Pakhtoon Community Crest" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
                 </div>
 
                 <div className="space-y-2">
                   <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-extrabold tracking-widest px-3 py-1 rounded-full select-none">
-                    {t.omanChapter || 'SULTANATE OF OMAN CHAPTER'}
+                    {t.omanChapter || 'DIASPORA COMMUNITY PLATFORM'}
                   </span>
                   <motion.h1 
                     initial={{ opacity: 0, x: -20, scale: 0.97 }}
@@ -1385,11 +1385,11 @@ export default function App() {
                     transition={{ duration: 0.6, ease: "easeOut" }}
                     className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight"
                   >
-                    {t.welcomeTitle || 'Oman Pakhtoon Community'} <span className="text-amber-400">{t.welcomeSubtitle || 'Portal'}</span>
+                    {t.welcomeTitle || 'Pakhtoon Community'} <span className="text-amber-400">{t.welcomeSubtitle || 'Portal'}</span>
                   </motion.h1>
                 </div>
                 <p className="text-amber-100/80 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
-                  {t.heroDescription || 'The primary network providing general assistance, lifetime welfare claim support, and cooperative services for the diaspora Pakhtoon tribes living in Muscat, Salalah, Sohar and across Oman.'}
+                  {t.heroDescription || 'The primary network providing general social assistance, welfare support, and cooperative cultural services for the diaspora Pakhtoon community.'}
                 </p>
 
                 {/* Metric stats card badges */}
@@ -1416,10 +1416,10 @@ export default function App() {
                     className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.activeFunds || 'Welfare donations'}
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Regional Districts
                     </span>
                     <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
-                      <AnimatedCounter value={accumulativeFunds} decimals={3} prefix="OMR " />
+                      <AnimatedCounter value={11} />
                     </p>
                   </motion.div>
                   <motion.div 
@@ -1430,10 +1430,10 @@ export default function App() {
                     className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Onboarding Dues
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Cabinet Councils
                     </span>
                     <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
-                      <AnimatedCounter value={accumulativeOnboardingAmount} decimals={3} prefix="OMR " />
+                      <AnimatedCounter value={cabinet.length || 12} />
                     </p>
                   </motion.div>
                   <motion.div 
@@ -1444,7 +1444,7 @@ export default function App() {
                     className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
                   >
                     <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.reportedIncidents || 'welfare cases'}
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.reportedIncidents || 'Welfare Cases'}
                     </span>
                     <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
                       <AnimatedCounter value={reportedIncidentCount} />
@@ -1527,10 +1527,10 @@ export default function App() {
                     <div className="animate-marquee animate-marquee-paused-on-hover flex items-center gap-16 pr-16">
                       {(() => {
                         const defaultBulletins = [
-                          "Sultanate of Oman Chapter: Safe travel and welfare claim support guidelines are active.",
-                          "Community Welfare Fund: Contribute your dues to Ikram Bacha to secure medical and repatriation safeguards.",
-                          "OPC Elections Portal: Join the digital democracy and register cabinet candidacies for the Muscat & Salalah Shuras.",
-                          "Emergency Liaison Helpline: Immediate contact details for the Pakistan Embassy in Muscat, Ruwi, and Salalah are updated."
+                          "Diaspora Chapter: Support guidelines and welfare claim services are active.",
+                          "Community Coordination: Connect with regional councils for general assistance.",
+                          "Elections Portal: Join the digital democracy and register cabinet candidacies for community councils.",
+                          "Emergency Helpline: Immediate contact details for community representatives are updated."
                         ];
                         const bulletinItems = news && news.length > 0 
                           ? news.map(n => `${n.title}: ${n.content.slice(0, 150)}${n.content.length > 150 ? '...' : ''}`)
@@ -1559,52 +1559,6 @@ export default function App() {
                 </div>
 
                 <SponsoredBillboard ads={ads} />
-              </section>
-
-              {/* DONATION ACCOUNTS BANK ACCOUNT INFO */}
-              <section className="bg-[#4f0700] text-white rounded-xl shadow-lg p-6 sm:p-8 space-y-4 border-2 border-amber-500/20">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h3 className="text-2xl font-serif font-bold text-amber-400">Community Welfare Fund</h3>
-                    <p className="text-xs text-amber-100/70 mt-1 max-w-xl">
-                      Every Omani Rial directly funds emergency rescue efforts, injury compensation, 
-                      or repatriation support for tribal families in Muscat.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-emerald-950/50 p-3 rounded-lg border border-emerald-800">
-                    <Landmark size={20} className="text-amber-500" />
-                    <div>
-                      <span className="text-[10px] text-amber-100 font-bold uppercase tracking-wider block">Official Collector Name</span>
-                      <span className="text-sm font-bold text-white block">IKRAM BACHA</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-emerald-800 pt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans">
-                  <div className="bg-emerald-950 text-amber-100 rounded p-4 font-mono">
-                    <span className="text-[10px] text-amber-400 font-bold block uppercase mb-1">Bank Name</span>
-                    <span className="font-semibold text-sm">Bank Dhofar (Muscat, Sultanate of Oman)</span>
-                  </div>
-                  <div className="bg-emerald-950 text-amber-100 rounded p-4 font-mono">
-                    <span className="text-[10px] text-amber-400 font-bold block uppercase mb-1">Account Number</span>
-                    <span className="font-bold text-sm tracking-wider">01011503131001</span>
-                  </div>
-                  <div className="bg-emerald-950 text-amber-100 rounded p-4 font-mono">
-                    <span className="text-[10px] text-amber-400 font-bold block uppercase mb-1">Mobile Wallet / Pay</span>
-                    <span className="font-bold text-sm tracking-widest">+968 99111870</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2.5 pt-2 pb-2">
-                  <a href="tel:+96899111870" className="bg-amber-500 hover:bg-amber-600 text-emerald-950 font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow transition active:scale-95">
-                    Call Ikram Bacha (+968 99111870)
-                  </a>
-                  <a href="https://wa.me/96899111870" target="_blank" rel="noopener noreferrer" className="bg-emerald-955 hover:bg-emerald-960 text-white font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow border border-emerald-750 transition active:scale-95" style={{ backgroundColor: '#135c46' }}>
-                    Confirm payment details on WhatsApp
-                  </a>
-                </div>
-
-
               </section>
 
               {/* FOUNDER'S MESSAGE SECTION */}
@@ -1636,14 +1590,14 @@ export default function App() {
                       >
                         {founderProfile.name || 'Al-Haj Muhammad Amin'}
                       </h3>
-                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">{founderProfile.position || 'Founder & President of Oman Pakhtoon Community (OPC)'}</p>
+                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">{founderProfile.position || 'Founder & President, Pakhtoon Community'}</p>
                     </div>
                     <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative text-wrap break-words">
-                      "{founderProfile.quote || 'The Sultanate of Oman has been a second home to thousands of our Pakhtoon brothers who have contributed with their passion, labor, and dedication to the rise of this brotherly nation. We established OPC with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of hardship. From general emergency relief to repatriation support, we protect our family. Register with us, stay law-abiding, contribute to our community funds, and keep up the proud legacy of service in Oman.'}"
+                      "{founderProfile.quote || 'We established this platform with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of need. From social assistance to repatriation support, we protect and support our community. Register with us and keep up the proud legacy of service.'}"
                     </blockquote>
                     <div className="pt-4 border-t border-amber-200/50 flex flex-col sm:flex-row gap-4 items-center justify-between font-sans">
                       <p className="text-[11px] text-slate-400 italic">
-                        Established with a legacy of brotherhood &bull; Muscat, Sultanate of Oman
+                        Established with a legacy of brotherhood &bull; Community Welfare Platform
                       </p>
                       <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                         <button 
@@ -1671,7 +1625,7 @@ export default function App() {
               <section className="space-y-4">
                 <div className="flex justify-between items-center border-b pb-2">
                   <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                    OPC Cabinet Members
+                    Community Cabinet Members
                   </h2>
                   <button 
                     onClick={() => {
@@ -1790,15 +1744,15 @@ export default function App() {
                   </div>
 
                   <div className="space-y-1 md:col-span-2 relative z-10">
-                    <h3 className="font-serif text-lg font-bold text-emerald-905">Muscat Consulate Coordination</h3>
+                    <h3 className="font-serif text-lg font-bold text-emerald-905">Consulate &amp; Liaison Coordination</h3>
                     <p className="text-xs text-slate-500 max-w-xl">
-                       The Embassy coordinates critical consular services including dead body repatriation, 
+                      Coordinates critical consular services including repatriation assistance, 
                       emergency outpasses, and legal aid. Maintain these details up-to-date.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 text-xs font-sans">
                       <div>
                         <span className="font-bold text-slate-600 block">Diplomatic Address</span>
-                        <p className="text-slate-500 mt-1">{embassy.address || 'P.O. Box 24, PC 112, Ruwi, Muscat, Sultanate of Oman'}</p>
+                        <p className="text-slate-500 mt-1">{embassy.address || 'Diplomatic Area, Consular Section'}</p>
                       </div>
                       <div>
                         <span className="font-bold text-slate-600 block">General Office Hours</span>
@@ -2010,7 +1964,7 @@ export default function App() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        Mobile Number (Oman) *
+                        Mobile Number *
                       </label>
                       <input
                         type="tel"
@@ -2070,21 +2024,21 @@ export default function App() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Current Permanent address (Oman) *
+                      Current Address *
                     </label>
                     <textarea
                       required
                       rows={2}
                       value={rAddress}
                       onChange={(e) => setRAddress(e.target.value)}
-                      placeholder="e.g. Building 24, Al Ghubrah South, Muscat"
+                      placeholder="e.g. Building 24, South Area"
                       className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Emergency Contact Number (Pakistan)
+                      Emergency Contact Number
                     </label>
                     <input
                       type="tel"
@@ -2093,60 +2047,6 @@ export default function App() {
                       placeholder="e.g. +92 312 XXXXXXX"
                       className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
                     />
-                  </div>
-
-                  {/* Payment Receipt / Verification Info */}
-                  <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-4">
-                    <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block border-b border-emerald-100 pb-2">
-                      Registration Fee Verification (Lifetime Membership)
-                    </span>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                          Fee Paid (OMR) *
-                        </label>
-                        <select
-                          value={rFeeAmount}
-                          onChange={(e) => setRFeeAmount(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white"
-                        >
-                          <option value="5">5.000 OMR (Standard)</option>
-                          <option value="10">10.000 OMR (Premium / Supporter)</option>
-                          <option value="3">3.000 OMR (Concessionary)</option>
-                          <option value="0">0.000 OMR (Fee Waiver / Free)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                          Payment Method *
-                        </label>
-                        <select
-                          value={rPayMethod}
-                          onChange={(e) => setRPayMethod(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-sans"
-                        >
-                          <option value="Bank Transfer">Bank Transfer</option>
-                          <option value="Mobile Wallet">Mobile Wallet / Pay</option>
-                          <option value="Cash">Paid Cash to Representative</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 font-sans">
-                          Ref No. / Mobile No. *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={rPayRef}
-                          onChange={(e) => setRPayRef(e.target.value)}
-                          placeholder="e.g. Txn ID or Sender No."
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-white font-mono"
-                        />
-                      </div>
-                    </div>
                   </div>
 
                   <div>
@@ -2236,7 +2136,7 @@ export default function App() {
                   <div>
                     <h3 className="text-xl font-serif font-bold text-emerald-950">Verify &amp; Download Membership Credentials</h3>
                     <p className="text-xs text-slate-500 mt-1">
-                      Already registered? Enter your Omani Mobile phone number, CNIC/Passport, or synced email address below to dynamically verify and download your lifetime association card, board certificate, and verified payment receipt.
+                      Already registered? Enter your Mobile phone number, CNIC/Passport, or synced email address below to dynamically verify and download your lifetime association card and board certificate.
                     </p>
                   </div>
 
@@ -2308,12 +2208,12 @@ export default function App() {
                                   <span className="font-bold text-emerald-900 font-mono">{lookupResult.membershipId || "OPC-" + String(lookupResult.id).substring(0, 5).toUpperCase()}</span>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Oman Mobile</span>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Mobile Number</span>
                                   <span className="font-semibold text-emerald-900 font-mono">{lookupResult.phone}</span>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Dues Status</span>
-                                  <span className="font-bold text-emerald-700">✅ PAID (OMR {Number(lookupResult.feeAmount || 5).toFixed(3)})</span>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Membership Status</span>
+                                  <span className="font-bold text-emerald-700">✅ APPROVED MEMBER</span>
                                 </div>
                               </div>
                             </div>
@@ -2322,7 +2222,7 @@ export default function App() {
                           {/* ACTION BUTTON GRID */}
                           <div className="space-y-3">
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Available Credential Downloads:</span>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <button
                                 onClick={() => {
                                   setActiveDocMember(lookupResult);
@@ -2344,17 +2244,6 @@ export default function App() {
                                 <Award size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
                                 <span>Get Certificate</span>
                               </button>
-
-                              <button
-                                onClick={() => {
-                                  setActiveDocMember(lookupResult);
-                                  setDocModalOpen(true);
-                                }}
-                                className="bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-900/40 font-bold py-3 px-4 rounded-lg text-xs leading-5 tracking-wide uppercase shadow-xs hover:border-emerald-900 transition flex flex-col items-center justify-center gap-2 cursor-pointer text-center group font-sans"
-                              >
-                                <FileText size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
-                                <span>Get Payment Receipt</span>
-                              </button>
                             </div>
                             <p className="text-[10px] text-slate-400 text-center mt-1">
                               💡 These buttons will load the official high-resolution documents workspace. You can choose to download PNG images. All credentials contain verifiable cryptographic secure hashes.
@@ -2363,94 +2252,13 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* 2. Donation Receipts Lookup Results */}
-                      {donations.filter(d => {
-                        const rawSearchVal = lookupValue.trim().toLowerCase();
-                        const searchValNoSymbols = rawSearchVal.replace(/[^a-z0-9]/g, '');
-                        if (!searchValNoSymbols) return false;
-                        const phoneValNoSymbols = (d.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                        const donorVal = (d.donor || '').toLowerCase().trim();
-                        return (phoneValNoSymbols && (phoneValNoSymbols.includes(searchValNoSymbols) || searchValNoSymbols.includes(phoneValNoSymbols))) || 
-                               (donorVal && donorVal.includes(rawSearchVal));
-                      }).length > 0 && (
-                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 sm:p-6 space-y-4">
-                          <div className="flex items-center gap-2 border-b pb-2">
-                            <CheckCircle size={18} className="text-amber-600" />
-                            <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">Approved Welfare Fund Donation Receipts</h4>
-                          </div>
-                          <p className="text-[11px] text-slate-500 font-sans">
-                            We found the following official Welfare Fund donations recorded under your credentials. Click below to download your certified PDF payment receipt.
-                          </p>
-                          <div className="divide-y divide-slate-100 bg-white rounded-lg border shadow-xs overflow-hidden">
-                            {donations.filter(d => {
-                              const rawSearchVal = lookupValue.trim().toLowerCase();
-                              const searchValNoSymbols = rawSearchVal.replace(/[^a-z0-9]/g, '');
-                              if (!searchValNoSymbols) return false;
-                              const phoneValNoSymbols = (d.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                              const donorVal = (d.donor || '').toLowerCase().trim();
-                              return (phoneValNoSymbols && (phoneValNoSymbols.includes(searchValNoSymbols) || searchValNoSymbols.includes(phoneValNoSymbols))) || 
-                                     (donorVal && donorVal.includes(rawSearchVal));
-                            }).map(d => (
-                              <div key={d.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-sans">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-slate-950 text-sm">{d.donor}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold font-sans uppercase ${
-                                      d.status === 'approved' 
-                                        ? 'bg-emerald-100 text-emerald-800' 
-                                        : d.status === 'rejected'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-amber-100 text-amber-800'
-                                    }`}>
-                                      {d.status || 'pending'}
-                                    </span>
-                                  </div>
-                                  <div className="text-[11px] text-slate-500 flex flex-wrap gap-x-3 font-mono">
-                                    <span>Phone: {d.phone}</span>
-                                    <span>&bull;</span>
-                                    <span>Date: {d.date}</span>
-                                    <span>&bull;</span>
-                                    <span>Channel: {d.method}</span>
-                                  </div>
-                                  {d.note && <p className="text-[11px] text-slate-400 italic">"{d.note}"</p>}
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="font-bold text-emerald-800 font-mono text-sm sm:text-base">{Number(d.amount).toFixed(3)} OMR</div>
-                                  {d.status === 'approved' ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => downloadDonationReceiptPDF(d)}
-                                      className="mt-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-2.5 py-1 rounded text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer shadow-xs transition inline-flex"
-                                    >
-                                      <FileText size={12} /> Download PDF Receipt
-                                    </button>
-                                  ) : d.status === 'pending' ? (
-                                    <span className="text-[10px] text-amber-600 block italic font-semibold mt-1">Pending Admin Review</span>
-                                  ) : (
-                                    <span className="text-[10px] text-red-650 block italic font-semibold mt-1">Receipt Rejected</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 3. Empty State (No member profile AND no donations) */}
-                      {!lookupResult && donations.filter(d => {
-                        const rawSearchVal = lookupValue.trim().toLowerCase();
-                        const searchValNoSymbols = rawSearchVal.replace(/[^a-z0-9]/g, '');
-                        if (!searchValNoSymbols) return false;
-                        const phoneValNoSymbols = (d.phone || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                        const donorVal = (d.donor || '').toLowerCase().trim();
-                        return (phoneValNoSymbols && (phoneValNoSymbols.includes(searchValNoSymbols) || searchValNoSymbols.includes(phoneValNoSymbols))) || 
-                               (donorVal && donorVal.includes(rawSearchVal));
-                      }).length === 0 && (
+                      {/* Empty State */}
+                      {!lookupResult && (
                         <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-5 text-center text-amber-900 font-sans">
                           <HelpCircle size={32} className="text-amber-500 p-0.5 mx-auto mb-2.5 animate-pulse shrink-0" />
-                          <span className="font-bold block text-sm">No Approved Lifetime Member or Donation Record Found</span>
+                          <span className="font-bold block text-sm">No Approved Member Record Found</span>
                           <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto font-sans">
-                            We couldn't locate any approved membership or verified donation matching <strong>"{lookupValue}"</strong>. 
+                            We couldn't locate any approved membership matching <strong>"{lookupValue}"</strong>. 
                             If you recently submitted, please allow some time for the executive board to complete processing.
                           </p>
                           <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center font-sans">
@@ -2713,7 +2521,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                        Your Contact Mobile (Oman) *
+                        Your Contact Mobile *
                       </label>
                       <input
                         type="tel"
@@ -2775,11 +2583,11 @@ export default function App() {
         <div className="container mx-auto max-w-4xl space-y-3 font-sans flex flex-col items-center">
           <div className="space-y-1.5">
             <p className="font-serif text-amber-300 font-black text-sm tracking-wide">
-              Oman Pakhtoon Community (OPC)
+              Pakhtoon Community
             </p>
             <p className="text-amber-100/60 leading-relaxed max-w-xl mx-auto">
-              Providing reliable diaspora representations, general welfare programs, and cooperative support 
-              services across the Sultanate of Oman.
+              Providing reliable community representation, general welfare programs, and cooperative support 
+              services for the Pakhtoon community.
             </p>
             <p className="text-amber-500/40 font-mono text-[10px] tracking-wider pt-1">
               For general welfare operations, sponsorship deals, or card records &gt; WhatsApp +968 99111870

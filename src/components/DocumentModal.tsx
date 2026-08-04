@@ -156,11 +156,11 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 
-        // Oman Flag Stripe top
-        ctx.fillStyle = '#c8102e';
-        ctx.fillRect(0, 0, W, 12);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 12, W, 6);
+        // Heritage Color Stripe top
+        ctx.fillStyle = '#1b4d3e';
+        ctx.fillRect(0, 0, W, 8);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(0, 8, W, 5);
 
         // Gold border
         ctx.strokeStyle = selectedPalette.labelColor;
@@ -194,7 +194,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.fillStyle = selectedPalette.labelColor;
         ctx.font = 'bold 36px Georgia, serif';
         ctx.textAlign = 'center';
-        ctx.fillText('OMAN PAKHTOON COMMUNITY', W / 2 + 40, 90);
+        ctx.fillText('PAKHTOON COMMUNITY', W / 2 + 40, 90);
         ctx.font = '20px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#faf6ed';
         ctx.fillText('MEMBERSHIP IDENTITY CARD', W / 2 + 40, 122);
@@ -323,10 +323,10 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.textAlign = 'center';
         ctx.fillStyle = '#1b4d3e';
         ctx.font = 'bold 44px Georgia, serif';
-        ctx.fillText('OMAN PAKHTOON COMMUNITY', W / 2, 255);
+        ctx.fillText('PAKHTOON COMMUNITY', W / 2, 255);
 
         ctx.font = '28px "Segoe UI", Arial, sans-serif';
-        ctx.fillStyle = '#c8102e';
+        ctx.fillStyle = '#1b4d3e';
         ctx.fillText('CERTIFICATE OF MEMBERSHIP', W / 2, 305);
 
         ctx.font = '22px "Segoe UI", Arial, sans-serif';
@@ -342,7 +342,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.font = '22px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#444444';
         ctx.fillText('in recognition of their registration as an official member of the', W / 2, 535);
-        ctx.fillText('Oman Pakhtoon Community welfare network, Sultanate of Oman.', W / 2, 570);
+        ctx.fillText('Pakhtoon Community welfare network.', W / 2, 570);
 
         ctx.font = 'bold 26px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#1b4d3e';
@@ -416,15 +416,15 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.textAlign = 'left';
         ctx.fillStyle = '#1b4d3e';
         ctx.font = 'bold 36px Georgia, serif';
-        ctx.fillText('OMAN PAKHTOON COMMUNITY', 220, 100);
+        ctx.fillText('PAKHTOON COMMUNITY', 220, 100);
         
         ctx.font = '20px "Segoe UI", Arial, sans-serif';
-        ctx.fillStyle = '#c8102e';
-        ctx.fillText('OFFICIAL REGISTRATION PAYMENT RECEIPT', 220, 135);
+        ctx.fillStyle = '#1b4d3e';
+        ctx.fillText('OFFICIAL REGISTRATION CONFIRMATION', 220, 135);
 
         ctx.font = '14px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#64748b';
-        ctx.fillText('Welfare Society, Sultanate of Oman | Registration Counter', 220, 165);
+        ctx.fillText('Welfare Society | Membership Desk', 220, 165);
 
         // Divider
         ctx.strokeStyle = '#cbd5e1';
@@ -491,12 +491,12 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.textAlign = 'left';
         ctx.fillStyle = '#1e293b';
         ctx.font = '15px "Segoe UI", Arial, sans-serif';
-        ctx.fillText('Lifetime Membership Registration Dues (Oman Diaspora)', 80, 545);
+        ctx.fillText('Lifetime Membership Registration', 80, 545);
         ctx.fillText('1', 525, 545);
-        ctx.fillText(fee.toFixed(3) + ' OMR', 660, 545);
+        ctx.fillText('Free', 660, 545);
         ctx.textAlign = 'right';
         ctx.font = 'bold 16px "Segoe UI", Arial, sans-serif';
-        ctx.fillText(fee.toFixed(3) + ' OMR', W - 80, 545);
+        ctx.fillText('Free', W - 80, 545);
 
         // Row Divider
         ctx.strokeStyle = '#e2e8f0';
@@ -542,7 +542,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.fillStyle = '#64748b';
         ctx.font = 'italic 13px "Segoe UI", Arial, sans-serif';
         ctx.fillText('This is a systems-generated electronic receipt. No physical signature is required.', W / 2, 850);
-        ctx.fillText('Thank you for supporting Pakhtoon Community Welfare and Integration services in Sultanate of Oman.', W / 2, 875);
+        ctx.fillText('Thank you for supporting Pakhtoon Community Welfare and Integration services.', W / 2, 875);
 
         // Draw payment paid stamp
         ctx.save();
@@ -709,27 +709,25 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
     const refText = memberLocal.paymentReference ? `(Ref: ${memberLocal.paymentReference})` : '';
 
     const text = 
-`OMAN PAKHTOON COMMUNITY
+`PAKHTOON COMMUNITY
 
 Dear Brother ${memberLocal.name},
 
-Congratulations! Your official OPC Diaspora Membership registration has been reviewed and APPROVED by the Executive Cabinet.
+Congratulations! Your official Pakhtoon Community Membership registration has been reviewed and APPROVED by the Executive Cabinet.
 
 Here is your issued credential package:
-📌 Membership ID: ${memberLocal.membershipId || 'OPC-ISSUED'}
+📌 Membership ID: ${memberLocal.membershipId || 'ISSUED'}
 📌 Status: Lifetime Active
-💰 Registration Fee Paid: ${amountPaid.toFixed(3)} OMR ${refText}
 
 We have enclosed your custom:
 1️⃣ Digital Membership ID Card
 2️⃣ Lifetime Certificate of Association
-3️⃣ Official Automated Payment Receipt
 
-Please keep this copy secure as part of your permanent records. Thank you for your support and integration within the Sultanate of Oman.
+Please keep this copy secure as part of your permanent records. Thank you for your support and integration.
 
 Sincerely,
 Executive Cabinet Committee
-Oman Pakhtoon Community Welfare Network`;
+Pakhtoon Community Welfare Network`;
 
     const targetPhone = customWhatsAppPhone || memberLocal.whatsapp || memberLocal.phone || '';
     const cleanPhone = targetPhone.replace(/[^\d+]/g, '');
@@ -954,9 +952,7 @@ Oman Pakhtoon Community Welfare Network`;
                         <button
                           type="button"
                           onClick={() => {
-                            const amountPaid = memberLocal.feeAmount !== undefined ? memberLocal.feeAmount : 5;
-                            const refText = memberLocal.paymentReference ? `(Ref: ${memberLocal.paymentReference})` : '';
-                            const text = `OMAN PAKHTOON COMMUNITY\n\nDear Brother ${memberLocal.name},\n\nCongratulations! Your official OPC Diaspora Membership registration has been reviewed and APPROVED by the Executive Cabinet.\n\nHere is your issued credential package:\n📌 Membership ID: ${memberLocal.membershipId || 'OPC-ISSUED'}\n📌 Status: Lifetime Active\n💰 Registration Fee Paid: ${amountPaid.toFixed(3)} OMR ${refText}\n\nWe have enclosed your custom:\n1️⃣ Digital Membership ID Card\n2️⃣ Lifetime Certificate of Association\n3️⃣ Official Automated Payment Receipt\n\nPlease keep this copy secure as part of your permanent records. Thank you for your support and integration within the Sultanate of Oman.\n\nSincerely,\nExecutive Cabinet Committee\nOman Pakhtoon Community Welfare Network`;
+                            const text = `PAKHTOON COMMUNITY\n\nDear Brother ${memberLocal.name},\n\nCongratulations! Your official Pakhtoon Community Membership registration has been reviewed and APPROVED by the Executive Cabinet.\n\nHere is your issued credential package:\n📌 Membership ID: ${memberLocal.membershipId || 'ISSUED'}\n📌 Status: Lifetime Active\n\nWe have enclosed your custom:\n1️⃣ Digital Membership ID Card\n2️⃣ Lifetime Certificate of Association\n\nPlease keep this copy secure as part of your permanent records. Thank you for your support and integration.\n\nSincerely,\nExecutive Cabinet Committee\nPakhtoon Community Welfare Network`;
                             navigator.clipboard.writeText(text);
                             setIsCopied(true);
                             setTimeout(() => setIsCopied(false), 2000);
@@ -975,7 +971,7 @@ Oman Pakhtoon Community Welfare Network`;
                         </button>
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono whitespace-pre-line leading-relaxed max-h-24 overflow-y-auto bg-slate-50/50 p-2 rounded">
-                        {`OMAN PAKHTOON COMMUNITY\nDear Brother ${memberLocal.name},\nCongratulations! Your official OPC Diaspora membership has been approved.\nMembership ID: ${memberLocal.membershipId || 'OPC-ISSUED'}\nStatus: Lifetime Active`}
+                        {`PAKHTOON COMMUNITY\nDear Brother ${memberLocal.name},\nCongratulations! Your official Pakhtoon Community membership has been approved.\nMembership ID: ${memberLocal.membershipId || 'ISSUED'}\nStatus: Lifetime Active`}
                       </div>
                     </div>
                   </div>

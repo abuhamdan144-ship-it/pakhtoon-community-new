@@ -300,10 +300,10 @@ export default function OmanDistrictMap({ members }: OmanDistrictMapProps) {
               ⚡ LIVE GEOSPATIAL REGISTRY
             </span>
             <h3 className="text-xl sm:text-2xl font-serif font-bold text-amber-400 mt-1">
-              Sultanate of Oman Chapter Distribution
+              Community Diaspora Distribution
             </h3>
             <p className="text-xs text-amber-100/70 max-w-xl leading-relaxed mt-1">
-              Interactive map tracking verified OPC membership cards, welfare support clusters, and local Shura coordinates across all eleven Governorates of Oman.
+              Interactive map tracking verified membership cards, welfare support clusters, and local council coordinates across community regions.
             </p>
           </div>
           <div className="bg-emerald-950 p-3 rounded-lg border border-emerald-800 shrink-0 text-center sm:text-right">
@@ -370,8 +370,8 @@ export default function OmanDistrictMap({ members }: OmanDistrictMapProps) {
               >
                 {/* Coastal / Gulf Sea visual background accents */}
                 <path d="M 5,20 C 130,-10 280,0 480,220 C 490,260 480,310 495,330" fill="none" stroke="#e2e8f0" strokeWidth="2" strokeDasharray="5,5" />
-                <text x="440" y="160" className="text-[10px] font-sans font-bold italic fill-slate-350 tracking-widest text-right">GULF OF OMAN</text>
-                <text x="120" y="325" className="text-[10px] font-sans font-bold italic fill-slate-350 tracking-widest">ARABIAN SEA</text>
+                <text x="440" y="160" className="text-[10px] font-sans font-bold italic fill-slate-350 tracking-widest text-right">NORTH ZONE</text>
+                <text x="120" y="325" className="text-[10px] font-sans font-bold italic fill-slate-350 tracking-widest">SOUTH ZONE</text>
 
                 {/* Draw Governorates paths */}
                 {mappedStatistics.stats.map(gov => {
@@ -619,7 +619,7 @@ export default function OmanDistrictMap({ members }: OmanDistrictMapProps) {
 
           {/* Quick Informational footer */}
           <div className="text-[10px] text-slate-400 bg-slate-50/40 border border-slate-100/70 rounded-lg p-3 italic leading-relaxed">
-            💡 <strong>Dynamic Spatial Mapping:</strong> Whenever new Afghan-frontier or KPK migrants apply electronically, specifying their residence inside Wilayats of Al-Azaiba, Barka, or Salalah automatically channels them into this dashboard for easy regional governance and emergency welfare response tracking.
+            💡 <strong>Dynamic Spatial Mapping:</strong> Whenever new members register electronically, specifying their residence automatically channels them into this dashboard for easy regional governance and emergency welfare response tracking.
           </div>
 
         </div>

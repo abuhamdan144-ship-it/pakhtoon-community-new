@@ -11,38 +11,38 @@ export const translations = {
     // Navigation / Header
     home: 'Home Portal',
     register: 'Register Membership',
-    cabinet: 'OPC Cabinet',
+    cabinet: 'Cabinet Assembly',
     elections: 'Cast Vote',
     report: 'Report Incident',
     chat: 'AI Assistant',
     admin: 'Admin Terminal',
-    portalTitle: 'OPC PORTAL',
-    omanChapter: 'Sultanate of Oman Chapter',
-    omanPakhtoon: 'Oman Pakhtoon Community',
+    portalTitle: 'PAKHTOON PORTAL',
+    omanChapter: 'Diaspora Chapter',
+    omanPakhtoon: 'Pakhtoon Community',
     signIn: 'Sign In',
     signOut: 'Sign Out',
     backToTop: 'Back To Top',
     language: 'Language',
     
     // Hero Dashboard
-    welcomeTitle: 'Oman Pakhtoon Community',
-    welcomeSubtitle: 'Portal',
-    heroDescription: 'The primary network providing general assistance, lifetime welfare claim support, and cooperative services for the diaspora Pakhtoon tribes living in Muscat, Salalah, Sohar and across Oman.',
+    welcomeTitle: 'Pakhtoon Community',
+    welcomeSubtitle: 'Unity Platform',
+    heroDescription: 'The primary network providing general assistance, welfare support coordination, and cooperative services for the diaspora Pakhtoon tribes and families.',
     
     // Quick Statistics
     registeredMembers: 'Registered Members',
-    activeFunds: 'Active Welfare Funds',
+    activeFunds: 'Welfare Support Cases',
     reportedIncidents: 'Reported Incidents',
-    embassyLiaisons: 'Embassy Liaisons',
+    embassyLiaisons: 'Community Liaisons',
     
     // Register Form Tab
-    newMemberRegistry: 'OPC Diaspora Membership registration',
+    newMemberRegistry: 'Pakhtoon Diaspora Membership Registration',
     fatherName: 'Father Name',
     cnic: 'CNIC / NICOP Number',
     district: 'Home District (KPK / Balochistan)',
-    phone: 'Phone Number (Oman)',
+    phone: 'Phone Number',
     whatsapp: 'WhatsApp Number (Optional)',
-    address: 'Address in Oman',
+    address: 'Current Resident Address',
     occupation: 'Occupation / Profession',
     emergency: 'Emergency Contact Person & Phone',
     uploadPhoto: 'Upload Profile Photo',
@@ -51,10 +51,10 @@ export const translations = {
     
     // Incident Report Tab
     reportClaim: 'Welfare Report Claim / Emergency Support',
-    incidentDescription: 'Please provide details of any accident, emergency, medical crisis, repatriation request, or community issue requiring urgent OPC action.',
+    incidentDescription: 'Please provide details of any accident, emergency, medical crisis, repatriation request, or community issue requiring urgent welfare action.',
     
     // Cabinet Tab
-    opcCabinetDirectory: 'OPC Directory & Assemblies',
+    opcCabinetDirectory: 'Community Directory & Assemblies',
     executiveCabinet: 'Executive Cabinet',
     verifiedMembers: 'Verified Members',
     cabinetAssembly: 'Cabinet Assembly',
@@ -62,9 +62,9 @@ export const translations = {
     castVoteText: 'Cast Council Ballot',
     
     // AI Assistant Tab
-    aiTitle: 'OPC AI Welfare Assistant',
-    aiSubtitle: 'Speak or type any question regarding OPC membership, registered executive guidelines, Benazir Income Support, embassy support, or repatriation procedures in Oman.',
-    aiPlaceholder: 'How can OPC support a fellow brother with medical emergency repatriation...',
+    aiTitle: 'Pakhtoon Community Welfare Assistant',
+    aiSubtitle: 'Speak or type any question regarding membership, executive guidelines, embassy support, or repatriation procedures.',
+    aiPlaceholder: 'How can the community support a fellow brother with a medical emergency...',
     
     // Notifications / Alerts
     electionAlerts: 'Election Alerts',
@@ -77,38 +77,38 @@ export const translations = {
     // Navigation / Header
     home: 'ہوم پورٹل',
     register: 'ممبرشپ رجسٹریشن',
-    cabinet: 'او پی سی کابینہ',
+    cabinet: 'کابینہ',
     elections: 'ووٹ ڈالیں',
     report: 'شکایت / حادثہ',
     chat: 'اے آئی اسسٹنٹ',
     admin: 'ایڈمن ٹرمینل',
     portalTitle: 'کمیونٹی پورٹل',
-    omanChapter: 'سلطنتِ عمان چیپٹر',
-    omanPakhtoon: 'عمان پختون کمیونٹی',
+    omanChapter: 'ڈائیسپورا چیپٹر',
+    omanPakhtoon: 'پختون کمیونٹی',
     signIn: 'لاگ ان کریں',
     signOut: 'لاگ آؤٹ کریں',
     backToTop: 'اوپر جائیں',
     language: 'زبان',
     
     // Hero Dashboard
-    welcomeTitle: 'عمان پختون کمیونٹی',
+    welcomeTitle: 'پختون کمیونٹی',
     welcomeSubtitle: 'پورٹل',
-    heroDescription: 'مسقط، صلالہ، سہار اور پورے عمان میں بسنے والے پختون قبائل کے لیے بنیادی معاونت، لائف ٹائم ویلفیئر دعوے اور باہمی تعاون کی خدمات فراہم کرنے والا نیٹ ورک۔',
+    heroDescription: 'پختون قبائل کے لیے بنیادی معاونت، فلاحی دعوے اور باہمی تعاون کی خدمات فراہم کرنے والا متحد نیٹ ورک۔',
     
     // Quick Statistics
     registeredMembers: 'رجسٹرڈ ممبران',
-    activeFunds: 'فعال ویلفیئر فنڈز',
+    activeFunds: 'فلاحی کیسز',
     reportedIncidents: 'رپورٹ شدہ حادثات',
-    embassyLiaisons: 'سفارت خانہ رابطہ',
+    embassyLiaisons: 'کمیونٹی رابطے',
     
     // Register Form Tab
-    newMemberRegistry: 'او پی سی ڈائیسپورا رکنیت رجسٹریشن',
+    newMemberRegistry: 'پختون ڈائیسپورا رکنیت رجسٹریشن',
     fatherName: 'والد کا نام',
     cnic: 'شناختی کارڈ (CNIC / NICOP) نمبر',
     district: 'آبائی ضلع (کے پی کے / بلوچستان)',
-    phone: 'فون نمبر (عمان)',
+    phone: 'فون نمبر',
     whatsapp: 'واٹس ایپ نمبر (اختیاری)',
-    address: 'عمان میں رہائش کا پتہ',
+    address: 'رہائش کا پتہ',
     occupation: 'پیشہ / ملازمت',
     emergency: 'ہنگامی رابطہ شخص اور فون نمبر',
     uploadPhoto: 'پروفائل تصویر اپ لوڈ کریں',
@@ -117,10 +117,10 @@ export const translations = {
     
     // Incident Report Tab
     reportClaim: 'فلاحی دعویٰ / ہنگامی معاونت کی رپورٹ',
-    incidentDescription: 'کسی بھی حادثے، ہنگامی صورتحال، طبی بحران، میت کی واپسی کی درخواست یا او پی سی کی فوری کارروائی کے لیے تفصیلات فراہم کریں۔',
+    incidentDescription: 'کسی بھی حادثے، ہنگامی صورتحال، طبی بحران، میت کی واپسی کی درخواست یا فوری کارروائی کے لیے تفصیلات فراہم کریں۔',
     
     // Cabinet Tab
-    opcCabinetDirectory: 'او پی سی ڈائرکٹری اور اسمبلیز',
+    opcCabinetDirectory: 'کمیونٹی ڈائرکٹری اور اسمبلیز',
     executiveCabinet: 'ایگزیکٹو کابینہ',
     verifiedMembers: 'تصدیق شدہ ممبران',
     cabinetAssembly: 'کابینہ اسمبلی',
@@ -128,9 +128,9 @@ export const translations = {
     castVoteText: 'کونسل بیلٹ کاسٹ کریں',
     
     // AI Assistant Tab
-    aiTitle: 'او پی سی فلاحی اے آئی اسسٹنٹ',
-    aiSubtitle: 'او پی سی ممبرشپ، رجسٹریشن کے رہنما خطوط، سفارت خانے کی معاونت، یا عمان میں میت کی واپسی کے طریقہ کار کے بارے میں کوئی بھی سوال پوچھیں یا ٹائپ کریں۔',
-    aiPlaceholder: 'او پی سی کس طرح ہنگامی طبی صورت حال یا میت کی واپسی میں مدد کر سکتا ہے...',
+    aiTitle: 'فلاحی اے آئی اسسٹنٹ',
+    aiSubtitle: 'ممبرشپ، رجسٹریشن کے رہنما خطوط، سفارت خانے کی معاونت، یا میت کی واپسی کے طریقہ کار کے بارے میں کوئی بھی سوال پوچھیں۔',
+    aiPlaceholder: 'کمیونٹی کس طرح ہنگامی طبی صورت حال یا میت کی واپسی میں مدد کر سکتی ہے...',
     
     // Notifications / Alerts
     electionAlerts: 'انتخابی انتباہات',
@@ -143,38 +143,38 @@ export const translations = {
     // Navigation / Header
     home: 'کورنی پورٹل',
     register: 'غړیتوب ثبتول',
-    cabinet: 'او پی سی کابینه',
+    cabinet: 'کابینه',
     elections: 'رایه ورکول',
     report: 'د پیښې راپور',
     chat: 'آئی مرستندوی',
     admin: 'اداري ټرمینل',
     portalTitle: 'کمیونټي پورټل',
-    omanChapter: 'عمان څانګه',
-    omanPakhtoon: 'عمان پښتون ټولنه',
+    omanChapter: 'ډیاسپورا څانګه',
+    omanPakhtoon: 'پښتون ټولنه',
     signIn: 'ننوتل',
     signOut: 'وتل',
     backToTop: 'پورته لاړشئ',
     language: 'ژبه',
     
     // Hero Dashboard
-    welcomeTitle: 'د عمان پښتون ټولنه',
+    welcomeTitle: 'د پښتون ټولنه',
     welcomeSubtitle: 'پورټل',
-    heroDescription: 'په مسقط، صلاله، سحار او ټول عمان کې د میشته پښتنو قبایلو لپاره د لومړني ملاتړ، د ژوند د فلاحي دعوو او متقابلو خدماتو شبکه.',
+    heroDescription: 'د میشته پښتنو قبایلو لپاره د لومړني ملاتړ، د ژوند د فلاحي دعوو او متقابلو خدماتو شبکه.',
     
     // Quick Statistics
     registeredMembers: 'راجستر شوي غړي',
-    activeFunds: 'فعال ویلفیئر فنډونه',
+    activeFunds: 'فلاحي قضیې',
     reportedIncidents: 'راپور شوي پیښې',
-    embassyLiaisons: 'د سفارت تواصل',
+    embassyLiaisons: 'د ټولنې اړیکې',
     
     // Register Form Tab
     newMemberRegistry: 'د غړیتوب ثبتولو فورمه',
     fatherName: 'د پلار نوم',
     cnic: 'پيژند پاڼه (CNIC / NICOP) نمبر',
     district: 'اصلي ولسوالۍ / ولایت (KPK / بامیان)',
-    phone: 'د تلیفون شمیره (عمان)',
+    phone: 'د تلیفون شمیره',
     whatsapp: 'واټساپ شمیره (اختیاري)',
-    address: 'په عمان کې د اوسیدو پته',
+    address: 'د اوسیدو پته',
     occupation: 'دنده یا مسلک',
     emergency: 'د بیړني تماس شخص او تلیفون شمیره',
     uploadPhoto: 'عکس اپلوډ کړئ',
@@ -183,10 +183,10 @@ export const translations = {
     
     // Incident Report Tab
     reportClaim: 'د فلاحي مرستې یا بیړني حالت راپور',
-    incidentDescription: 'د پیښې ، اضطراري طبي بحران ، وطن ته د ستنیدو غوښتنې یا ټولنیزې ستونزې په اړه معلومات ورکړئ چې د OPC عاجل اقدام ته اړتیا لري.',
+    incidentDescription: 'د پیښې ، اضطراري طبي بحران ، وطن ته د ستنیدو غوښتنې یا ټولنیزې ستونزې په اړه معلومات ورکړئ د عاجل اقدام ته اړتیا لري.',
     
     // Cabinet Tab
-    opcCabinetDirectory: 'د او پی سی ډایرکټري او جرګې',
+    opcCabinetDirectory: 'د ټولنې ډایرکټري او جرګې',
     executiveCabinet: 'اجراییه کابینه',
     verifiedMembers: 'تصدیق شوي غړي',
     cabinetAssembly: 'د کابینې جرګه (اسمبلی)',
@@ -194,9 +194,9 @@ export const translations = {
     castVoteText: 'خپله رایه ورکړئ',
     
     // AI Assistant Tab
-    aiTitle: 'د او پی سي د فلاحي چارو هوښیار مرستندوی',
-    aiSubtitle: 'د او پی سي غړیتوب، د ثبت لارښوونو، سفارت ملاتړ، یا عمان کې هیواد ته بیرته ستنیدلو په اړه پوښتنې په پښتو یا انګلیسي کې وپوښتئ.',
-    aiPlaceholder: 'زه څنګه کولای شم په عمان کی د پښتون ورور عاجل طبي حالت یا مرستي لپاره راپور ورکړم...',
+    aiTitle: 'د ټولنې د فلاحي چارو هوښیار مرستندوی',
+    aiSubtitle: 'د غړیتوب، د ثبت لارښوونو، سفارت ملاتړ، یا هیواد ته بیرته ستنیدلو په اړه پوښتنې په پښتو یا انګلیسي کې وپوښتئ.',
+    aiPlaceholder: 'زه څنګه کولای شم د پښتون ورور عاجل طبي حالت یا مرستي لپاره راپور ورکړم...',
     
     // Notifications / Alerts
     electionAlerts: 'د ټاکنو خبرتیاوې',

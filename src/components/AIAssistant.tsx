@@ -13,9 +13,9 @@ interface AIAssistantProps {
 }
 
 const greetings = {
-  en: "As-salamu alaykum! I am the Oman Pakhtoon Community Welfare Assistant. I can assist you with understanding membership rules, welfare claims, Dead Body repatriation guidelines, consular emergency resources, and live Omani visa policies. How can I assist you today?",
-  ur: "السلام علیکم! میں عمان پختون کمیونٹی فلاحی معاون ہوں۔ میں آپ کی رکنیت کے قوانین، فلاحی دعووں، وفات پا جانے والے بھائیوں کی میت کی واپسی کے رہنما خطوط، قونصلر ہنگامی وسائل اور عمان کی ویزا پالیسیوں کو سمجھنے میں مدد کر سکتا ہوں۔ میں آج آپ کی کیا مدد کر سکتا ہوں؟",
-  ps: "السلام علیکم! زه د عمان پښتون ټولنې فلاحي مرستندوی یم. زه تاسو سره د غړیتوب قواعدو، د فلاحي مرستو دعوې، وطن ته د مړي د لېږدولو لارښوونې، د سفارت بیړني حالت او د عمان ژوندي ویزې تګلارو په پوهیدو کې مرسته کولی شم. نن زه ستا څه مرسته کولی شم؟"
+  en: "As-salamu alaykum! I am the Pakhtoon Community Welfare Assistant. I can assist you with understanding membership guidelines, welfare claims, repatriation guidelines, and community resources. How can I assist you today?",
+  ur: "السلام علیکم! میں پختون کمیونٹی فلاحی معاون ہوں۔ میں آپ کی رکنیت، فلاحی دعووں، اور کمیونٹی کے وسائل کو سمجھنے میں مدد کر سکتا ہوں۔ میں آج آپ کی کیا مدد کر سکتا ہوں؟",
+  ps: "السلام علیکم! زه د پښتون ټولنې فلاحي مرستندوی یم. زه تاسو سره د غړیتوب قواعدو، د فلاحي مرستو دعوې او ټولنیزو سرچینو په پوهیدو کې مرسته کولی شم. نن زه ستا څه مرسته کولی شم؟"
 };
 
 export default function AIAssistant({ language = 'en' }: AIAssistantProps) {
@@ -70,15 +70,15 @@ export default function AIAssistant({ language = 'en' }: AIAssistantProps) {
 
       const modelToUse = useThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
       // System instructions ensuring standard humble representation
-      const systemInstruction = `You are the Oman Pakhtoon Community (OPC) AI Assistant. 
-      You communicate in a polite, helpful, and culturally respectful tone (respecting Pakhtoon traditions and Omani laws).
+      const systemInstruction = `You are the Pakhtoon Community AI Assistant. 
+      You communicate in a polite, helpful, and culturally respectful tone (respecting Pakhtoon traditions).
       Always communicate and reply primarily in the user's selected language: ${language === 'ur' ? 'Urdu' : language === 'ps' ? 'Pashto' : 'English'}, or code-switch naturally to help them understand. Only use other languages if specifically requested.
-      You assist Pakhtoon community members in Sultanate of Oman (Muscat, Salalah, Sohar, Nizwa, etc.) with questions about:
-      1. Dead body repatriation procedures (Muscat to Pakistan)
-      2. Medical assistance reports and welfare fund claims
-      3. Pakistan Embassy Muscat coordinates (hours: Sun-Thu 8am-4pm, Tel: +968 24603410, Emergency: +968 99222870)
-      4. General OPC community operations and registrations.
-      If the user enables search grounding, you have live search data. Use it to cross-ref current flights or visa terms.
+      You assist Pakhtoon community members with questions about:
+      1. Repatriation procedures and family assistance
+      2. Medical assistance reports and welfare support requests
+      3. Community support and liaison guidance
+      4. General community operations and registrations.
+      If the user enables search grounding, use live search data to answer questions accurately.
       Always state facts humbly and clearly. Do not invent details outside of available context or search results.`;
 
       const response = await fetch('/api/gemini/chat', {
@@ -177,7 +177,7 @@ export default function AIAssistant({ language = 'en' }: AIAssistantProps) {
             </label>
           </div>
           <p className="text-[10px] text-slate-500 leading-relaxed leading-normal">
-            Enables active Grounding to fetch live, verified search results regarding Pakistan Flight schedules, Oman visa regulations, or Embassy announcements.
+            Enables active Grounding to fetch live, verified search results regarding flight schedules, welfare news, or community announcements.
           </p>
         </div>
 
@@ -188,10 +188,10 @@ export default function AIAssistant({ language = 'en' }: AIAssistantProps) {
               {
                 role: 'model',
                 text: language === 'ur' 
-                  ? "بات چیت کی تاریخ کو دوبارہ ترتیب دے دیا گیا ہے۔ میں عمان پختون سپورٹ کے ساتھ آپ کی مدد کیسے کر سکتا ہوں؟" 
+                  ? "بات چیت کی تاریخ کو دوبارہ ترتیب دے دیا گیا ہے۔ میں پختون کمیونٹی سپورٹ کے ساتھ آپ کی مدد کیسے کر سکتا ہوں؟" 
                   : language === 'ps'
-                  ? "د کتنې تاریخ بیرته تنظیم شو. زه څنګه د عمان پښتون ملاتړ سره مرسته کولی شم؟"
-                  : "Conversation thread history has been reset. How can I assist you with Oman Pakhtoon support?"
+                  ? "د کتنې تاریخ بیرته تنظیم شو. زه څنګه د پښتون ټولنې ملاتړ سره مرسته کولی شم؟"
+                  : "Conversation thread history has been reset. How can I assist you with Pakhtoon Community support?"
               }
             ])}
             className="w-full inline-flex justify-center items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded text-[11px] font-bold transition cursor-pointer"

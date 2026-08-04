@@ -8,7 +8,7 @@ export interface CardColorPalette {
 }
 
 export const CARD_COLORS: CardColorPalette[] = [
-  { id: 'emerald', label: 'Oman Emerald', primary: '#1b4d3e', secondary: '#0e2e25', textColor: '#ffffff', labelColor: '#d4af37' },
+  { id: 'emerald', label: 'Heritage Emerald', primary: '#1b4d3e', secondary: '#0e2e25', textColor: '#ffffff', labelColor: '#d4af37' },
   { id: 'navy', label: 'Royal Navy', primary: '#1e3a8a', secondary: '#0f172a', textColor: '#ffffff', labelColor: '#d4af37' },
   { id: 'crimson', label: 'Crimson Red', primary: '#881337', secondary: '#4c0519', textColor: '#ffffff', labelColor: '#f59e0b' },
   { id: 'charcoal', label: 'Executive Slate', primary: '#334155', secondary: '#0f172a', textColor: '#ffffff', labelColor: '#e2e8f0' },

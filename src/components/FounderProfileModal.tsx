@@ -12,14 +12,14 @@ const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1519085360753-af0119f7c
 
 export default function FounderProfileModal({ isOpen, onClose, profile }: FounderProfileModalProps) {
   const name = profile?.name || 'Al-Haj Muhammad Amin';
-  const position = profile?.position || 'President, Oman Pakhtoon Community';
+  const position = profile?.position || 'President, Pakhtoon Community';
   const phone = profile?.phone || '+968 99111870';
-  const email = profile?.email || 'president@opcoman.org';
-  const address = profile?.address || 'Muscat Headquarters, Sultanate of Oman';
+  const email = profile?.email || 'president@pakhtooncommunity.org';
+  const address = profile?.address || 'Central Headquarters';
   const est = profile?.est || 'Welfare Board Established in 2018';
   const photo = profile?.photo || DEFAULT_PHOTO;
-  const quote = profile?.quote || 'Oman is our second home. By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride.';
-  const bio1 = profile?.bio1 || 'Al-Haj Muhammad Amin is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the Oman Pakhtoon Community (OPC) registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.';
+  const quote = profile?.quote || 'By remaining disciplined, cooperative, and united, we not only protect our families but construct a legacy that our next generation will represent with utmost pride.';
+  const bio1 = profile?.bio1 || 'Al-Haj Muhammad Amin is a respected community builder, philanthropist, and civic coordinator. Animated by a profound love for his people and culture, he founded the Pakhtoon Community registry and welfare program as an anchor point for thousands of Pakhtoon community members who have dedicated their efforts to brotherhood and welfare support.';
   const bio2 = profile?.bio2 || 'Under his direct personal guidance, the organization has shifted from an informal network into a fully structured, law-abiding diaspora association that handles essential legal support, medical assistance, repatriation files, and cultural integrations with exceptional meticulousness.';
 
   return (
@@ -132,7 +132,7 @@ export default function FounderProfileModal({ isOpen, onClose, profile }: Founde
                 {/* Biography Paragraphs */}
                 <div className="text-slate-700 text-xs sm:text-sm leading-relaxed space-y-4">
                   <p>
-                    <strong>{name}</strong> is a respected community builder, philanthropist, and civic coordinator based in Muscat, Sultanate of Oman. Animated by a profound love for his people and culture, he founded the <strong>Oman Pakhtoon Community (OPC)</strong> registry and welfare program as an anchor point for thousands of Pakhtoon expats who have dedicated their efforts to the progress and rise of both Oman and their homeland.
+                    <strong>{name}</strong> is a respected community builder, philanthropist, and civic coordinator. Animated by a profound love for his people and culture, he founded the <strong>Pakhtoon Community</strong> registry and welfare program as an anchor point for thousands of Pakhtoon community members.
                   </p>
                   <p>
                     {bio1}
@@ -156,15 +156,15 @@ export default function FounderProfileModal({ isOpen, onClose, profile }: Founde
                     <div className="flex items-start gap-2 text-xs text-slate-650 bg-white p-3 rounded-xl border">
                       <Heart size={16} className="text-emerald-700 shrink-0 mt-0.5" />
                       <div>
-                        <strong className="text-emerald-950 block">Welfare Fund Support</strong>
-                        Spearheaded the Welfare ledger program containing transparent medical and general aid claims.
+                        <strong className="text-emerald-950 block">Social Welfare Support</strong>
+                        Spearheaded welfare coordination programs for general aid and support claims.
                       </div>
                     </div>
                     <div className="flex items-start gap-2 text-xs text-slate-650 bg-white p-3 rounded-xl border">
                       <Users size={16} className="text-emerald-700 shrink-0 mt-0.5" />
                       <div>
                         <strong className="text-emerald-950 block">Consular Bridges</strong>
-                        Maintained direct open communications with Pakhtunkhwa diplomats and the Omani Ministry.
+                        Maintained direct open communications with community representatives and diplomats.
                       </div>
                     </div>
                     <div className="flex items-start gap-2 text-xs text-slate-650 bg-white p-3 rounded-xl border">

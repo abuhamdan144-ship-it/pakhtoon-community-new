@@ -134,7 +134,7 @@ export const exportMembersToGoogleSheet = async (token: string, members: Member[
     'District',
     'Phone',
     'WhatsApp',
-    'Oman Address',
+    'Resident Address',
     'Occupation',
     'Emergency Contact',
     'Status',

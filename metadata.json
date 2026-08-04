@@ -1,6 +1,6 @@
 {
-  "name": "Oman Pakhtoon Community",
-  "description": "A welfare and support portal for the Pakhtoon diaspora in Oman, including memberships, election voting, donations, and welfare reports.",
+  "name": "Pakhtoon Community",
+  "description": "A social welfare and support portal for the Pakhtoon diaspora community, including memberships, election voting, welfare reports, and community support.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
