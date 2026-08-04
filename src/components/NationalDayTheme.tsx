@@ -146,17 +146,31 @@ export function NationalDayAnnouncementBar({
   isThemeActive: boolean; 
   onToggleTheme: () => void; 
 }) {
-  const [copied, setCopied] = useState(false);
+  const [autoConfetti, setAutoConfetti] = useState(true);
+  const [nextIn, setNextIn] = useState(5);
 
   useEffect(() => {
-    // Fire festive burst on load if theme active
-    if (isThemeActive) {
-      const timer = setTimeout(() => {
-        fireNationalConfetti();
-      }, 700);
-      return () => clearTimeout(timer);
-    }
-  }, [isThemeActive]);
+    if (!isThemeActive || !autoConfetti) return;
+
+    // Fire initial burst
+    fireNationalConfetti();
+    setNextIn(5);
+
+    // Countdown timer ticker for visual feedback
+    const tickInterval = setInterval(() => {
+      setNextIn((prev) => (prev <= 1 ? 5 : prev - 1));
+    }, 1000);
+
+    // Main 5-second confetti launcher interval
+    const confettiInterval = setInterval(() => {
+      fireNationalConfetti();
+    }, 5000);
+
+    return () => {
+      clearInterval(tickInterval);
+      clearInterval(confettiInterval);
+    };
+  }, [isThemeActive, autoConfetti]);
 
   return (
     <div className="bg-[#01411C] text-white border-b-2 border-amber-400/80 shadow-md relative z-40 overflow-hidden font-sans">
@@ -181,19 +195,31 @@ export function NationalDayAnnouncementBar({
         {/* Right Side: Interactive Quick Controls */}
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => fireNationalConfetti()}
-            className="bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-amber-300 border border-emerald-500/50 font-bold px-2.5 py-1 rounded text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
-            title="Launch Celebration Confetti"
+            onClick={() => setAutoConfetti(!autoConfetti)}
+            className={`px-2.5 py-1 rounded text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer ${
+              autoConfetti && isThemeActive
+                ? 'bg-amber-400 text-[#01411C] border-amber-300 hover:bg-amber-300 shadow-sm'
+                : 'bg-emerald-900/80 text-amber-200 border-emerald-600/50 hover:bg-emerald-800'
+            }`}
+            title="Toggle 5-second automatic Freedom Confetti loop"
           >
-            <PartyPopper size={13} className="text-amber-400 animate-bounce" />
-            <span>Celebrate 🎉</span>
+            <PartyPopper size={13} className={autoConfetti && isThemeActive ? "text-[#01411C] animate-bounce" : "text-amber-400"} />
+            <span>{autoConfetti && isThemeActive ? `Confetti Every 5s (${nextIn}s)` : 'Auto Confetti Off'}</span>
+          </button>
+
+          <button
+            onClick={() => fireNationalConfetti()}
+            className="bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white border border-emerald-500/50 font-bold px-2.5 py-1 rounded text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
+            title="Launch instant Freedom Confetti burst"
+          >
+            <span>Blast Now 🎉</span>
           </button>
 
           <button
             onClick={onToggleTheme}
             className={`px-2.5 py-1 rounded text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer ${
               isThemeActive
-                ? 'bg-amber-400 text-[#01411C] border-amber-300 hover:bg-amber-300'
+                ? 'bg-emerald-800 text-white border-emerald-600 hover:bg-emerald-700'
                 : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
             }`}
             title="Toggle Patriotic 14 August Festive Layout"
