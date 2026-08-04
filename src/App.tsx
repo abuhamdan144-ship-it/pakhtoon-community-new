@@ -75,7 +75,7 @@ import {
   fireNationalConfetti 
 } from './components/NationalDayTheme';
 import { CARD_COLORS } from './components/CardColors';
-import logoImg from './assets/images/pukhtoon_logo_1781303873200.jpg';
+import logoImg from './assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import { translations, languageNames, Language } from './translations';
 
 import { motion, AnimatePresence } from 'motion/react';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Member } from '../types';
 import { CARD_COLORS, getCardColor } from './CardColors';
 import { X, Download, CreditCard, Award, FileText, Send, Share2, CheckCircle2, RefreshCw, Link2, FolderPlus, Trash2, ExternalLink, File as FileIcon, Save, MessageSquare, Copy, Check } from 'lucide-react';
-import pukhtoonLogo from '../assets/images/pukhtoon_logo_1781303873200.jpg';
+import pukhtoonLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { connectGoogleWorkspace, getCachedToken, openGooglePicker } from '../utils/googleWorkspace';
@@ -270,7 +270,7 @@ export default function DocumentModal({ member, isOpen, onClose, isAdmin = false
         ctx.fillText('PRES: +968 96164017', W / 2 - 330, 508);
         ctx.fillText('CO-PRES: +968 95079400', W / 2 - 110, 508);
         ctx.fillText('MUSCAT: +968 99111870', W / 2 + 110, 508);
-        ctx.fillText('SALALAH: +968 96766876', W / 2 + 330, 508);
+        ctx.fillText('BACHA JEE: +968 96766876', W / 2 + 330, 508);
       };
 
       // --- Draw Certificate of Membership (1400x990) ---

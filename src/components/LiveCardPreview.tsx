@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import pukhtoonLogo from '../assets/images/pukhtoon_logo_1781303873200.jpg';
+import pukhtoonLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import { getCardColor, CARD_COLORS } from './CardColors';
 
 interface LiveCardPreviewProps {
@@ -164,7 +164,7 @@ export default function LiveCardPreview({
       ctx.font = 'bold 10.5px "Segoe UI", Arial, sans-serif';
       ctx.fillStyle = selectedPalette.labelColor;
       ctx.textAlign = 'center';
-      ctx.fillText('🚨 COMMUNITY EMERGENCY CONTACTS', W / 2, 476);
+      ctx.fillText('🚨 OPC EMERGENCY HELPLINES', W / 2, 476);
 
       // Columns
       ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
@@ -172,9 +172,10 @@ export default function LiveCardPreview({
       ctx.textAlign = 'center';
       
       // Single Row layout with larger font
-      ctx.fillText('PRESIDENT: REPRES.', W / 2 - 250, 508);
-      ctx.fillText('WELFARE LIAISON', W / 2, 508);
-      ctx.fillText('COMMUNITY CAB.', W / 2 + 250, 508);
+      ctx.fillText('PRES: +968 96164017', W / 2 - 330, 508);
+      ctx.fillText('CO-PRES: +968 95079400', W / 2 - 110, 508);
+      ctx.fillText('MUSCAT: +968 99111870', W / 2 + 110, 508);
+      ctx.fillText('BACHA JEE: +968 96766876', W / 2 + 330, 508);
 
       // 9. Unapproved Draft Overlay/Watermark
       ctx.save();
