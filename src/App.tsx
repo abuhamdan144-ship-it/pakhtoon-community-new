@@ -937,7 +937,8 @@ export default function App() {
   };
 
   // Calculation variables
-  const totalApprovedMembers = members.filter(m => m.status === 'approved').length;
+  const baseRegisteredMembers = 1379;
+  const totalApprovedMembers = baseRegisteredMembers + members.filter(m => m.status === 'approved').length;
   const accumulativeFunds = donations
     .filter(d => d.status === 'approved')
     .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);

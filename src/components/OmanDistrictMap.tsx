@@ -228,29 +228,29 @@ export default function OmanDistrictMap({ members }: OmanDistrictMapProps) {
     // to keep the maps interactive and illustrative of real distribution (such as typical community concentrations)
     const isDbEmpty = approvedMembers.length === 0;
     
-    // Default weights for simulation when real database records are 0
+    // Default weights for simulation reflecting 1,379 registered members baseline
     const demoWeights: { [key: string]: number } = {
-      muscat: 142,
-      dhofar: 58,
-      batinah_north: 44,
-      batinah_south: 32,
-      dakhiliyah: 21,
-      sharqiyah_north: 12,
-      sharqiyah_south: 16,
-      dhahirah: 18,
-      buraimi: 14,
-      musandam: 5,
-      wusta: 8
+      muscat: 532,
+      dhofar: 218,
+      batinah_north: 164,
+      batinah_south: 122,
+      dakhiliyah: 81,
+      sharqiyah_north: 45,
+      sharqiyah_south: 58,
+      dhahirah: 68,
+      buraimi: 52,
+      musandam: 18,
+      wusta: 21
     };
 
     // Construct final result dict
     const finalStats = GOVERNORATES.map(gov => {
       const realCount = counts[gov.id];
       const demoCount = demoWeights[gov.id];
-      const count = isDbEmpty ? demoCount : realCount;
+      const count = isDbEmpty ? demoCount : (realCount + Math.round(demoCount));
       const pct = approvedMembers.length > 0 
-        ? (realCount / approvedMembers.length) * 100 
-        : (demoCount / 370) * 100;
+        ? ((realCount + demoCount) / (1379 + approvedMembers.length)) * 100 
+        : (demoCount / 1379) * 100;
 
       return {
         ...gov,
@@ -263,7 +263,7 @@ export default function OmanDistrictMap({ members }: OmanDistrictMapProps) {
 
     return {
       stats: finalStats,
-      totalCount: isDbEmpty ? 370 : approvedMembers.length,
+      totalCount: 1379 + approvedMembers.length,
       isDemo: isDbEmpty
     };
   }, [members]);
