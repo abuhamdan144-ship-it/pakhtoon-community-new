@@ -83,3 +83,10 @@ h1, h2, h3, h4 {
 .animate-marquee-paused-on-hover:hover {
   animation-play-state: paused;
 }
+
+/* 5s Billboard progress bar animation */
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
