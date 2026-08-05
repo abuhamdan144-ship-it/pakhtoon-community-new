@@ -124,11 +124,13 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
         <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-gradient-to-tr from-slate-700 to-slate-300 shadow-inner border border-slate-950 z-30" />
         <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-gradient-to-tr from-slate-700 to-slate-300 shadow-inner border border-slate-950 z-30" />
 
-        {/* Top 3D Digital Header Banner Strip */}
-        <div className="bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-950 border-b border-amber-500/30 px-3 py-1.5 rounded-t-xl flex items-center justify-between text-white text-[11px] font-sans font-extrabold mb-1 shadow-inner">
+        {/* Top 3D Digital Header Strip */}
+        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-amber-500/30 px-3 py-1.5 rounded-t-xl flex items-center justify-between text-white text-[11px] font-sans font-extrabold mb-1 shadow-inner">
           <div className="flex items-center gap-2 text-amber-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-            <span className="tracking-widest uppercase text-[10px] text-amber-200">3D Digital Display • Oman Diaspora Network</span>
+            <span className="font-mono text-[10px] text-amber-200 uppercase tracking-wider">
+              {currentAd.name || 'Sponsored Promotion'}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -137,14 +139,14 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
               <button
                 onClick={() => setFitMode('contain')}
                 className={`px-2 py-0.5 rounded font-bold transition ${fitMode === 'contain' ? 'bg-amber-500 text-emerald-950 shadow-xs' : 'text-slate-400 hover:text-white'}`}
-                title="Fit Entire Image (100% full view without cropping)"
+                title="Fit Entire Image"
               >
                 Fit Full
               </button>
               <button
                 onClick={() => setFitMode('cover')}
                 className={`px-2 py-0.5 rounded font-bold transition ${fitMode === 'cover' ? 'bg-amber-500 text-emerald-950 shadow-xs' : 'text-slate-400 hover:text-white'}`}
-                title="Fill Frame (Crop fill)"
+                title="Fill Frame"
               >
                 Fill
               </button>
@@ -163,18 +165,15 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
               className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition"
               title="Expand full high-resolution image"
             >
-              <ZoomIn size={12} /> View High-Res
+              <ZoomIn size={12} /> High-Res
             </button>
           </div>
         </div>
 
-        {/* 3D SCREEN DISPLAY CANVAS */}
+        {/* 3D SCREEN DISPLAY CANVAS - Completely clean ad view with zero text overlay */}
         <div className="relative h-[240px] sm:h-[380px] md:h-[440px] w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-[inset_0_0_35px_rgba(0,0,0,0.9)] flex items-center justify-center">
           
-          {/* Subtle LED Grid lines scanlines overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] z-10 pointer-events-none opacity-40" />
-
-          {/* Glass reflection sheen angle */}
+          {/* Subtle glass reflection sheen angle */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent z-10 pointer-events-none" />
 
           {/* DUAL LAYER IMAGE FIT ENGINE */}
@@ -194,10 +193,10 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
                 src={currentAd.image} 
                 alt="" 
                 aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover blur-2xl scale-125 opacity-40 brightness-75 transition-all duration-700 pointer-events-none"
+                className="absolute inset-0 w-full h-full object-cover blur-2xl scale-125 opacity-30 brightness-75 transition-all duration-700 pointer-events-none"
               />
 
-              {/* Layer 2: Main Crisp High-Res Image (Fit Mode option applied) */}
+              {/* Layer 2: Main Crisp High-Res Image */}
               <img 
                 src={currentAd.image} 
                 alt={currentAd.name} 
@@ -212,12 +211,6 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
               />
             </div>
           )}
-
-          {/* Ad Badge Tag */}
-          <span className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-amber-600 text-emerald-950 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full z-20 shadow-lg border border-amber-300/50 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-950 animate-ping" />
-            {currentAd.video ? '🔔 Awareness Video' : 'Sponsored Banner'}
-          </span>
 
           {/* Next / Prev 3D Side Chevron Buttons */}
           {activeAds.length > 1 && (
@@ -239,38 +232,6 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
             </>
           )}
 
-          {/* Bottom Gradient Caption Tray */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10 text-white text-left flex items-end justify-between gap-4">
-            <div className="max-w-2xl">
-              <a 
-                href={currentAd.link || '#'} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="group/link inline-block"
-              >
-                <h3 className="font-serif text-lg sm:text-2xl font-bold text-amber-300 group-hover/link:underline flex items-center gap-2">
-                  {currentAd.name}
-                  {currentAd.link && <ExternalLink size={16} className="opacity-70 group-hover/link:opacity-100" />}
-                </h3>
-              </a>
-              {currentAd.caption && (
-                <p className="text-xs sm:text-sm text-slate-200/90 mt-1 line-clamp-2 leading-relaxed">
-                  {currentAd.caption}
-                </p>
-              )}
-            </div>
-
-            {/* Direct Contact Button */}
-            <a
-              href="https://wa.me/96899111870"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition border border-emerald-500 shadow-lg active:scale-95"
-            >
-              <PhoneCall size={14} /> WhatsApp Sponsor
-            </a>
-          </div>
-
           {/* Auto-Slide Timer Progress Line */}
           {isPlaying && activeAds.length > 1 && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800 z-20">
@@ -282,47 +243,64 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
           )}
         </div>
 
-        {/* 3D FOOTER CONTROL TOOLBAR */}
-        <div className="mt-2 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-2 px-4 rounded-b-xl flex items-center justify-between border-t border-slate-800 text-slate-300 text-xs">
+        {/* 3D FOOTER CONTROL & SPONSOR INFO TOOLBAR (Below the screen canvas) */}
+        <div className="mt-2 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-2.5 px-4 rounded-b-xl border-t border-slate-800 text-slate-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-1.5 rounded-md hover:bg-slate-800 text-amber-400 transition"
+              className="p-1.5 rounded-md hover:bg-slate-800 text-amber-400 transition shrink-0"
               title={isPlaying ? "Pause auto-slide" : "Play auto-slide"}
             >
               {isPlaying ? <Pause size={14} /> : <Play size={14} />}
             </button>
-            <span className="text-[11px] font-mono text-slate-400">
-              Ad <strong className="text-amber-400">{currentIndex + 1}</strong> of {activeAds.length}
-            </span>
+            
+            <div className="truncate">
+              <span className="font-serif font-bold text-amber-300 text-sm mr-2">{currentAd.name}</span>
+              {currentAd.caption && (
+                <span className="text-[11px] text-slate-400 hidden md:inline truncate">{currentAd.caption}</span>
+              )}
+            </div>
           </div>
 
-          {/* Slide Indicator Dots */}
-          {activeAds.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              {activeAds.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`h-2 rounded-full transition-all cursor-pointer ${
-                    idx === currentIndex ? 'bg-amber-400 w-6' : 'bg-slate-700 hover:bg-slate-500 w-2'
-                  }`}
-                  title={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+            {/* Slide Indicator Dots */}
+            {activeAds.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                {activeAds.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${
+                      idx === currentIndex ? 'bg-amber-400 w-5' : 'bg-slate-700 hover:bg-slate-500 w-2'
+                    }`}
+                    title={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Book Billboard CTA */}
-          <a 
-            href="https://wa.me/96899111870" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
-          >
-            <PhoneCall size={12} /> OPC Ads Booking
-          </a>
+            {currentAd.link && (
+              <a
+                href={currentAd.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 hover:text-amber-300 font-bold text-[11px] flex items-center gap-1 transition"
+              >
+                <ExternalLink size={12} /> Visit Link
+              </a>
+            )}
+
+            {/* Direct WhatsApp Contact Button */}
+            <a 
+              href="https://wa.me/96899111870" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-[11px] flex items-center gap-1 transition shadow-xs"
+            >
+              <PhoneCall size={12} /> Ads Contact
+            </a>
+          </div>
         </div>
       </div>
 

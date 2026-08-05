@@ -60,12 +60,41 @@ interface AdminPanelProps {
   onViewDocuments: (member: Member) => void;
 }
 
-// Helper to convert base64
+// Helper to convert base64 with auto scaling so any image size works seamlessly
 const getBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => {
+      const src = reader.result as string;
+      if (!file.type.startsWith('image/')) {
+        return resolve(src);
+      }
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        const maxDim = 1200;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(src);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.8));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    };
     reader.onerror = error => reject(error);
   });
 };
@@ -909,10 +938,6 @@ export default function AdminPanel({
     if (e.target.files && e.target.files[0]) {
       try {
         const file = e.target.files[0];
-        if (file.size > 1200000) {
-          alert('Image size exceeds 1.2MB limit. Please compress and choose a smaller picture.');
-          return;
-        }
         const b64 = await getBase64(file);
         setFPhoto(b64);
       } catch (err) {
@@ -4691,7 +4716,7 @@ export default function AdminPanel({
                       />
                     </label>
                     <span className="text-[9px] text-slate-400 block mt-1.5 leading-relaxed">
-                      Recommended square ratio. Max file payload size 1.2MB.
+                      Upload Portrait photo.
                     </span>
                   </div>
                 </div>
@@ -5042,7 +5067,7 @@ export default function AdminPanel({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border border-dashed border-slate-200 p-3 rounded-lg">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Option A: Upload Wide Banner Image (dimensions: ~1200x400)</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Option A: Upload Banner Image</label>
                   <input 
                     type="file" 
                     accept="image/*" 
