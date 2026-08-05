@@ -57,6 +57,7 @@ import {
 
 // Importing sub-components
 import SponsoredBillboard from './components/SponsoredBillboard';
+import Glass3DPipeTicker from './components/Glass3DPipeTicker';
 import OmanDistrictMap from './components/OmanDistrictMap';
 import DocumentModal from './components/DocumentModal';
 import FounderProfileModal from './components/FounderProfileModal';
@@ -1586,47 +1587,8 @@ export default function App() {
                   Sponsors and Promotions
                 </h2>
 
-                {/* Announcement Ticker Strip Moving from Right to Left on top of Ads Billboard */}
-                <div className="w-full bg-emerald-950 text-white border border-amber-500/35 rounded-xl overflow-hidden flex items-center h-10 shadow-md">
-                  {/* Fixed Label Badge */}
-                  <div className="bg-amber-500 text-emerald-950 px-3.5 h-full flex items-center font-sans font-extrabold text-[10px] tracking-wider uppercase shrink-0 select-none border-r border-amber-500/20 z-10 shadow-md">
-                    📢 OPC Bulletin Ticker
-                  </div>
-                  {/* Endless Scrolling Text Track */}
-                  <div className="flex-1 overflow-hidden relative h-full flex items-center bg-emerald-950/20">
-                    <div className="animate-marquee animate-marquee-paused-on-hover flex items-center gap-16 pr-16">
-                      {(() => {
-                        const defaultBulletins = [
-                          "Diaspora Chapter: Support guidelines and welfare claim services are active.",
-                          "Community Coordination: Connect with regional councils for general assistance.",
-                          "Elections Portal: Join the digital democracy and register cabinet candidacies for community councils.",
-                          "Emergency Helpline: Immediate contact details for community representatives are updated."
-                        ];
-                        const bulletinItems = news && news.length > 0 
-                          ? news.map(n => `${n.title}: ${n.content.slice(0, 150)}${n.content.length > 150 ? '...' : ''}`)
-                          : defaultBulletins;
-                        
-                        return (
-                          <>
-                            {bulletinItems.map((text, idx) => (
-                              <div key={`orig-${idx}`} className="flex items-center gap-2 whitespace-nowrap text-xs font-semibold text-amber-100 font-sans">
-                                <span className="inline-block w-1.5 h-1.5 bg-amber-400 rounded-full shrink-0 animate-pulse"></span>
-                                <span>{text}</span>
-                              </div>
-                            ))}
-                            {/* Duplicate loop for perfect endless tiling transition */}
-                            {bulletinItems.map((text, idx) => (
-                              <div key={`dup-${idx}`} className="flex items-center gap-2 whitespace-nowrap text-xs font-semibold text-amber-100 font-sans">
-                                <span className="inline-block w-1.5 h-1.5 bg-amber-400 rounded-full shrink-0 animate-pulse"></span>
-                                <span>{text}</span>
-                              </div>
-                            ))}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
+                {/* 3D Glass Pipe Announcement Ticker Strip */}
+                <Glass3DPipeTicker news={news} />
 
                 <SponsoredBillboard ads={ads} />
               </section>

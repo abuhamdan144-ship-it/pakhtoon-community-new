@@ -90,3 +90,37 @@ h1, h2, h3, h4 {
   to { width: 100%; }
 }
 
+/* 3D Glass Pipe Glint Sheen animation */
+@keyframes pipeGlint {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-pipe-glint {
+  animation: pipeGlint 4s ease-in-out infinite;
+}
+
+/* Flashing Neon Light Tube animation for ticker words */
+@keyframes lightBlink {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 1)) drop-shadow(0 0 22px rgba(245, 158, 11, 0.9));
+  }
+  45% {
+    opacity: 0.75;
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.6));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 1)) drop-shadow(0 0 28px rgba(251, 191, 36, 1));
+  }
+  75% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.7));
+  }
+}
+
+.animate-light-blink {
+  animation: lightBlink 3s ease-in-out infinite;
+}
+
