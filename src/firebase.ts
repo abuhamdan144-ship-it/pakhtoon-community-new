@@ -2,14 +2,17 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { OperationType, FirestoreErrorInfo } from './types';
+export { OperationType };
+export type { FirestoreErrorInfo };
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize the App
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore targeting the specific applet Database ID instance
+// Initialize Firestore targeting the default database unless a custom non-ai-studio database is set
 const rawDbId = (firebaseConfig as any).firestoreDatabaseId;
-export const db = rawDbId && rawDbId !== '(default)' ? getFirestore(app, rawDbId) : getFirestore(app);
+const useNamedDb = rawDbId && rawDbId !== '(default)' && !rawDbId.startsWith('ai-studio-');
+export const db = useNamedDb ? getFirestore(app, rawDbId) : getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);

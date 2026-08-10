@@ -170,6 +170,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Reports Collection Rules
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
     // Settings Collection Rules
     match /settings/{settingId} {
       allow read: if true;

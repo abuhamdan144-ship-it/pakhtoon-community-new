@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from './firebase';
+import { seedFirestoreDatabase } from './utils/seedFirestore';
 
 enum OperationType {
   CREATE = 'create',
@@ -393,8 +394,21 @@ export default function App() {
   // --- Snapshot synchronizations ---
   useEffect(() => {
     // Auth Listener
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      if (user) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || '',
+            photoURL: user.photoURL || '',
+            lastLogin: Timestamp.now()
+          }, { merge: true });
+        } catch (e) {
+          // Ignore if permissions not ready
+        }
+      }
       if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.email === 'admin@opc.com' || user.email === 'malakabbas47@gmail.com' || user.providerData.some(p => p.providerId === 'password'))) {
         setAdminUser(user);
       } else {
@@ -417,18 +431,25 @@ export default function App() {
       : query(collection(db, 'incidents'), where('status', '==', 'published'));
 
     const loadAllData = async () => {
+      // Auto-seed Firestore database if empty
+      try {
+        await seedFirestoreDatabase(false);
+      } catch (seedErr) {
+        // Silently continue if permissions not granted yet
+      }
+
       // 1. Members
       try {
-        const snap = await getDocs(membersQuery);
+        const snap = await getDocs(collection(db, 'members'));
         if (isMounted) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as Member }));
-          if (!adminUser) {
-            list.sort((a, b) => {
-              const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
-              const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
-              return timeB - timeA;
-            });
-          }
+          const allMembers = snap.docs.map(d => ({ id: d.id, ...d.data() as Member }));
+          // Show all members unless explicitly rejected for public visitors
+          const list = allMembers.filter(m => adminUser || m.status !== 'rejected');
+          list.sort((a, b) => {
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+            return timeB - timeA;
+          });
           if (list.length > 0) setMembers(list);
         }
       } catch (err) {
@@ -448,7 +469,7 @@ export default function App() {
 
       // 3. Donations
       try {
-        const snap = await getDocs(query(collection(db, 'donations'), orderBy('date', 'desc')));
+        const snap = await getDocs(collection(db, 'donations'));
         if (isMounted) {
           const allItems = snap.docs.map(d => ({ id: d.id, ...d.data() as Donation }));
           const list = allItems.filter(d => {
@@ -457,6 +478,7 @@ export default function App() {
             const isTest = donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso');
             return !isTest;
           });
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           if (list.length > 0) setDonations(list);
 
           if (adminUser) {
@@ -475,28 +497,35 @@ export default function App() {
 
       // 4. News
       try {
-        const snap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
+        const snap = await getDocs(collection(db, 'news'));
         if (isMounted) {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() as NewsAnnouncement }));
+          list.sort((a, b) => {
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+            return timeB - timeA;
+          });
           if (list.length > 0) setNews(list);
         }
       } catch (err) {
         handleFirestoreError(err, OperationType.GET, 'news');
       }
 
-      // 5. Incidents
+      // 5. Incidents / Reports
       try {
-        const snap = await getDocs(incidentsQuery);
+        const incidentsSnap = await getDocs(collection(db, 'incidents')).catch(() => ({ docs: [] }));
+        const reportsSnap = await getDocs(collection(db, 'reports')).catch(() => ({ docs: [] }));
         if (isMounted) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as IncidentReport }));
-          if (!adminUser) {
-            list.sort((a, b) => {
-              const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
-              const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
-              return timeB - timeA;
-            });
-          }
-          if (list.length > 0) setIncidents(list);
+          const listFromIncidents = incidentsSnap.docs.map(d => ({ id: d.id, ...d.data() as IncidentReport }));
+          const listFromReports = reportsSnap.docs.map(d => ({ id: d.id, ...d.data() as IncidentReport }));
+          const combined = [...listFromIncidents, ...listFromReports];
+          const filtered = combined.filter(inc => adminUser || (inc.status as string) !== 'rejected');
+          filtered.sort((a, b) => {
+            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+            return timeB - timeA;
+          });
+          if (filtered.length > 0) setIncidents(filtered);
         }
       } catch (err) {
         handleFirestoreError(err, OperationType.GET, 'incidents');
