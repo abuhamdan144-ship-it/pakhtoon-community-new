@@ -49,13 +49,34 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  return errInfo;
 }
 import { 
   Member, Donation, CabinetMember, CabinetMeeting, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, FounderProfile 
 } from './types';
+import {
+  DEFAULT_MEMBERS, DEFAULT_CABINET, DEFAULT_NEWS, DEFAULT_ELECTIONS, DEFAULT_EMBASSY, DEFAULT_FOUNDER, DEFAULT_DONATIONS, DEFAULT_INCIDENTS
+} from './defaultData';
 
-// Importing sub-components
+// Importing sub-components & modular components
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import Hero from './components/Hero';
+import Stats from './components/Stats';
+import Cabinet from './components/Cabinet';
+import News from './components/News';
+import ElectionsComponent from './components/Elections';
+import Incidents from './components/Incidents';
+import LiveTV from './components/LiveTV';
+import Membership from './components/Membership';
+
+// Importing pages
+import Home from './pages/Home';
+import Register from './pages/Register';
+import ElectionsPage from './pages/Elections';
+import Report from './pages/Report';
+import AdminPage from './pages/Admin';
+
 import SponsoredBillboard from './components/SponsoredBillboard';
 import Glass3DPipeTicker from './components/Glass3DPipeTicker';
 import OmanDistrictMap from './components/OmanDistrictMap';
@@ -190,14 +211,15 @@ export default function App() {
   }, []);
 
   // --- Realtime DB Collections State ---
-  const [members, setMembers] = useState<Member[]>([]);
-  const [cabinet, setCabinet] = useState<CabinetMember[]>([]);
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [news, setNews] = useState<NewsAnnouncement[]>([]);
-  const [incidents, setIncidents] = useState<IncidentReport[]>([]);
-  const [embassy, setEmbassy] = useState<EmbassySetting>({});
-  const [founderProfile, setFounderProfile] = useState<FounderProfile>({});
-  const [elections, setElections] = useState<Election[]>([]);
+  const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
+  const [cabinet, setCabinet] = useState<CabinetMember[]>(DEFAULT_CABINET);
+  const [donations, setDonations] = useState<Donation[]>(DEFAULT_DONATIONS);
+  const donationTotal = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const [news, setNews] = useState<NewsAnnouncement[]>(DEFAULT_NEWS);
+  const [incidents, setIncidents] = useState<IncidentReport[]>(DEFAULT_INCIDENTS);
+  const [embassy, setEmbassy] = useState<EmbassySetting>(DEFAULT_EMBASSY);
+  const [founderProfile, setFounderProfile] = useState<FounderProfile>(DEFAULT_FOUNDER);
+  const [elections, setElections] = useState<Election[]>(DEFAULT_ELECTIONS);
   const [ads, setAds] = useState<SponsoredAd[]>([]);
   const [meetings, setMeetings] = useState<CabinetMeeting[]>([]);
 
@@ -368,7 +390,7 @@ export default function App() {
             return timeB - timeA;
           });
         }
-        setMembers(list);
+        if (list.length > 0) setMembers(list);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'members');
@@ -379,7 +401,8 @@ export default function App() {
     const unsubscribeCabinet = onSnapshot(
       collection(db, 'cabinet'),
       (snapshot) => {
-        setCabinet(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMember })));
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMember }));
+        if (list.length > 0) setCabinet(list);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'cabinet');
@@ -400,7 +423,7 @@ export default function App() {
           return !isTest;
         });
         
-        setDonations(list);
+        if (list.length > 0) setDonations(list);
         
         // Auto-purge any test donation from the DB (only triggered for authorized admins to prevent guest permission-denied errors)
         if (adminUser) {
@@ -425,7 +448,8 @@ export default function App() {
     const unsubscribeNews = onSnapshot(
       query(collection(db, 'news'), orderBy('createdAt', 'desc')),
       (snapshot) => {
-        setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as NewsAnnouncement })));
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as NewsAnnouncement }));
+        if (list.length > 0) setNews(list);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'news');
@@ -444,7 +468,7 @@ export default function App() {
             return timeB - timeA;
           });
         }
-        setIncidents(list);
+        if (list.length > 0) setIncidents(list);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'incidents');
@@ -481,7 +505,8 @@ export default function App() {
     const unsubscribeElections = onSnapshot(
       query(collection(db, 'elections'), orderBy('createdAt', 'desc')),
       (snapshot) => {
-        setElections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Election })));
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Election }));
+        if (list.length > 0) setElections(list);
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'elections');
@@ -690,6 +715,34 @@ export default function App() {
       alert('Error creating report: ' + err.message);
     } finally {
       setILoading(false);
+    }
+  };
+
+  // Helper for Membership component direct registration
+  const handleNewMemberRegister = async (data: Omit<Member, 'id' | 'createdAt' | 'status'>) => {
+    try {
+      await addDoc(collection(db, 'members'), {
+        ...data,
+        status: 'pending',
+        createdAt: Timestamp.now()
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'members');
+      throw err;
+    }
+  };
+
+  // Helper for Incidents component direct filing
+  const handleIncidentSubmitDirect = async (data: Omit<IncidentReport, 'id' | 'createdAt'>) => {
+    try {
+      await addDoc(collection(db, 'incidents'), {
+        ...data,
+        status: 'pending',
+        createdAt: Timestamp.now()
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'incidents');
+      throw err;
     }
   };
 
@@ -969,1354 +1022,67 @@ export default function App() {
         onToggleTheme={() => setIsNationalThemeActive(!isNationalThemeActive)} 
       />
       
-      {/* ----------------- APP NAVBAR HEADER ----------------- */}
-      <header className={`sticky top-0 z-50 shadow-md ${isNationalThemeActive ? 'bg-[#01411C] text-white border-b border-amber-400/20' : 'bg-emerald-900 text-amber-50'}`}>
-        <div className="container mx-auto max-w-7xl px-4 flex justify-between items-center h-16">
-          
-          <div 
-            onClick={() => {
-              setCurrentPage('home');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="flex items-center gap-2.5 text-left cursor-pointer hover:opacity-95 select-none group"
-            id="brand-header-link"
-          >
-            <div className="bg-white rounded-full p-0.5 border border-amber-450 overflow-hidden w-9.5 h-9.5 sm:w-11 sm:h-11 flex items-center justify-center shrink-0 shadow-sm">
-              <img src={logoImg} alt="OPC Logo" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
-            </div>
-            <div>
-              <span className="font-display font-black text-sm sm:text-base block tracking-tight text-amber-400 leading-none group-hover:text-amber-300 transition">
-                {t.portalTitle || 'OPC PORTAL'}
-              </span>
-              <span className="text-[9px] uppercase tracking-wider text-amber-100/80 block leading-tight mt-0.5 font-medium">
-                {t.omanPakhtoon || 'Pakhtoon Community'}
-              </span>
-            </div>
-          </div>
+      {/* Sticky Glassmorphism Header Navbar */}
+      <Navbar 
+        activeTab={currentPage}
+        setActiveTab={(tab) => {
+          setCurrentPage(tab as any);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        lang={language}
+        setLang={handleLanguageChange}
+        isAdmin={!!adminUser}
+        onOpenAdminAuth={() => {
+          if (adminUser) {
+            setCurrentPage('admin');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            handleGoogleSignIn();
+          }
+        }}
+      />
 
-          {/* Desktop Nav links */}
-          <nav className="hidden lg:flex items-center gap-1.5 font-medium text-xs">
-            {[
-              { id: 'home', label: t.home || 'Home Portal' },
-              { id: 'register', label: t.register || 'Register Membership' },
-              { id: 'cabinet', label: t.cabinet || 'OPC Cabinet' },
-              { id: 'elections', label: t.elections || 'Cast Vote' },
-              { id: 'report', label: t.report || 'Report Incident' },
-              { id: 'chat', label: t.chat || 'AI Assistant' },
-              { id: 'admin', label: t.admin || 'Admin Terminal' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setCurrentPage(tab.id as any)}
-                className={`px-3.5 py-2 rounded-md transition duration-150 cursor-pointer ${
-                  currentPage === tab.id 
-                    ? 'bg-amber-500 text-emerald-980 font-bold' 
-                    : 'hover:bg-emerald-800/80 text-amber-100/90'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-
-          {/* Desktop Language Selector, Notification Bell & User Auth Section (Google Sign-In) */}
-          <div className="hidden lg:flex items-center gap-3 border-l border-emerald-800/80 pl-4">
-            {/* Language Selector */}
-            <div className="flex items-center gap-1 bg-emerald-950 border border-emerald-800 px-2 py-1.5 rounded-lg text-xs font-semibold">
-              <span className="text-amber-100/70 mr-0.5 text-[10px] uppercase tracking-wider">{t.language || 'Language'}:</span>
-              <select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value as Language)}
-                className="bg-transparent text-amber-400 font-bold focus:outline-none cursor-pointer text-xs uppercase"
-              >
-                <option value="en" className="bg-emerald-900 text-amber-50">EN</option>
-                <option value="ur" className="bg-emerald-900 text-amber-50">اردو</option>
-                <option value="ps" className="bg-emerald-900 text-amber-50">پښتو</option>
-              </select>
-            </div>
-
-            {/* Notification Bell */}
-            <div className="relative" id="notification-bell-container">
-              <button
-                onClick={() => setBellMenuOpen(!bellMenuOpen)}
-                className="relative p-2 rounded-lg bg-emerald-950 border border-emerald-805 hover:bg-emerald-800 transition duration-150 cursor-pointer text-amber-100 flex items-center justify-center h-8.5 w-8.5"
-                title={t.electionAlerts || "Election Alerts"}
-              >
-                <Bell size={15} className={unvotedOpenCount > 0 ? "animate-bounce" : ""} />
-                {unvotedOpenCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white px-1 leading-none shadow-sm animate-pulse">
-                    {unvotedOpenCount}
-                  </span>
-                )}
-              </button>
-
-              <AnimatePresence>
-                {bellMenuOpen && (
-                  <>
-                    {/* Overlay to handle click outside */}
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent" 
-                      onClick={() => setBellMenuOpen(false)} 
-                    />
-                    
-                    {/* Dropdown Card */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 text-left font-sans"
-                    >
-                      <div className="bg-emerald-900 text-amber-50 p-3.5 flex justify-between items-center border-b border-emerald-850">
-                        <span className="font-serif font-bold text-sm flex items-center gap-2">
-                          <Bell size={15} className="text-amber-400" />
-                          {t.electionAlerts || "Election Alerts"}
-                        </span>
-                        {unvotedOpenCount > 0 && (
-                          <span className="bg-amber-400 text-emerald-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-                            {unvotedOpenCount} New
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
-                        {openElections.length === 0 ? (
-                          <div className="p-6 text-center text-xs text-slate-400 font-sans">
-                            {t.noActiveElections || "No active elections at the moment."}
-                          </div>
-                        ) : (
-                          openElections.map((el) => {
-                            const hasVoted = !!userVotedElections[el.id || ''];
-                            return (
-                              <div key={el.id} className="p-3.5 hover:bg-slate-50 transition flex flex-col gap-2">
-                                <div className="flex justify-between items-start gap-2">
-                                  <span className="font-serif font-bold text-xs text-slate-850 line-clamp-2 leading-tight">
-                                    {el.title}
-                                  </span>
-                                  <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded shrink-0 ${
-                                    hasVoted 
-                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  }`}>
-                                    {hasVoted ? (t.voted || "Voted") : (t.activePoll || "Active Poll")}
-                                  </span>
-                                </div>
-                                
-                                {!hasVoted && (
-                                  <button
-                                    onClick={() => {
-                                      setCurrentPage('elections');
-                                      setBellMenuOpen(false);
-                                      // Scroll to the cast vote container smoothly
-                                      setTimeout(() => {
-                                        const elSection = document.getElementById('elections-container-anchor');
-                                        if (elSection) {
-                                          elSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                        }
-                                      }, 100);
-                                    }}
-                                    className="w-full text-center bg-amber-500 hover:bg-amber-600 font-extrabold text-[11px] text-emerald-990 py-1.5 rounded transition shadow-xs focus:outline-none cursor-pointer"
-                                  >
-                                    {t.voteNow || "Vote Now"}
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {currentUser ? (
-              <div className="flex items-center gap-2">
-                {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} alt="User Avatar" className="w-8 h-8 rounded-full border border-amber-450" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-bold text-xs uppercase">
-                    {currentUser.displayName?.[0] || 'U'}
-                  </div>
-                )}
-                <div className="text-left">
-                  <span className="text-[11px] font-semibold text-amber-305 block max-w-[120px] truncate leading-none">{currentUser.displayName || 'Authorized User'}</span>
-                  <button onClick={handleGoogleSignOut} className="text-[9px] text-amber-140/80 hover:text-amber-300 font-bold tracking-wider uppercase block mt-1 hover:underline transition">{t.signOut || 'Sign Out'}</button>
-                </div>
-              </div>
-            ) : (
-              <button 
-                onClick={handleGoogleSignIn}
-                className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 text-xs font-bold px-3 py-1.5 rounded-md shadow transition duration-150 cursor-pointer flex items-center gap-1.5"
-              >
-                <img src="https://www.google.com/favicon.ico" alt="Google icon" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
-                {t.signIn || 'Sign In'}
-              </button>
-            )}
-          </div>
-
-          {/* Mobile bell & hamburger toggles */}
-          <div className="lg:hidden flex items-center gap-2">
-            {/* Mobile Notification Bell */}
-            <div className="relative">
-              <button
-                onClick={() => setBellMenuOpen(!bellMenuOpen)}
-                className="relative p-2 rounded-lg bg-emerald-950 border border-emerald-800 hover:bg-emerald-800 transition duration-150 cursor-pointer text-amber-100 flex items-center justify-center h-9 w-9"
-                title={t.electionAlerts || "Election Alerts"}
-              >
-                <Bell size={18} className={unvotedOpenCount > 0 ? "animate-bounce" : ""} />
-                {unvotedOpenCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white px-1 leading-none shadow-sm animate-pulse">
-                    {unvotedOpenCount}
-                  </span>
-                )}
-              </button>
-
-              <AnimatePresence>
-                {bellMenuOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40 bg-black/10" 
-                      onClick={() => setBellMenuOpen(false)} 
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-3 w-72 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 text-left font-sans"
-                    >
-                      <div className="bg-emerald-900 text-amber-50 p-3 flex justify-between items-center border-b border-emerald-850">
-                        <span className="font-serif font-bold text-xs flex items-center gap-1.5">
-                          <Bell size={13} className="text-amber-400" />
-                          {t.electionAlerts || "Election Alerts"}
-                        </span>
-                        {unvotedOpenCount > 0 && (
-                          <span className="bg-amber-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                            {unvotedOpenCount} New
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
-                        {openElections.length === 0 ? (
-                          <div className="p-4 text-center text-[11px] text-slate-400 font-sans">
-                            {t.noActiveElections || "No active elections at the moment."}
-                          </div>
-                        ) : (
-                          openElections.map((el) => {
-                            const hasVoted = !!userVotedElections[el.id || ''];
-                            return (
-                              <div key={el.id} className="p-3 hover:bg-slate-50 transition flex flex-col gap-1.5">
-                                <div className="flex justify-between items-start gap-1">
-                                  <span className="font-serif font-bold text-[11px] text-slate-850 line-clamp-2 leading-tight">
-                                    {el.title}
-                                  </span>
-                                  <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1 py-0.5 rounded shrink-0 ${
-                                    hasVoted 
-                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  }`}>
-                                    {hasVoted ? (t.voted || "Voted") : (t.activePoll || "Active Poll")}
-                                  </span>
-                                </div>
-                                
-                                {!hasVoted && (
-                                  <button
-                                    onClick={() => {
-                                      setCurrentPage('elections');
-                                      setBellMenuOpen(false);
-                                      setMobileMenuOpen(false);
-                                      setTimeout(() => {
-                                        const elSection = document.getElementById('elections-container-anchor');
-                                        if (elSection) {
-                                          elSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                        }
-                                      }, 150);
-                                    }}
-                                    className="w-full text-center bg-amber-500 hover:bg-amber-600 font-black text-[10px] text-emerald-990 py-1.5 rounded transition cursor-pointer"
-                                  >
-                                    {t.voteNow || "Vote Now"}
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <button 
-              className="text-amber-400 p-1 rounded-md hover:bg-emerald-800 transition flex items-center justify-center h-9 w-9"
-              onClick={() => {
-                setMobileMenuOpen(!mobileMenuOpen);
-                setBellMenuOpen(false);
-              }}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Heritage Color Stripe accent */}
-        <div className="h-1 flex w-full">
-          <div className="h-full bg-emerald-805 flex-1" style={{ backgroundColor: '#1b4d3e' }} />
-          <div className="h-full bg-amber-400 flex-1" style={{ backgroundColor: '#fbbf24' }} />
-          <div className="h-full bg-emerald-950 flex-1" style={{ backgroundColor: '#064e3b' }} />
-        </div>
-
-        {/* Mobile menu panel with smooth Framer Motion height/opacity transitions */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-              className="lg:hidden bg-emerald-950/95 border-t border-emerald-800 py-3 px-4 flex flex-col gap-1 overflow-hidden"
-              id="mobile-menu-panel"
-            >
-              {/* Mobile Auth button at top */}
-              <div className="border-b border-emerald-800 pb-3 mb-2 pt-1 text-left">
-                {currentUser ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {currentUser.photoURL ? (
-                        <img src={currentUser.photoURL} alt="User Avatar" className="w-7 h-7 rounded-full border border-amber-450" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-amber-500 text-emerald-950 flex items-center justify-center font-bold text-xs">
-                          {currentUser.displayName?.[0] || 'U'}
-                        </div>
-                      )}
-                      <span className="text-xs font-bold text-amber-400">{currentUser.displayName || 'Authorized Member'}</span>
-                    </div>
-                    <button onClick={() => { handleGoogleSignOut(); setMobileMenuOpen(false); }} className="text-[10px] bg-emerald-850 hover:bg-emerald-800 text-amber-300 border border-emerald-700 font-bold px-2 py-1 rounded">
-                      {t.signOut || 'Sign Out'}
-                    </button>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      handleGoogleSignIn();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs py-2 rounded-md"
-                  >
-                    <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-3.5 h-3.5 rounded-full bg-white p-0.5" />
-                    {t.signIn || 'Sign In'}
-                  </button>
-                )}
-              </div>
-
-              {/* Mobile Language Selection Buttons */}
-              <div className="flex items-center justify-between border-b border-emerald-800 pb-3 mb-3">
-                <span className="text-[11px] font-bold text-amber-200/90 tracking-wider font-sans uppercase">{t.language || 'Language'}:</span>
-                <div className="flex gap-1.5">
-                  {(['en', 'ur', 'ps'] as Language[]).map((langKey) => (
-                    <button
-                      key={langKey}
-                      onClick={() => handleLanguageChange(langKey)}
-                      className={`px-3 py-1 rounded text-xs font-bold transition ${
-                        language === langKey 
-                          ? 'bg-amber-500 text-emerald-950 shadow-xs' 
-                          : 'bg-emerald-900 text-amber-100 hover:bg-emerald-850'
-                      }`}
-                    >
-                      {langKey === 'en' ? 'English' : langKey === 'ur' ? 'اردو' : 'پښتو'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {[
-                { id: 'home', label: t.home || 'Home Portal' },
-                { id: 'register', label: t.register || 'Register Membership' },
-                { id: 'cabinet', label: t.cabinet || 'OPC Cabinet' },
-                { id: 'elections', label: t.elections || 'Cast Vote' },
-                { id: 'report', label: t.report || 'Report Incident' },
-                { id: 'chat', label: t.chat || 'AI Assistant' },
-                { id: 'admin', label: t.admin || 'Admin Terminal' },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setCurrentPage(tab.id as any);
-                    setMobileMenuOpen(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className={`w-full text-left p-2.5 rounded-md text-sm font-semibold transition cursor-pointer ${
-                    currentPage === tab.id ? 'bg-amber-500 text-emerald-950 font-bold shadow-xs' : 'text-amber-100 hover:bg-emerald-900/50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-
-              {/* Dedicated Back to Top quick action button in menu */}
-              <button
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  setMobileMenuOpen(false);
-                }}
-                className="mt-2.5 flex items-center justify-center gap-2 w-full p-2.5 rounded-md text-xs font-bold uppercase tracking-wider text-amber-400 bg-emerald-900 hover:bg-emerald-850 border border-emerald-800 transition cursor-pointer active:scale-98"
-                id="back-to-top-menu-btn"
-              >
-                <ArrowUp size={13} className="animate-bounce" />
-                Back To Top
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
 
       {/* ----------------- PAGES CONTENT ----------------- */}
       <main className="flex-1">
 
         {/* HOME PORTAL */}
         {currentPage === 'home' && (
-          <div className="fade-in">
-            
-            {/* HERO HERO SECTION */}
-            <div className={`pt-12 pb-8 px-4 text-center border-b relative overflow-hidden transition-colors duration-500 ${
-              isNationalThemeActive 
-                ? 'bg-gradient-to-br from-[#01411C] via-[#025624] to-[#013516] text-white border-amber-400/30' 
-                : 'bg-gradient-to-br from-emerald-950 to-emerald-900 text-white border-amber-500/10'
-            }`}>
-              {/* Background Sparkles & Crescent-Star Watermark if Theme Active */}
-              {isNationalThemeActive && (
-                <>
-                  <div className="absolute top-0 right-0 -mt-12 -mr-12 opacity-15 pointer-events-none animate-crescent-glow">
-                    <CrescentStarIcon className="w-80 h-80 text-amber-300" />
-                  </div>
-                  <div className="absolute bottom-0 left-0 -mb-12 -ml-12 opacity-10 pointer-events-none">
-                    <PakistaniFlagVector className="w-64 h-40 opacity-40 flag-wave-element" />
-                  </div>
-                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
-                </>
-              )}
-
-              <div className="container mx-auto max-w-4xl space-y-5 relative z-10">
-                
-                {/* Visual Emblem Badge Logo with Flag Accent */}
-                <div className="relative inline-block group">
-                  <div className="mx-auto w-24 h-24 sm:w-28 sm:h-28 bg-white p-1 rounded-full border-2 border-amber-450 shadow-xl overflow-hidden shadow-amber-500/10 flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer">
-                    <img src={logoImg} alt="Pakhtoon Community Crest" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
-                  </div>
-                  {isNationalThemeActive && (
-                    <div className="absolute -bottom-1 -right-1 bg-white p-0.5 rounded-md shadow-md border border-amber-400">
-                      <PakistaniFlagVector className="w-6 h-4" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <span className={`text-[10px] font-extrabold tracking-widest px-3.5 py-1 rounded-full select-none inline-flex items-center gap-1.5 uppercase ${
-                    isNationalThemeActive
-                      ? 'bg-amber-400 text-[#01411C] shadow-md border border-amber-300'
-                      : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                  }`}>
-                    {isNationalThemeActive ? (
-                      <>
-                        <CrescentStarIcon className="w-3.5 h-3.5" color="#01411C" />
-                        <span>🇵🇰 14 August – Independence Day 🇵🇰</span>
-                      </>
-                    ) : (
-                      t.omanChapter || 'DIASPORA COMMUNITY PLATFORM'
-                    )}
-                  </span>
-
-                  <motion.h1 
-                    initial={{ opacity: 0, x: -20, scale: 0.97 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight"
-                  >
-                    {isNationalThemeActive ? (
-                      <>
-                        🇵🇰 14 August – Independence Day 🇵🇰
-                      </>
-                    ) : (
-                      <>
-                        {t.welcomeTitle || 'Pakhtoon Community'} <span className="text-amber-400">{t.welcomeSubtitle || 'Portal'}</span>
-                      </>
-                    )}
-                  </motion.h1>
-
-                  <p className="text-amber-200/90 text-sm sm:text-lg font-serif font-bold tracking-wide">
-                    {isNationalThemeActive ? 'Pakhtoon Community salutes the nation' : (t.welcomeSubtitle || 'Diaspora Unity Platform')}
-                  </p>
-                </div>
-
-                <p className="text-amber-100/90 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-sans">
-                  {isNationalThemeActive ? (
-                    'Celebrating 14 August – Independence Day with honor, unity, faith, and discipline across the Pakhtoon diaspora. Pakistan Zindabad! 🇵🇰'
-                  ) : (
-                    t.heroDescription || 'The primary network providing general social assistance, welfare support, and cooperative cultural services for the diaspora Pakhtoon community.'
-                  )}
-                </p>
-
-                {/* Metric stats card badges */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-4 max-w-5xl mx-auto z-10">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
-                  >
-                    <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.registeredMembers || 'Verified Members'}
-                    </span>
-                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
-                      <AnimatedCounter value={totalApprovedMembers} />
-                    </p>
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
-                  >
-                    <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Regional Districts
-                    </span>
-                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
-                      <AnimatedCounter value={11} />
-                    </p>
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.25 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
-                  >
-                    <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> Cabinet Councils
-                    </span>
-                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
-                      <AnimatedCounter value={cabinet.length || 12} />
-                    </p>
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    className="bg-white/5 border border-amber-500/25 rounded-lg p-3 sm:p-4 backdrop-blur-xs text-center"
-                  >
-                    <span className="flex items-center justify-center gap-1 text-[10px] font-bold tracking-widest text-amber-400 uppercase">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse" /> {t.reportedIncidents || 'Welfare Cases'}
-                    </span>
-                    <p className="text-2xl sm:text-3xl font-bold font-serif text-white mt-1.5">
-                      <AnimatedCounter value={reportedIncidentCount} />
-                    </p>
-                  </motion.div>
-                </div>
-                {/* Expand / Collapse Dashboard Toggle Button & Onboarding Quick Links */}
-                <div className="pt-6 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 z-20 relative font-sans">
-                  <button
-                    onClick={() => setShowPortalMainContent(!showPortalMainContent)}
-                    className="bg-emerald-800 border border-emerald-700/60 hover:bg-emerald-750 text-white active:scale-95 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-2 transition cursor-pointer select-none"
-                    id="toggle-main-content-btn"
-                  >
-                    {showPortalMainContent ? (
-                      <>
-                        <span>Hide Community Feed</span>
-                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-[9px] font-black">ON</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Show Community Feed</span>
-                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-[9px] font-black">OFF</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCurrentPage('register');
-                      setRegisterTab('submit');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-emerald-950 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5 transition cursor-pointer"
-                    id="register-here-btn"
-                  >
-                    <span>Register Here</span>
-                    <span className="bg-emerald-950/25 text-[9px] px-2 py-0.5 rounded-full font-black">NEW</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCurrentPage('register');
-                      setRegisterTab('lookup');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="bg-white/10 border border-white/25 hover:bg-white/15 active:scale-95 text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1.5 transition cursor-pointer"
-                    id="lookup-registered-btn"
-                  >
-                    <span>Registered Members</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {showPortalMainContent && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className="container mx-auto max-w-7xl px-4 py-8 space-y-12 overflow-hidden"
-                  id="portal-main-content-container"
-                >
-              
-              {/* 14 August Pakistan Zindabad Festive Showcase Section */}
-              {isNationalThemeActive && <PakistanZindabadSection />}
-
-              {/* SPONSORED SLIDER BILLBOARD */}
-              <section className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                  Sponsors and Promotions
-                </h2>
-
-                {/* 3D Glass Pipe Announcement Ticker Strip */}
-                <Glass3DPipeTicker news={news} />
-
-                <SponsoredBillboard ads={ads} />
-              </section>
-
-              {/* FOUNDER'S MESSAGE SECTION */}
-              <section className="bg-gradient-to-br from-amber-50 to-orange-50/20 border border-amber-200 rounded-2xl p-6 sm:p-8 md:p-10 shadow-xs relative overflow-hidden">
-                <div className="absolute top-0 right-0 transform translate-x-12 -translate-y-12 text-amber-500/5 pointer-events-none select-none">
-                  <Quote size={200} />
-                </div>
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 relative z-10">
-                  {/* Founder photo */}
-                  <div
-                    onClick={() => setFounderModalOpen(true)}
-                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 p-1 shadow-md shrink-0 flex items-center justify-center overflow-hidden cursor-pointer hover:scale-105 transition duration-300"
-                    title={`View ${founderProfile.name || 'Al-Haj Muhammad Amin'} Profile`}
-                  >
-                    <img
-                      src={founderProfile.photo || 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256&h=256'}
-                      alt={founderProfile.name || 'Al-Haj Muhammad Amin'}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  </div>
-                  {/* Message content */}
-                  <div className="space-y-4 text-center md:text-left flex-1 font-sans">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest font-sans">Message from the Founder</span>
-                      <h3 
-                        onClick={() => setFounderModalOpen(true)}
-                        className="text-2xl font-serif font-extrabold text-emerald-950 tracking-tight cursor-pointer hover:text-amber-800 transition"
-                      >
-                        {founderProfile.name || 'Al-Haj Muhammad Amin'}
-                      </h3>
-                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider font-sans">{founderProfile.position || 'Founder & President, Pakhtoon Community'}</p>
-                    </div>
-                    <blockquote className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed italic relative text-wrap break-words">
-                      "{founderProfile.quote || 'We established this platform with a pure, singular vision: to unite our diaspora under a banner of mutual welfare and brotherhood, ensuring no individual stands alone in times of need. From social assistance to repatriation support, we protect and support our community. Register with us and keep up the proud legacy of service.'}"
-                    </blockquote>
-                    <div className="pt-4 border-t border-amber-200/50 flex flex-col sm:flex-row gap-4 items-center justify-between font-sans">
-                      <p className="text-[11px] text-slate-400 italic">
-                        Established with a legacy of brotherhood &bull; Community Welfare Platform
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                        <button 
-                          onClick={() => setFounderModalOpen(true)}
-                          className="bg-amber-500 hover:bg-amber-655 text-emerald-950 font-bold text-xs uppercase px-4 py-2.5 rounded-xl shadow-xs hover:shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Award size={14} /> View Founder Profile
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setCurrentPage('register');
-                            window.scrollTo(0, 0);
-                          }}
-                          className="bg-emerald-900 border border-emerald-950 text-white font-bold text-xs uppercase px-4 py-2.5 rounded-xl shadow-xs hover:bg-emerald-950 hover:shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <UserPlus size={14} /> Join Our Brotherhood
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* COMMUNITY CABINET EXECUTIVE TEAM */}
-              <section className="space-y-4">
-                <div className="flex justify-between items-center border-b pb-2">
-                  <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                    Community Cabinet Members
-                  </h2>
-                  <button 
-                    onClick={() => {
-                      setCurrentPage('cabinet');
-                      window.scrollTo(0, 0);
-                    }}
-                    className="text-xs font-semibold text-emerald-800 hover:text-emerald-990 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    View Full Directory &rarr;
-                  </button>
-                </div>
-                <motion.div 
-                  variants={feedContainerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                >
-                  {cabinet.length === 0 ? (
-                    <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-medium font-serif w-full col-span-full">
-                      The official OPC cabinet bears directory is loaded as soon as an administrator sets up credentials.
-                    </div>
-                  ) : (
-                    [...cabinet]
-                      .sort((a, b) => {
-                        const priorityA = getPositionPriority(a.position);
-                        const priorityB = getPositionPriority(b.position);
-                        if (priorityA !== priorityB) {
-                          return priorityA - priorityB;
-                        }
-                        return a.name.localeCompare(b.name);
-                      })
-                      .slice(0, 8) // Show top 8 on home page, rest available in full tab directory
-                      .map((cm) => (
-                        <motion.div key={cm.id} variants={feedItemVariants} className="bg-white border rounded-xl shadow-xs overflow-hidden text-center p-5 space-y-3 hover:shadow-md transition">
-                          {cm.photo ? (
-                            <img src={cm.photo} alt={cm.name} className="w-24 h-24 rounded-full object-cover border-4 border-amber-400 mx-auto" />
-                          ) : (
-                            <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-dashed flex items-center justify-center font-bold font-serif text-3xl text-slate-400 mx-auto">
-                              {cm.name[0]}
-                            </div>
-                          )}
-                          <div>
-                            <h4 className="font-serif font-bold text-emerald-950 leading-tight">{cm.name}</h4>
-                            <span className="text-xs text-red-650 font-bold block mt-0.5 uppercase tracking-wide">
-                              {cm.position}
-                            </span>
-                          </div>
-                          {cm.phone && (
-                            <p className="text-[11px] font-mono font-semibold text-slate-500">
-                              Mob: {cm.phone}
-                            </p>
-                          )}
-                        </motion.div>
-                      ))
-                  )}
-                </motion.div>
-              </section>
-
-
-
-              {/* INCIDENTS WELFARE REPORTS LIST */}
-              <section className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                  Welfare &amp; Incident Reports (Audit Queue)
-                </h2>
-                <motion.div 
-                  variants={feedContainerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                  {incidents.filter(i => i.status === 'published').length === 0 ? (
-                    <div className="p-10 bg-white border border-slate-200 rounded-lg text-center text-slate-400 font-serif col-span-full">
-                      No reviewed welfare reports published for assistance. Submit claims via the "Report Incident" tab.
-                    </div>
-                  ) : (
-                    incidents.filter(i => i.status === 'published').map((item) => (
-                      <motion.div key={item.id} variants={feedItemVariants} className="bg-white border-l-4 border-l-red-651 border-y border-r rounded-r-xl p-5 text-left flex flex-col justify-between">
-                        <div className="space-y-3">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-extrabold tracking-wide ${
-                            item.type === 'death' ? 'bg-red-100 text-red-800' :
-                            item.type === 'injury' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {item.type}
-                          </span>
-                          <h4 className="font-serif font-bold text-emerald-950 text-base">{item.name}</h4>
-                          <p className="text-xs text-slate-500 leading-relaxed font-sans line-clamp-3">
-                            {item.description}
-                          </p>
-                        </div>
-                        <div className="border-t pt-2.5 mt-4 flex justify-between items-center text-[10px] text-slate-400">
-                          <span>Reported: {item.date}</span>
-                          <span className="font-mono">Contact: {item.contact}</span>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </motion.div>
-              </section>
-
-              {/* PAKISTAN EMBASSY MUSCAT COORDINATES */}
-              <section className="space-y-4 text-left">
-                <h2 className="text-xl sm:text-2xl font-serif text-emerald-950 font-bold border-l-4 border-amber-500 pl-3">
-                  Embassy of Pakistan, Muscat
-                </h2>
-                <div className="bg-white border rounded-xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-6 relative overflow-hidden">
-                  {/* Pakistan Flag Subtle Background Watermark */}
-                  <div className="absolute inset-0 pointer-events-none opacity-[0.06] flex items-center justify-center z-0">
-                    <svg viewBox="0 0 400 300" className="w-full max-w-lg aspect-4/3 select-none">
-                      <rect width="400" height="300" fill="#01411C" />
-                      <rect width="100" height="300" fill="#FFFFFF" />
-                      <circle cx="250" cy="150" r="66" fill="#FFFFFF" />
-                      <circle cx="268" cy="140" r="63" fill="#01411C" />
-                      <polygon points="268,103 273,115 285,115 275,123 278,135 268,127 258,135 261,123 251,115 263,115" fill="#FFFFFF" />
-                    </svg>
-                  </div>
-
-                  <div className="space-y-1 md:col-span-2 relative z-10">
-                    <h3 className="font-serif text-lg font-bold text-emerald-905">Consulate &amp; Liaison Coordination</h3>
-                    <p className="text-xs text-slate-500 max-w-xl">
-                      Coordinates critical consular services including repatriation assistance, 
-                      emergency outpasses, and legal aid. Maintain these details up-to-date.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 text-xs font-sans">
-                      <div>
-                        <span className="font-bold text-slate-600 block">Diplomatic Address</span>
-                        <p className="text-slate-500 mt-1">{embassy.address || 'Diplomatic Area, Consular Section'}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-600 block">General Office Hours</span>
-                        <p className="text-slate-500 mt-1">{embassy.hours || '08:00 AM - 04:00 PM (Sunday to Thursday)'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-emerald-950/5 border border-emerald-900/10 p-5 rounded-lg space-y-3.5 text-xs relative z-10">
-                    <h4 className="font-bold text-emerald-950 flex items-center gap-1.5 border-b pb-1.5">
-                      <HelpCircle size={15} /> Emergency Consular Numbers
-                    </h4>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Phone size={14} className="text-red-650" />
-                        <div>
-                          <span className="text-[10px] text-slate-400 block uppercase leading-none">Emergency Lifeline Helpline</span>
-                          <span className="font-mono font-bold text-sm text-emerald-950">{embassy.emergency || '+968 99222870'}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Phone size={14} className="text-emerald-800" />
-                        <div>
-                          <span className="text-[10px] text-slate-400 block uppercase leading-none">consular Phone</span>
-                          <span className="font-mono font-bold text-slate-800">{embassy.phone || '+968 24603410'}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Mail size={14} className="text-emerald-800" />
-                        <div>
-                          <span className="text-[10px] text-slate-400 block uppercase leading-none">Consular Email</span>
-                          <span className="font-bold text-slate-800">{embassy.email || 'parepmuscat@mofa.gov.pk'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <a 
-                      href={embassy.website || 'https://www.pakembmuscat.gov.pk'} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-flex justify-center items-center w-full bg-emerald-900 text-white font-bold py-2 rounded text-[10px] tracking-wide uppercase shadow hover:bg-emerald-950 transition"
-                    >
-                      Visit Consulate Website
-                    </a>
-                  </div>
-                </div>
-              </section>
-
-              {/* OMAN GEOSPATIAL DISTRICT DISTRIBUTION MAP */}
-              <section className="space-y-4">
-                <OmanDistrictMap members={members} />
-              </section>
-
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <Home 
+            onNavigate={(tab) => {
+              setCurrentPage(tab as any);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            members={members}
+            cabinet={cabinet}
+            news={news}
+            incidents={incidents}
+            ads={ads}
+            donationTotal={donationTotal}
+          />
         )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         {/* REGISTER MEMBERSHIP PAGE */}
         {currentPage === 'register' && (
-          <div className="container mx-auto max-w-4xl px-4 py-8 fade-in">
-            <div className="space-y-4 text-center mb-8">
-              <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950">OPC Member Portal</h2>
-              <p className="text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-                Apply for local lifetime membership or verify approved request status to render and download your card, certificate, and official payment receipts.
-              </p>
-            </div>
-
-            {/* View Tab Selector */}
-            <div className="flex justify-center gap-2 mb-8 bg-slate-100 p-1 rounded-xl max-w-md mx-auto border border-slate-200/50">
-              <button
-                onClick={() => {
-                  setRegisterTab('submit');
-                  setLookupResult(null);
-                  setLookupAttempted(false);
-                }}
-                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  registerTab === 'submit'
-                    ? 'bg-emerald-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/55'
-                }`}
-              >
-                <UserPlus size={14} />
-                Submit Application
-              </button>
-              <button
-                onClick={() => {
-                  setRegisterTab('lookup');
-                  setLookupResult(null);
-                  setLookupAttempted(false);
-                }}
-                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  registerTab === 'lookup'
-                    ? 'bg-emerald-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/55'
-                }`}
-              >
-                <Search size={14} />
-                Check Status &amp; Cards
-              </button>
-            </div>
-
-            {/* Smart Google Account approved member detector */}
-            {registerTab === 'lookup' && currentUser?.email && (() => {
-              const matchedUser = members.find(m => m.status === 'approved' && m.email?.toLowerCase().trim() === currentUser?.email?.toLowerCase().trim());
-              if (matchedUser) {
-                return (
-                  <div className="bg-emerald-950/5 border border-emerald-900/10 rounded-xl p-5 mb-6 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded uppercase tracking-widest inline-block mb-1 font-mono">Approved Account Linked</span>
-                      <h4 className="text-base font-serif font-bold text-slate-900">We found your verified lifetime membership!</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Welcome back, <strong>{matchedUser.name}</strong>. Your membership is fully active. Use the button to view/generate credentials.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setActiveDocMember(matchedUser);
-                        setDocModalOpen(true);
-                      }}
-                      className="bg-amber-500 hover:bg-amber-600 text-emerald-950 font-extrabold px-5 py-2.5 rounded text-xs tracking-wider uppercase shadow transition shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <CreditCard size={14} />
-                      Launch Documents Desk
-                    </button>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            {registerTab === 'submit' && (
-              <div className="max-w-6xl mx-auto space-y-6">
-                {rSuccess && (
-                  <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg p-5 text-center shadow-xs">
-                    <span className="text-emerald-700 block font-bold text-lg mb-1">Registration Request Sent</span>
-                    <p className="text-xs text-slate-600">
-                      Your application has been received. OPC administrative coordinators will verify your identity 
-                      details and contacts to update your credentials shortly.
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                  <div className="lg:col-span-7">
-                    <form onSubmit={handleRegisterSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        Your Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={rName}
-                        onChange={(e) => setRName(e.target.value)}
-                        placeholder="e.g. Ikram Ullah Bacha"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        Father's Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={rFather}
-                        onChange={(e) => setRFather(e.target.value)}
-                        placeholder="e.g. Gul Rehman Bacha"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        CNIC / Passport Number *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={rCnic}
-                        onChange={(e) => setRCnic(e.target.value)}
-                        placeholder="e.g. 15101-XXXXXXXX-X"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        District / Tribe (KPK) *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={rDistrict}
-                        onChange={(e) => setRDistrict(e.target.value)}
-                        placeholder="e.g. Buner / Swat / Mardan"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        Mobile Number *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={rPhone}
-                        onChange={(e) => setRPhone(e.target.value)}
-                        placeholder="e.g. +968 99111870"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                        Email Address *
-                        {currentUser && currentUser.email === rEmail && (
-                          <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded flex items-center gap-0.5">
-                            <CheckCircle size={10} /> Account Synced
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={rEmail}
-                        onChange={(e) => setREmail(e.target.value)}
-                        placeholder="e.g. name@domain.com"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 font-sans">
-                        WhatsApp Number
-                      </label>
-                      <input
-                        type="tel"
-                        value={rWhatsapp}
-                        onChange={(e) => setRWhatsapp(e.target.value)}
-                        placeholder="+968 XXXXXXXX"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                        Current Occupation / Trades
-                      </label>
-                      <input
-                        type="text"
-                        value={rOccupation}
-                        onChange={(e) => setROccupation(e.target.value)}
-                        placeholder="e.g. Businessman / Driver / Electrician"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Current Address *
-                    </label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={rAddress}
-                      onChange={(e) => setRAddress(e.target.value)}
-                      placeholder="e.g. Building 24, South Area"
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Emergency Contact Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={rEmergency}
-                      onChange={(e) => setREmergency(e.target.value)}
-                      placeholder="e.g. +92 312 XXXXXXX"
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
-                      Passport Photo (For Card generation)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-705 hover:file:bg-emerald-100 cursor-pointer"
-                    />
-                    
-                    {rPhoto && (
-                      <div className="mt-3">
-                        <span className="text-[10px] text-slate-400 block mb-1">Cropped Preview:</span>
-                        <img src={rPhoto} alt="Upload crop preview" className="w-16 h-20 object-cover border border-slate-200 rounded shadow-xs" />
-                      </div>
-                    )}
-                  </div>
-
-                  <FormSubmitButton
-                    isLoading={rLoading}
-                    isSuccess={rSuccess}
-                    label="Submit Membership Request"
-                    successLabel="Application Submitted Successfully!"
-                    className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-150 cursor-pointer shadow disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                    successClassName="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-md shadow inline-flex items-center justify-center gap-1.5"
-                  />
-                </form>
-              </div>
-
-              {/* Real-time Side Preview and Custom Color Choices Panel */}
-              <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-6">
-                <LiveCardPreview
-                  name={rName}
-                  father={rFather}
-                  district={rDistrict}
-                  phone={rPhone}
-                  photo={rPhoto}
-                  cardColor={rCardColor}
-                />
-
-                <div className="bg-white rounded-xl shadow-md p-6 border border-slate-200 text-left space-y-4">
-                  <div>
-                    <h4 className="font-serif font-bold text-slate-900 text-sm">
-                      Select Card Color Option
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Customize your official OPC identity card color palette.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2.5">
-                    {CARD_COLORS.map((col) => {
-                      const isSelected = rCardColor === col.id;
-                      return (
-                        <button
-                          key={col.id}
-                          type="button"
-                          onClick={() => setRCardColor(col.id)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold select-none cursor-pointer transition-all ${
-                            isSelected 
-                              ? 'border-transparent bg-slate-900 text-white shadow-xs' 
-                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <span 
-                            className="w-4 h-4 rounded-full border border-black/10 inline-block shrink-0" 
-                            style={{ backgroundColor: col.primary, borderColor: col.labelColor }}
-                          />
-                          <span>{col.label}</span>
-                          {isSelected && <span className="text-[10px] text-amber-400 font-extrabold font-sans">✓</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-            {registerTab === 'lookup' && (
-              <div className="space-y-6 max-w-2xl mx-auto fade-in">
-                <div className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 border border-slate-200 text-left">
-                  <div>
-                    <h3 className="text-xl font-serif font-bold text-emerald-950">Verify &amp; Download Membership Credentials</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Already registered? Enter your Mobile phone number, CNIC/Passport, or synced email address below to dynamically verify and download your lifetime association card and board certificate.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleLookupMember} className="flex gap-2.5">
-                    <div className="relative flex-1">
-                      <Search size={16} className="absolute left-3.5 top-3.5 text-slate-400 font-sans" />
-                      <input
-                        type="text"
-                        required
-                        value={lookupValue}
-                        onChange={(e) => setLookupValue(e.target.value)}
-                        placeholder="Enter CNIC, Mobile No. or Email Address"
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-sans"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="bg-emerald-900 hover:bg-emerald-950 text-white font-bold px-6 py-2.5 rounded-md transition duration-150 cursor-pointer text-xs uppercase tracking-wider shrink-0"
-                    >
-                      Verify Status
-                    </button>
-                  </form>                  {/* RESULTS SECTION */}
-                  {lookupAttempted && (
-                    <div className="mt-4 border-t pt-5 animate-fade-in space-y-6">
-                      {/* 1. Member Profile Results */}
-                      {lookupResult && (
-                        <div className="space-y-6">
-                          {/* Success Banner */}
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3 text-green-900">
-                            <CheckCircle size={20} className="text-green-600 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="font-bold block text-sm">Verified Member Profile Found</span>
-                              <p className="text-xs text-green-800/90 mt-0.5">
-                                Your membership application is officially approved! You have secure access to preview, generate, and download your credential cards and certificates below.
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Member Info Card */}
-                          <div className="bg-emerald-950/5 border border-emerald-900/10 rounded-xl p-6 relative overflow-hidden flex flex-col sm:flex-row gap-5">
-                            <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-700/5 rounded-full blur-2xl pointer-events-none" />
-                            
-                            {/* Photo */}
-                            <div className="shrink-0 mx-auto sm:mx-0">
-                              {lookupResult.photo ? (
-                                <img src={lookupResult.photo} alt={lookupResult.name} className="w-24 h-28 object-cover rounded-lg border-2 border-amber-400 shadow-sm" />
-                              ) : (
-                                <div className="w-24 h-28 bg-emerald-900/10 border-2 border-dashed border-emerald-250 flex items-center justify-center font-bold text-3xl text-emerald-800 rounded-lg">
-                                  {lookupResult.name[0]}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Details */}
-                            <div className="flex-1 space-y-3 font-sans text-xs">
-                              <div className="border-b pb-2">
-                                <span className="text-[9px] uppercase tracking-widest font-bold text-amber-600 block leading-tight">OPC LIFETIME MEMBER</span>
-                                <h4 className="text-lg font-serif font-bold text-emerald-950">{lookupResult.name}</h4>
-                                <span className="text-slate-500 font-mono font-bold">CNIC: {lookupResult.cnic}</span>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-slate-600">
-                                <div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Father's Name</span>
-                                  <span className="font-semibold text-emerald-900">{lookupResult.father}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Member ID No.</span>
-                                  <span className="font-bold text-emerald-900 font-mono">{lookupResult.membershipId || "OPC-" + String(lookupResult.id).substring(0, 5).toUpperCase()}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Mobile Number</span>
-                                  <span className="font-semibold text-emerald-900 font-mono">{lookupResult.phone}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Membership Status</span>
-                                  <span className="font-bold text-emerald-700">✅ APPROVED MEMBER</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* ACTION BUTTON GRID */}
-                          <div className="space-y-3">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Available Credential Downloads:</span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <button
-                                onClick={() => {
-                                  setActiveDocMember(lookupResult);
-                                  setDocModalOpen(true);
-                                }}
-                                className="bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-900/40 font-bold py-3 px-4 rounded-lg text-xs leading-5 tracking-wide uppercase shadow-xs hover:border-emerald-900 transition flex flex-col items-center justify-center gap-2 cursor-pointer text-center group font-sans"
-                              >
-                                <CreditCard size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
-                                <span>Get Member Card</span>
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  setActiveDocMember(lookupResult);
-                                  setDocModalOpen(true);
-                                }}
-                                className="bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-900/40 font-bold py-3 px-4 rounded-lg text-xs leading-5 tracking-wide uppercase shadow-xs hover:border-emerald-900 transition flex flex-col items-center justify-center gap-2 cursor-pointer text-center group font-sans"
-                              >
-                                <Award size={18} className="text-amber-500 group-hover:scale-110 transition shrink-0" />
-                                <span>Get Certificate</span>
-                              </button>
-                            </div>
-                            <p className="text-[10px] text-slate-400 text-center mt-1">
-                              💡 These buttons will load the official high-resolution documents workspace. You can choose to download PNG images. All credentials contain verifiable cryptographic secure hashes.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Empty State */}
-                      {!lookupResult && (
-                        <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-5 text-center text-amber-900 font-sans">
-                          <HelpCircle size={32} className="text-amber-500 p-0.5 mx-auto mb-2.5 animate-pulse shrink-0" />
-                          <span className="font-bold block text-sm">No Approved Member Record Found</span>
-                          <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto font-sans">
-                            We couldn't locate any approved membership matching <strong>"{lookupValue}"</strong>. 
-                            If you recently submitted, please allow some time for the executive board to complete processing.
-                          </p>
-                          <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center font-sans">
-                            <button
-                              onClick={() => {
-                                setRegisterTab('submit');
-                              }}
-                              className="bg-emerald-900 hover:bg-emerald-950 text-white font-bold px-4 py-2 rounded text-[11px] transition cursor-pointer"
-                            >
-                              Apply for New Membership
-                            </button>
-                            <a
-                              href="tel:+96899111870"
-                              className="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold px-4 py-2 rounded text-[11px] transition cursor-pointer"
-                            >
-                              Call Hotline: +968 99111870
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <Register 
+            onRegisterMember={handleNewMemberRegister} 
+          />
         )}
 
         {/* CABINET & MEMBERS DIRECTORY */}
@@ -2334,250 +1100,19 @@ export default function App() {
 
         {/* ELECTIONS AND VOTING PAGE */}
         {currentPage === 'elections' && (
-          <div id="elections-container-anchor" className="container mx-auto max-w-4xl px-4 py-8 fade-in">
-            <div className="space-y-4 text-center mb-8">
-              <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950">Cast Your Vote</h2>
-              <p className="text-sm text-slate-500 max-w-xl mx-auto">
-                Cast your device vote for open elections, and monitor real-time vote distribution metrics.
-              </p>
-            </div>
-
-            <div className="space-y-6 text-left">
-              {elections.length === 0 ? (
-                <div className="p-10 bg-white border border-slate-200 rounded-xl text-center text-slate-400 font-medium font-serif max-w-xl mx-auto shadow-xs">
-                  No active election cycles configured by the admin board yet.
-                </div>
-              ) : (
-                elections.map((el) => {
-                  const sortedCandidates = [...(el.candidates || [])].sort((a, b) => b.votes - a.votes);
-                  const totalVotes = el.candidates.reduce((sum, c) => sum + (Number(c.votes) || 0), 0);
-                  const hasVoted = userVotedElections[el.id!];
-
-                  return (
-                    <div key={el.id} className="bg-white border rounded-xl overflow-hidden shadow-md p-6 space-y-6">
-                      <div className="flex justify-between items-center border-b pb-3 flex-wrap gap-4">
-                        <div className="space-y-1">
-                          <h3 className="font-serif text-xl font-bold text-emerald-950">{el.title}</h3>
-                          {el.endDate && (
-                            <p className="text-[11px] text-slate-400 font-sans">
-                              Deadline: {new Date(el.endDate).toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2.5 py-1.5 rounded text-[10px] uppercase font-bold tracking-wider leading-none ${
-                            el.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {el.status === 'open' ? 'Open for voting' : 'Completed / Closed'}
-                          </span>
-                          {el.status === 'open' && el.endDate && (
-                            <CountdownTimer endDate={el.endDate} />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Bar metrics visual mapping */}
-                      <div className="space-y-4">
-                        {sortedCandidates.map((c) => {
-                          const pct = totalVotes > 0 ? (c.votes / totalVotes) * 100 : 0;
-                          return (
-                            <div key={c.id} className="space-y-1.5">
-                              <div className="flex justify-between text-xs sm:text-sm">
-                                <span className="font-semibold text-slate-700">{c.name}</span>
-                                <span className="font-bold text-emerald-900 font-mono">{c.votes} votes ({pct.toFixed(0)}%)</span>
-                              </div>
-                              <div className="h-2.5 w-full bg-slate-105 rounded-full overflow-hidden" style={{ backgroundColor: '#f1f5f9' }}>
-                                <div 
-                                  className="h-full bg-emerald-800 transition-all duration-300 rounded-full" 
-                                  style={{ width: `${pct}%`, backgroundColor: '#1b4d3e' }} 
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Cast active ballot if open */}
-                      {el.status === 'open' && (
-                        <div className="border-t pt-4 mt-6">
-                          {el.endDate && new Date(el.endDate).getTime() <= Date.now() ? (
-                            <div className="bg-red-50 text-red-800 p-4 border border-red-100 rounded text-xs font-semibold flex items-center justify-center gap-1.5 font-sans">
-                              ⌛ Voting period has naturally expired! No further ballots can be cast.
-                            </div>
-                          ) : !currentUser ? (
-                            <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-5 text-center space-y-3">
-                              <span className="text-slate-700 text-xs font-semibold block">You must sign in with your Google account to cast a vote under current OPC guidelines.</span>
-                              <button 
-                                onClick={handleGoogleSignIn}
-                                className="inline-flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold py-2.5 px-4 rounded shadow transition active:scale-95 cursor-pointer"
-                              >
-                                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4 rounded-full bg-white p-0.5" />
-                                Verify Identity &amp; Sign in to Vote
-                              </button>
-                            </div>
-                          ) : hasVoted ? (
-                            <div className="bg-green-50 text-green-850 p-4 border border-green-100 rounded text-xs font-semibold flex items-center justify-center gap-1.5">
-                              <UserCheck size={16} /> Ballot Cast! Your vote is securely recorded for this election.
-                            </div>
-                          ) : (
-                            <div className="space-y-3.5">
-                              <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
-                                Choose Candidate:
-                              </span>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {el.candidates.map((c) => (
-                                  <button
-                                    key={c.id}
-                                    onClick={() => handlePublicVote(el.id!, c.id)}
-                                    className="w-full text-left p-3 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-emerald-800/40 transition flex items-center gap-2.5 font-semibold text-xs cursor-pointer group"
-                                  >
-                                    <div className="w-4 h-4 rounded-full border border-slate-250 flex items-center justify-center group-hover:border-emerald-800 group-hover:bg-emerald-50">
-                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-800 opacity-0 group-hover:opacity-100" />
-                                    </div>
-                                    <span className="text-slate-800 font-medium">{c.name}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <ElectionsPage 
+            elections={elections} 
+            onCastVote={handlePublicVote} 
+            userEmail={currentUser?.email}
+          />
         )}
 
         {/* REPORT INCIDENT FORM CLAIM PAGE */}
         {currentPage === 'report' && (
-          <div className="container mx-auto max-w-2xl px-4 py-8 fade-in">
-            <div className="space-y-4 text-center mb-8">
-              <h2 className="text-3xl sm:text-4xl font-serif font-extrabold text-emerald-950 font-sans">Report Welfare Incident</h2>
-              <p className="text-sm text-slate-500 max-w-lg mx-auto">
-                Submit details regarding emergency cases: deaths, critical injuries, or asset loss. 
-                Reports are audited by the OPC executive team before being published for collective assistance.
-              </p>
-            </div>
-
-            {!currentUser ? (
-              <div className="bg-white rounded-xl shadow-md p-8 border border-slate-200 text-center space-y-5 max-w-lg mx-auto">
-                <div className="w-12 h-12 bg-amber-100 text-emerald-900 rounded-full flex items-center justify-center mx-auto">
-                  <Shield size={24} />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-serif font-bold text-lg text-emerald-950">Identity Verification Required</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    To prioritize legitimate emergencies, prevent duplicate fake reporting, and protect welfare funds, 
-                    users must securely sign in with Google before filing reports.
-                  </p>
-                </div>
-                <button 
-                  onClick={handleGoogleSignIn}
-                  className="inline-flex items-center gap-2 bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3 px-6 rounded-md shadow transition duration-155 cursor-pointer text-xs"
-                >
-                  <img src="https://www.google.com/favicon.ico" alt="Google logo" className="w-4 h-4 rounded-full bg-white p-0.5" />
-                  Sign In with Google
-                </button>
-              </div>
-            ) : (
-              <>
-                {iSuccess && (
-                  <div className="bg-emerald-50 text-emerald-900 border border-emerald-100 rounded-lg p-5 mb-6 text-center">
-                    <span className="text-emerald-700 block font-bold text-lg mb-1">Claim Submitted Successfully</span>
-                    <p className="text-xs text-slate-600">
-                      Your incident claim has been posted to our audit queue. OPC officers are reviewing contacts 
-                      to prioritize community help.
-                    </p>
-                  </div>
-                )}
-
-                <form onSubmit={handleIncidentSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 space-y-6 text-left border border-slate-200">
-                  
-                  <div>
-                    <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                      Type of Welfare Case *
-                    </label>
-                    <select
-                      value={iType}
-                      onChange={(e) => setIType(e.target.value as any)}
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                    >
-                      <option value="death">Death / Body Repatriation Assistance</option>
-                      <option value="injury">Critical Medical / Body Injury Help</option>
-                      <option value="loss">Asset Damage / Financial Hardship Claim</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                      Name of Affected Individual *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={iName}
-                      onChange={(e) => setIName(e.target.value)}
-                      placeholder="e.g. Mohammad Khan Swati"
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                      Description of Incident (Include particulars &amp; required aid) *
-                    </label>
-                    <textarea
-                      required
-                      rows={4}
-                      value={iDesc}
-                      onChange={(e) => setIDesc(e.target.value)}
-                      placeholder="Write details e.g. Deceased passed away due to cardiac arrest at Ruwi construction site. Relatives need aid for casket transport to Peshawar..."
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 leading-relaxed font-sans"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                        Date of Incident *
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={iDate}
-                        onChange={(e) => setIDate(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-650 uppercase tracking-wide mb-1.5">
-                        Your Contact Mobile *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={iContact}
-                        onChange={(e) => setIContact(e.target.value)}
-                        placeholder="+968 XXXXXXXX"
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-md focus:outline-emerald-800 text-sm bg-slate-50/50 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <FormSubmitButton
-                    isLoading={iLoading}
-                    isSuccess={iSuccess}
-                    label="File Incident Report Request"
-                    successLabel="Incident Report Filed Successfully!"
-                    className="w-full bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-3.5 px-4 rounded-md transition duration-155 cursor-pointer shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
-                    successClassName="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-md shadow flex items-center justify-center gap-1.5"
-                  />
-                </form>
-              </>
-            )}
-          </div>
+          <Report 
+            incidents={incidents}
+            onSubmitIncident={handleIncidentSubmitDirect} 
+          />
         )}
 
         {/* AI ASSISTANT CHATBOT */}
@@ -2610,23 +1145,11 @@ export default function App() {
 
       </main>
 
-      {/* ----------------- APP FOOTER CARD INFO ----------------- */}
-      <footer className="bg-emerald-950 text-amber-50/80 border-t border-amber-500/10 py-10 px-4 text-center text-xs">
-        <div className="container mx-auto max-w-4xl space-y-3 font-sans flex flex-col items-center">
-          <div className="space-y-1.5">
-            <p className="font-serif text-amber-300 font-black text-sm tracking-wide">
-              Pakhtoon Community
-            </p>
-            <p className="text-amber-100/60 leading-relaxed max-w-xl mx-auto">
-              Providing reliable community representation, general welfare programs, and cooperative support 
-              services for the Pakhtoon community.
-            </p>
-            <p className="text-amber-500/40 font-mono text-[10px] tracking-wider pt-1">
-              For general welfare operations, sponsorship deals, or card records &gt; WhatsApp +968 99111870
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* ----------------- ANIMATED COMMUNITY FOOTER ----------------- */}
+      <Footer onNavigate={(tab) => {
+        setCurrentPage(tab as any);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }} />
 
        {/* DOCUMENT CARD/CERTIFICATE GENERATOR MODAL */}
       <DocumentModal 

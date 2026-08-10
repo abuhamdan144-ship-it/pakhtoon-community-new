@@ -17,8 +17,11 @@ export const auth = getAuth(app);
  * Handle Firestore operational errors and format specific JSON diagnostic reporting
  */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
+  const isBillingOrPermission = message.includes('PERMISSION_DENIED') || message.includes('billing') || message.includes('requires billing') || message.includes('client is offline');
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid || null,
       email: auth.currentUser?.email || null,
@@ -33,8 +36,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Specific Error Context: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  if (isBillingOrPermission) {
+    console.warn(`[Firestore Fallback Mode] Service notice for path '${path}': ${message}`);
+  } else {
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+  }
+  return errInfo;
 }
 
 /**
@@ -45,8 +53,10 @@ export async function testConnection() {
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.log('Firebase connection validated successfully.');
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase connectivity configuration.');
+    if (error instanceof Error) {
+      if (error.message.includes('the client is offline') || error.message.includes('PERMISSION_DENIED') || error.message.includes('billing')) {
+        console.warn('Firebase Notice: Cloud Firestore requires billing enabled on GCP project opc-new-48a8d. Running in local state fallback mode.');
+      }
     }
   }
 }

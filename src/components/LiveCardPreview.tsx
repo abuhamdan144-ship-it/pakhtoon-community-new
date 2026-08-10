@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react';
 import pukhtoonLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import { getCardColor, CARD_COLORS } from './CardColors';
+import { Member } from '../types';
 
 interface LiveCardPreviewProps {
-  name: string;
-  father: string;
-  district: string;
-  phone: string;
-  photo: string;
-  cardColor: string;
+  name?: string;
+  father?: string;
+  district?: string;
+  phone?: string;
+  photo?: string;
+  cardColor?: string;
+  member?: Partial<Member> & { father?: string; district?: string };
 }
 
 const loadImage = (src: string): Promise<HTMLImageElement | null> => {
@@ -28,13 +30,20 @@ const loadImage = (src: string): Promise<HTMLImageElement | null> => {
 };
 
 export default function LiveCardPreview({
-  name,
-  father,
-  district,
-  phone,
-  photo,
-  cardColor
+  name: nameProp,
+  father: fatherProp,
+  district: districtProp,
+  phone: phoneProp,
+  photo: photoProp,
+  cardColor: cardColorProp,
+  member,
 }: LiveCardPreviewProps) {
+  const name = nameProp || member?.name || 'NAME';
+  const father = fatherProp || member?.father || (member as any)?.fatherName || 'FATHER NAME';
+  const district = districtProp || member?.district || (member as any)?.kpDistrict || 'KP DISTRICT';
+  const phone = phoneProp || member?.phone || 'PHONE';
+  const photo = photoProp || member?.photo || '';
+  const cardColor = cardColorProp || (member as any)?.cardColor || 'emerald';
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
