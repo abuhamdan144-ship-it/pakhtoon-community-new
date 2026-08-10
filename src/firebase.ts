@@ -7,11 +7,9 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize the App
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore - default to main database instance unless a specific valid non-placeholder instance is configured
+// Initialize Firestore targeting the specific applet Database ID instance
 const rawDbId = (firebaseConfig as any).firestoreDatabaseId;
-const useNamedDb = rawDbId && rawDbId !== '(default)' && !rawDbId.startsWith('ai-studio-');
-
-export const db = useNamedDb ? getFirestore(app, rawDbId) : getFirestore(app);
+export const db = rawDbId && rawDbId !== '(default)' ? getFirestore(app, rawDbId) : getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);
@@ -21,7 +19,7 @@ export const auth = getAuth(app);
  */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const message = error instanceof Error ? error.message : String(error);
-  const isBillingOrPermission = message.includes('PERMISSION_DENIED') || message.includes('billing') || message.includes('requires billing') || message.includes('client is offline');
+  const isBillingOrPermission = message.includes('PERMISSION_DENIED') || message.includes('billing') || message.includes('requires billing') || message.includes('client is offline') || message.includes('Missing or insufficient permissions') || message.includes('permissions');
 
   const errInfo: FirestoreErrorInfo = {
     error: message,

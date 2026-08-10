@@ -118,9 +118,8 @@ service cloud.firestore {
 
     // Members Collection Rules
     match /members/{memberId} {
+      allow read: if true;
       allow create: if isValidMember(request.resource.data) && request.resource.data.status == 'pending';
-      allow get: if isAdmin() || (resource == null || resource.data.status == 'approved');
-      allow list: if isAdmin() || (resource != null && resource.data.status == 'approved');
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isDispatched', 'dispatchedAt'])
       );
@@ -165,9 +164,8 @@ service cloud.firestore {
 
     // Incidents Collection Rules
     match /incidents/{incidentId} {
+      allow read: if true;
       allow create: if isValidIncident(request.resource.data) && request.resource.data.status == 'pending';
-      allow get: if isAdmin() || (resource == null || resource.data.status == 'published');
-      allow list: if isAdmin() || (resource != null && resource.data.status == 'published');
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
