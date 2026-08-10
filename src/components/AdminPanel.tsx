@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
-  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit 
+  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit, getDocs 
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError } from '../firebase';
 import { 
@@ -348,23 +348,32 @@ export default function AdminPanel({
       limit(200)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedLogs: AdminLog[] = [];
-      snapshot.forEach((docSnap) => {
-        fetchedLogs.push({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as AdminLog);
-      });
-      setLogs(fetchedLogs);
-      setLogsLoading(false);
-    }, (error) => {
-      console.error("Error fetching admin logs:", error);
-      setLogsLoading(false);
-      handleFirestoreError(error, OperationType.GET, 'admin_logs');
-    });
+    let isMounted = true;
+    const fetchLogs = async () => {
+      try {
+        const snapshot = await getDocs(q);
+        if (!isMounted) return;
+        const fetchedLogs: AdminLog[] = [];
+        snapshot.forEach((docSnap) => {
+          fetchedLogs.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as AdminLog);
+        });
+        setLogs(fetchedLogs);
+      } catch (error) {
+        console.warn("Notice fetching admin logs:", error);
+        handleFirestoreError(error, OperationType.GET, 'admin_logs');
+      } finally {
+        if (isMounted) setLogsLoading(false);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchLogs();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   const logAdminAction = async (action: string, details: string) => {

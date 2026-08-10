@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where, deleteDoc 
+  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, getDocs, setDoc, where, deleteDoc 
 } from 'firebase/firestore';
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from './firebase';
@@ -369,6 +369,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Decide which query to run for members and incidents based on adminUser
     const membersQuery = adminUser 
       ? query(collection(db, 'members'), orderBy('createdAt', 'desc'))
@@ -378,177 +380,151 @@ export default function App() {
       ? query(collection(db, 'incidents'), orderBy('createdAt', 'desc'))
       : query(collection(db, 'incidents'), where('status', '==', 'published'));
 
-    // Members snapshot
-    const unsubscribeMembers = onSnapshot(
-      membersQuery,
-      (snapshot) => {
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Member }));
-        if (!adminUser) {
-          list.sort((a, b) => {
-            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
-            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
-            return timeB - timeA;
-          });
+    const loadAllData = async () => {
+      // 1. Members
+      try {
+        const snap = await getDocs(membersQuery);
+        if (isMounted) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as Member }));
+          if (!adminUser) {
+            list.sort((a, b) => {
+              const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+              const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+              return timeB - timeA;
+            });
+          }
+          if (list.length > 0) setMembers(list);
         }
-        if (list.length > 0) setMembers(list);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'members');
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'members');
       }
-    );
 
-    // Cabinet snapshot
-    const unsubscribeCabinet = onSnapshot(
-      collection(db, 'cabinet'),
-      (snapshot) => {
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMember }));
-        if (list.length > 0) setCabinet(list);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'cabinet');
+      // 2. Cabinet
+      try {
+        const snap = await getDocs(collection(db, 'cabinet'));
+        if (isMounted) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as CabinetMember }));
+          if (list.length > 0) setCabinet(list);
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'cabinet');
       }
-    );
 
-    // Donations snapshot
-    const unsubscribeDonations = onSnapshot(
-      query(collection(db, 'donations'), orderBy('date', 'desc')),
-      (snapshot) => {
-        const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Donation }));
-        
-        // Filter out any test donations matching Pco/Pso/1470 so they never appear on UI, stats or export logs
-        const list = allItems.filter(d => {
-          const donorLower = (d.donor || '').trim().toLowerCase();
-          const noteLower = (d.note || '').trim().toLowerCase();
-          const isTest = donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso');
-          return !isTest;
-        });
-        
-        if (list.length > 0) setDonations(list);
-        
-        // Auto-purge any test donation from the DB (only triggered for authorized admins to prevent guest permission-denied errors)
-        if (adminUser) {
-          allItems.forEach(d => {
+      // 3. Donations
+      try {
+        const snap = await getDocs(query(collection(db, 'donations'), orderBy('date', 'desc')));
+        if (isMounted) {
+          const allItems = snap.docs.map(d => ({ id: d.id, ...d.data() as Donation }));
+          const list = allItems.filter(d => {
             const donorLower = (d.donor || '').trim().toLowerCase();
             const noteLower = (d.note || '').trim().toLowerCase();
-            if (donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso')) {
-              console.log('Detected test donation. Auto-purging:', d.id);
-              deleteDoc(doc(db, 'donations', d.id)).catch(() => {
-                // Silently handle deletion error since items are already safely filtered on frontend list
-              });
-            }
+            const isTest = donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso');
+            return !isTest;
           });
+          if (list.length > 0) setDonations(list);
+
+          if (adminUser) {
+            allItems.forEach(d => {
+              const donorLower = (d.donor || '').trim().toLowerCase();
+              const noteLower = (d.note || '').trim().toLowerCase();
+              if (donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso')) {
+                deleteDoc(doc(db, 'donations', d.id)).catch(() => {});
+              }
+            });
+          }
         }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'donations');
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'donations');
       }
-    );
 
-    // News snapshot
-    const unsubscribeNews = onSnapshot(
-      query(collection(db, 'news'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as NewsAnnouncement }));
-        if (list.length > 0) setNews(list);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'news');
-      }
-    );
-
-    // Incidents snapshot
-    const unsubscribeIncidents = onSnapshot(
-      incidentsQuery,
-      (snapshot) => {
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as IncidentReport }));
-        if (!adminUser) {
-          list.sort((a, b) => {
-            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
-            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
-            return timeB - timeA;
-          });
+      // 4. News
+      try {
+        const snap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
+        if (isMounted) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as NewsAnnouncement }));
+          if (list.length > 0) setNews(list);
         }
-        if (list.length > 0) setIncidents(list);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'incidents');
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'news');
       }
-    );
 
-    // Embassy setting snapshot
-    const unsubscribeEmbassy = onSnapshot(
-      doc(db, 'settings', 'embassy'),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setEmbassy(snapshot.data() as EmbassySetting);
+      // 5. Incidents
+      try {
+        const snap = await getDocs(incidentsQuery);
+        if (isMounted) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as IncidentReport }));
+          if (!adminUser) {
+            list.sort((a, b) => {
+              const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
+              const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
+              return timeB - timeA;
+            });
+          }
+          if (list.length > 0) setIncidents(list);
         }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'settings/embassy');
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'incidents');
       }
-    );
 
-    // Founder setting snapshot
-    const unsubscribeFounder = onSnapshot(
-      doc(db, 'settings', 'founder'),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setFounderProfile(snapshot.data() as FounderProfile);
+      // 6. Embassy Setting
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'embassy'));
+        if (isMounted && snap.exists()) {
+          setEmbassy(snap.data() as EmbassySetting);
         }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'settings/founder');
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'settings/embassy');
       }
-    );
 
-    // Elections snapshot
-    const unsubscribeElections = onSnapshot(
-      query(collection(db, 'elections'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Election }));
-        if (list.length > 0) setElections(list);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'elections');
-      }
-    );
-
-    // Ads snapshot
-    const unsubscribeAds = onSnapshot(
-      query(collection(db, 'ads'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as SponsoredAd })));
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, 'ads');
-      }
-    );
-
-    // Cabinet Meetings snapshot (available to any authenticated user/cabinet officer)
-    let unsubscribeMeetings = () => {};
-    if (currentUser) {
-      unsubscribeMeetings = onSnapshot(
-        query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')),
-        (snapshot) => {
-          setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMeeting })));
-        },
-        (error) => {
-          handleFirestoreError(error, OperationType.GET, 'cabinet_meetings');
+      // 7. Founder Setting
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'founder'));
+        if (isMounted && snap.exists()) {
+          setFounderProfile(snap.data() as FounderProfile);
         }
-      );
-    }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'settings/founder');
+      }
+
+      // 8. Elections
+      try {
+        const snap = await getDocs(query(collection(db, 'elections'), orderBy('createdAt', 'desc')));
+        if (isMounted) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as Election }));
+          if (list.length > 0) setElections(list);
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'elections');
+      }
+
+      // 9. Sponsored Ads
+      try {
+        const snap = await getDocs(query(collection(db, 'ads'), orderBy('createdAt', 'desc')));
+        if (isMounted) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as SponsoredAd }));
+          setAds(list);
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'ads');
+      }
+
+      // 10. Cabinet Meetings
+      if (currentUser) {
+        try {
+          const snap = await getDocs(query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')));
+          if (isMounted) {
+            setMeetings(snap.docs.map(d => ({ id: d.id, ...d.data() as CabinetMeeting })));
+          }
+        } catch (err) {
+          handleFirestoreError(err, OperationType.GET, 'cabinet_meetings');
+        }
+      }
+    };
+
+    loadAllData();
 
     return () => {
-      unsubscribeMembers();
-      unsubscribeCabinet();
-      unsubscribeDonations();
-      unsubscribeNews();
-      unsubscribeIncidents();
-      unsubscribeEmbassy();
-      unsubscribeFounder();
-      unsubscribeElections();
-      unsubscribeAds();
-      unsubscribeMeetings();
+      isMounted = false;
     };
   }, [adminUser, currentUser]);
 
