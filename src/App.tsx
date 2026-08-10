@@ -211,8 +211,28 @@ export default function App() {
   }, []);
 
   // --- Realtime DB Collections State ---
-  const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
-  const [cabinet, setCabinet] = useState<CabinetMember[]>(DEFAULT_CABINET);
+  const [members, setMembers] = useState<Member[]>(() => {
+    try {
+      const saved = localStorage.getItem('opc_members_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_MEMBERS;
+  });
+
+  const [cabinet, setCabinet] = useState<CabinetMember[]>(() => {
+    try {
+      const saved = localStorage.getItem('opc_cabinet_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_CABINET;
+  });
+
   const [donations, setDonations] = useState<Donation[]>(DEFAULT_DONATIONS);
   const donationTotal = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const [news, setNews] = useState<NewsAnnouncement[]>(DEFAULT_NEWS);
@@ -222,6 +242,22 @@ export default function App() {
   const [elections, setElections] = useState<Election[]>(DEFAULT_ELECTIONS);
   const [ads, setAds] = useState<SponsoredAd[]>([]);
   const [meetings, setMeetings] = useState<CabinetMeeting[]>([]);
+
+  useEffect(() => {
+    if (members && members.length > 0) {
+      try {
+        localStorage.setItem('opc_members_cache', JSON.stringify(members));
+      } catch (e) {}
+    }
+  }, [members]);
+
+  useEffect(() => {
+    if (cabinet && cabinet.length > 0) {
+      try {
+        localStorage.setItem('opc_cabinet_cache', JSON.stringify(cabinet));
+      } catch (e) {}
+    }
+  }, [cabinet]);
 
   // Auth Users
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -696,15 +732,29 @@ export default function App() {
 
   // Helper for Membership component direct registration
   const handleNewMemberRegister = async (data: Omit<Member, 'id' | 'createdAt' | 'status'>) => {
+    const tempId = 'mem-' + Date.now();
+    const newMember: Member = {
+      id: tempId,
+      ...data,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    // Optimistically update state
+    setMembers(prev => [newMember, ...prev]);
+
     try {
-      await addDoc(collection(db, 'members'), {
+      const docRef = await addDoc(collection(db, 'members'), {
         ...data,
         status: 'pending',
         createdAt: Timestamp.now()
       });
+      if (docRef?.id) {
+        setMembers(prev => prev.map(m => m.id === tempId ? { ...m, id: docRef.id } : m));
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'members');
-      throw err;
+      // Even if Firestore write is delayed, member remains in state & localStorage
     }
   };
 

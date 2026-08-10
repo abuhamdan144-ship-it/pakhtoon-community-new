@@ -71,6 +71,14 @@ export const DEFAULT_CABINET: CabinetMember[] = [
   },
   {
     id: 'cab-2',
+    name: 'Sahibzada Khan',
+    position: 'Chairman Executive Council',
+    phone: '+968 99111870',
+    email: 'chairman.council@opcoman.org',
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'cab-3',
     name: 'Haji Fazal Mohammad',
     position: 'President',
     phone: '+968 9922 3344',
@@ -78,7 +86,15 @@ export const DEFAULT_CABINET: CabinetMember[] = [
     photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80'
   },
   {
-    id: 'cab-3',
+    id: 'cab-4',
+    name: 'Mohammad Ali Shinwari',
+    position: 'President Muscat Chapter',
+    phone: '+968 98223344',
+    email: 'president.muscat@opcoman.org',
+    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'cab-5',
     name: 'Khan Mohammad Swati',
     position: 'General Secretary',
     phone: '+968 9933 4455',
@@ -86,7 +102,15 @@ export const DEFAULT_CABINET: CabinetMember[] = [
     photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80'
   },
   {
-    id: 'cab-4',
+    id: 'cab-6',
+    name: 'Gul Zada Yousafzai',
+    position: 'General Secretary',
+    phone: '+968 97334455',
+    email: 'gensec.yousafzai@opcoman.org',
+    photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'cab-7',
     name: 'Noor Rahman Khattak',
     position: 'Finance Secretary',
     phone: '+968 9944 5566',
@@ -94,7 +118,15 @@ export const DEFAULT_CABINET: CabinetMember[] = [
     photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
   },
   {
-    id: 'cab-5',
+    id: 'cab-8',
+    name: 'Hazrat Shah Mohmand',
+    position: 'Finance & Treasury',
+    phone: '+968 94667788',
+    email: 'treasury@opcoman.org',
+    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'cab-9',
     name: 'Said Umar Khan',
     position: 'Information Secretary',
     phone: '+968 9955 6677',
@@ -102,7 +134,15 @@ export const DEFAULT_CABINET: CabinetMember[] = [
     photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80'
   },
   {
-    id: 'cab-6',
+    id: 'cab-10',
+    name: 'Engineer Bilal Afridi',
+    position: 'Chief Organizer Salalah',
+    phone: '+968 95556677',
+    email: 'salalah@opcoman.org',
+    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'cab-11',
     name: 'Dr. Tariq Khattak',
     position: 'Welfare Secretary',
     phone: '+968 9644 5566',

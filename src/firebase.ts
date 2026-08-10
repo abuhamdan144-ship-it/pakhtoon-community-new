@@ -7,8 +7,11 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize the App
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore targeting the specific applet Database ID instance
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432');
+// Initialize Firestore - default to main database instance unless a specific valid non-placeholder instance is configured
+const rawDbId = (firebaseConfig as any).firestoreDatabaseId;
+const useNamedDb = rawDbId && rawDbId !== '(default)' && !rawDbId.startsWith('ai-studio-');
+
+export const db = useNamedDb ? getFirestore(app, rawDbId) : getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);
