@@ -1,5 +1,5 @@
 import { collection, doc, setDoc, getDocs, limit, query, Timestamp } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import {
   DEFAULT_MEMBERS,
   DEFAULT_CABINET,
@@ -13,6 +13,11 @@ import {
 
 export async function seedFirestoreDatabase(force: boolean = false): Promise<{ success: boolean; message: string }> {
   try {
+    // Only proceed with auto-seed if admin is authenticated or forced
+    if (!auth.currentUser && !force) {
+      return { success: false, message: 'Admin authentication required to seed Firestore.' };
+    }
+
     // Check if data already exists in cabinet collection unless forcing seed
     if (!force) {
       const checkSnap = await getDocs(query(collection(db, 'cabinet'), limit(1)));

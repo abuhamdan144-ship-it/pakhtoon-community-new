@@ -119,7 +119,7 @@ service cloud.firestore {
     // Members Collection Rules
     match /members/{memberId} {
       allow read: if true;
-      allow create: if isValidMember(request.resource.data) && request.resource.data.status == 'pending';
+      allow create: if (isValidMember(request.resource.data) && (request.resource.data.status == 'pending' || isAdmin())) || isAdmin();
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isDispatched', 'dispatchedAt'])
       );
@@ -129,8 +129,8 @@ service cloud.firestore {
     // Donations Collection Rules
     match /donations/{donationId} {
       allow read: if true;
-      allow create: if isValidDonation(request.resource.data) && (request.resource.data.status == 'pending' || isAdmin());
-      allow update: if isAdmin() && isValidDonation(request.resource.data);
+      allow create: if (isValidDonation(request.resource.data) && (request.resource.data.status == 'pending' || isAdmin())) || isAdmin();
+      allow update: if isAdmin();
       allow delete: if isAdmin() || (
         resource.data.donor == 'Pco' || 
         resource.data.donor == 'Pso' || 
@@ -143,7 +143,7 @@ service cloud.firestore {
     // Cabinet Collection Rules
     match /cabinet/{cabinetId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidCabinetMember(request.resource.data);
+      allow create, update: if isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -158,14 +158,14 @@ service cloud.firestore {
     // News Collection Rules
     match /news/{newsId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidNews(request.resource.data);
+      allow create, update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     // Incidents Collection Rules
     match /incidents/{incidentId} {
       allow read: if true;
-      allow create: if isValidIncident(request.resource.data) && request.resource.data.status == 'pending';
+      allow create: if (isValidIncident(request.resource.data) && request.resource.data.status == 'pending') || isAdmin();
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
