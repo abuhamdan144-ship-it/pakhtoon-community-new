@@ -15,16 +15,16 @@ export default function Stats({
   cabinetCount,
   donationTotal,
   incidentCount,
-  electionVotesTotal = 3420
+  electionVotesTotal = 0
 }: StatsProps) {
   
   const statsList = [
     {
       id: 'members',
       label: 'Registered Diaspora Members',
-      value: memberCount || 1280,
+      value: memberCount || 0,
       prefix: '',
-      suffix: '+',
+      suffix: '',
       icon: Users,
       color: 'from-[#1b4d3e] to-[#0e2e25]',
       border: 'border-[#d4af37]/40',
@@ -33,7 +33,7 @@ export default function Stats({
     {
       id: 'cabinet',
       label: 'Executive Cabinet Officials',
-      value: cabinetCount || 34,
+      value: cabinetCount || 0,
       prefix: '',
       suffix: '',
       icon: Landmark,
@@ -44,7 +44,7 @@ export default function Stats({
     {
       id: 'donations',
       label: 'Welfare Relief Pool (OMR)',
-      value: donationTotal || 45200,
+      value: donationTotal || 0,
       prefix: 'OMR ',
       suffix: '',
       icon: DollarSign,
@@ -55,7 +55,7 @@ export default function Stats({
     {
       id: 'incidents',
       label: 'Repatriation & Medical Claims Settled',
-      value: incidentCount || 112,
+      value: incidentCount || 0,
       prefix: '',
       suffix: ' Cases',
       icon: AlertTriangle,

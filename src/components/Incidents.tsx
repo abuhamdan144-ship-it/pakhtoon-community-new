@@ -19,40 +19,7 @@ export default function Incidents({ incidents, onSubmitIncident }: IncidentsProp
     date: new Date().toISOString().split('T')[0]
   });
 
-  const defaultIncidents: IncidentReport[] = [
-    {
-      id: 'inc-1',
-      type: 'death',
-      name: 'Emergency Repatriation Case - Barka',
-      description: 'Official diplomatic clearance and repatriation support provided for deceased community member family to Peshawar, Pakistan.',
-      date: '2026-08-02',
-      contact: '+968 99111870',
-      status: 'published',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'inc-2',
-      type: 'injury',
-      name: 'Workplace Injury Hospitalization - Nizwa',
-      description: 'Community medical fund sanctioned 1,200 OMR for emergency surgical procedure and family relief allowance.',
-      date: '2026-07-29',
-      contact: '+968 98223344',
-      status: 'published',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'inc-3',
-      type: 'loss',
-      name: 'Consular Passport & Document Legal Loss - Sohar',
-      description: 'Passport loss report filed with Muscat Embassy Liaison. Legal assistance provided for emergency travel document clearance.',
-      date: '2026-07-22',
-      contact: '+968 97334455',
-      status: 'published',
-      createdAt: new Date().toISOString()
-    }
-  ];
-
-  const incidentList = incidents && incidents.length > 0 ? incidents : defaultIncidents;
+  const incidentList = incidents || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
