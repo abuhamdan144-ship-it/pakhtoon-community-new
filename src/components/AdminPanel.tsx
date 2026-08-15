@@ -3,10 +3,9 @@ import { motion } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
-  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit, getDocs 
+  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit 
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError } from '../firebase';
-import { seedFirestoreDatabase } from '../utils/seedFirestore';
 import { 
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile, AdminLog, OperationType 
 } from '../types';
@@ -238,20 +237,6 @@ export default function AdminPanel({
   const [cPhone, setCPhone] = useState('');
   const [cEmail, setCEmail] = useState('');
   const [cPhoto, setCPhoto] = useState('');
-  const [isSeeding, setIsSeeding] = useState(false);
-
-  const handleManualSeed = async () => {
-    if (!confirm('This will populate or refresh sample community records (Cabinet, Members, News, Donations, Elections) into Firestore. Proceed?')) return;
-    setIsSeeding(true);
-    try {
-      const res = await seedFirestoreDatabase(true);
-      alert(res.message);
-    } catch (e: any) {
-      alert('Error seeding database: ' + (e.message || String(e)));
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   // Donation form state
   const [dDonor, setDDonor] = useState('');
@@ -363,32 +348,23 @@ export default function AdminPanel({
       limit(200)
     );
 
-    let isMounted = true;
-    const fetchLogs = async () => {
-      try {
-        const snapshot = await getDocs(q);
-        if (!isMounted) return;
-        const fetchedLogs: AdminLog[] = [];
-        snapshot.forEach((docSnap) => {
-          fetchedLogs.push({
-            id: docSnap.id,
-            ...docSnap.data()
-          } as AdminLog);
-        });
-        setLogs(fetchedLogs);
-      } catch (error) {
-        console.warn("Notice fetching admin logs:", error);
-        handleFirestoreError(error, OperationType.GET, 'admin_logs');
-      } finally {
-        if (isMounted) setLogsLoading(false);
-      }
-    };
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedLogs: AdminLog[] = [];
+      snapshot.forEach((docSnap) => {
+        fetchedLogs.push({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as AdminLog);
+      });
+      setLogs(fetchedLogs);
+      setLogsLoading(false);
+    }, (error) => {
+      console.error("Error fetching admin logs:", error);
+      setLogsLoading(false);
+      handleFirestoreError(error, OperationType.GET, 'admin_logs');
+    });
 
-    fetchLogs();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => unsubscribe();
   }, [user]);
 
   const logAdminAction = async (action: string, details: string) => {
@@ -2438,21 +2414,7 @@ export default function AdminPanel({
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
-              <div>
-                <h3 className="text-xl font-bold font-serif text-emerald-950">Community Snapshot</h3>
-                <p className="text-xs text-slate-500">Live analytics, member metrics and cloud database controls</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleManualSeed}
-                disabled={isSeeding}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
-              >
-                <Database size={15} className={isSeeding ? 'animate-spin' : ''} />
-                {isSeeding ? 'Seeding Firestore...' : 'Seed Sample Data into Firestore'}
-              </button>
-            </div>
+            <h3 className="text-xl font-bold font-serif text-emerald-950 mb-3">Community Snapshot</h3>
             
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <motion.div 

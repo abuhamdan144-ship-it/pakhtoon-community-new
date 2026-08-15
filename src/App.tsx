@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, getDocs, setDoc, where, deleteDoc 
+  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where, deleteDoc 
 } from 'firebase/firestore';
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { seedFirestoreDatabase } from './utils/seedFirestore';
 
 enum OperationType {
   CREATE = 'create',
@@ -55,9 +54,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 import { 
   Member, Donation, CabinetMember, CabinetMeeting, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, FounderProfile 
 } from './types';
-import {
-  DEFAULT_MEMBERS, DEFAULT_CABINET, DEFAULT_NEWS, DEFAULT_ELECTIONS, DEFAULT_EMBASSY, DEFAULT_FOUNDER, DEFAULT_DONATIONS, DEFAULT_INCIDENTS, DEFAULT_ADS
-} from './defaultData';
 
 // Importing sub-components & modular components
 import Navbar from './components/Navbar';
@@ -90,6 +86,13 @@ import CabinetPanel from './components/CabinetPanel';
 import LiveCardPreview from './components/LiveCardPreview';
 import AnimatedCounter from './components/AnimatedCounter';
 import FormSubmitButton from './components/FormSubmitButton';
+import { 
+  NationalDayAnnouncementBar, 
+  PakistanZindabadSection, 
+  CrescentStarIcon, 
+  PakistaniFlagVector, 
+  fireNationalConfetti 
+} from './components/NationalDayTheme';
 import { CARD_COLORS } from './components/CardColors';
 import logoImg from './assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import { translations, languageNames, Language } from './translations';
@@ -190,6 +193,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showPortalMainContent, setShowPortalMainContent] = useState(true);
+  const [isNationalThemeActive, setIsNationalThemeActive] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -204,53 +208,17 @@ export default function App() {
   }, []);
 
   // --- Realtime DB Collections State ---
-  const [members, setMembers] = useState<Member[]>(() => {
-    try {
-      const saved = localStorage.getItem('opc_members_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return DEFAULT_MEMBERS;
-  });
-
-  const [cabinet, setCabinet] = useState<CabinetMember[]>(() => {
-    try {
-      const saved = localStorage.getItem('opc_cabinet_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return DEFAULT_CABINET;
-  });
-
-  const [donations, setDonations] = useState<Donation[]>(DEFAULT_DONATIONS);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [cabinet, setCabinet] = useState<CabinetMember[]>([]);
+  const [donations, setDonations] = useState<Donation[]>([]);
   const donationTotal = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const [news, setNews] = useState<NewsAnnouncement[]>(DEFAULT_NEWS);
-  const [incidents, setIncidents] = useState<IncidentReport[]>(DEFAULT_INCIDENTS);
-  const [embassy, setEmbassy] = useState<EmbassySetting>(DEFAULT_EMBASSY);
-  const [founderProfile, setFounderProfile] = useState<FounderProfile>(DEFAULT_FOUNDER);
-  const [elections, setElections] = useState<Election[]>(DEFAULT_ELECTIONS);
-  const [ads, setAds] = useState<SponsoredAd[]>(DEFAULT_ADS);
+  const [news, setNews] = useState<NewsAnnouncement[]>([]);
+  const [incidents, setIncidents] = useState<IncidentReport[]>([]);
+  const [embassy, setEmbassy] = useState<EmbassySetting>({});
+  const [founderProfile, setFounderProfile] = useState<FounderProfile>({});
+  const [elections, setElections] = useState<Election[]>([]);
+  const [ads, setAds] = useState<SponsoredAd[]>([]);
   const [meetings, setMeetings] = useState<CabinetMeeting[]>([]);
-
-  useEffect(() => {
-    if (members && members.length > 0) {
-      try {
-        localStorage.setItem('opc_members_cache', JSON.stringify(members));
-      } catch (e) {}
-    }
-  }, [members]);
-
-  useEffect(() => {
-    if (cabinet && cabinet.length > 0) {
-      try {
-        localStorage.setItem('opc_cabinet_cache', JSON.stringify(cabinet));
-      } catch (e) {}
-    }
-  }, [cabinet]);
 
   // Auth Users
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -386,21 +354,8 @@ export default function App() {
   // --- Snapshot synchronizations ---
   useEffect(() => {
     // Auth Listener
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (user) {
-        try {
-          await setDoc(doc(db, 'users', user.uid), {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || '',
-            photoURL: user.photoURL || '',
-            lastLogin: Timestamp.now()
-          }, { merge: true });
-        } catch (e) {
-          // Ignore if permissions not ready
-        }
-      }
       if (user && (user.email === 'abuhamdan144@gmail.com' || user.email === 'admin@opc.org' || user.email === 'admin@opc.com' || user.email === 'malakabbas47@gmail.com' || user.providerData.some(p => p.providerId === 'password'))) {
         setAdminUser(user);
       } else {
@@ -411,8 +366,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
     // Decide which query to run for members and incidents based on adminUser
     const membersQuery = adminUser 
       ? query(collection(db, 'members'), orderBy('createdAt', 'desc'))
@@ -422,166 +375,174 @@ export default function App() {
       ? query(collection(db, 'incidents'), orderBy('createdAt', 'desc'))
       : query(collection(db, 'incidents'), where('status', '==', 'published'));
 
-    const loadAllData = async () => {
-      // Auto-seed Firestore database if empty
-      try {
-        await seedFirestoreDatabase(false);
-      } catch (seedErr) {
-        // Silently continue if permissions not granted yet
-      }
-
-      // 1. Members
-      try {
-        const snap = await getDocs(collection(db, 'members'));
-        if (isMounted) {
-          const allMembers = snap.docs.map(d => ({ id: d.id, ...d.data() as Member }));
-          // Show all members unless explicitly rejected for public visitors
-          const list = allMembers.filter(m => adminUser || m.status !== 'rejected');
+    // Members snapshot
+    const unsubscribeMembers = onSnapshot(
+      membersQuery,
+      (snapshot) => {
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Member }));
+        if (!adminUser) {
           list.sort((a, b) => {
             const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
             const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
             return timeB - timeA;
           });
-          if (list.length > 0) setMembers(list);
         }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'members');
+        setMembers(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'members');
       }
+    );
 
-      // 2. Cabinet
-      try {
-        const snap = await getDocs(collection(db, 'cabinet'));
-        if (isMounted) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as CabinetMember }));
-          if (list.length > 0) setCabinet(list);
-        }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'cabinet');
+    // Cabinet snapshot
+    const unsubscribeCabinet = onSnapshot(
+      collection(db, 'cabinet'),
+      (snapshot) => {
+        setCabinet(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMember })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'cabinet');
       }
+    );
 
-      // 3. Donations
-      try {
-        const snap = await getDocs(collection(db, 'donations'));
-        if (isMounted) {
-          const allItems = snap.docs.map(d => ({ id: d.id, ...d.data() as Donation }));
-          const list = allItems.filter(d => {
+    // Donations snapshot
+    const unsubscribeDonations = onSnapshot(
+      query(collection(db, 'donations'), orderBy('date', 'desc')),
+      (snapshot) => {
+        const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Donation }));
+        
+        // Filter out any test donations matching Pco/Pso/1470 so they never appear on UI, stats or export logs
+        const list = allItems.filter(d => {
+          const donorLower = (d.donor || '').trim().toLowerCase();
+          const noteLower = (d.note || '').trim().toLowerCase();
+          const isTest = donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso');
+          return !isTest;
+        });
+        
+        setDonations(list);
+        
+        // Auto-purge any test donation from the DB (only triggered for authorized admins to prevent guest permission-denied errors)
+        if (adminUser) {
+          allItems.forEach(d => {
             const donorLower = (d.donor || '').trim().toLowerCase();
             const noteLower = (d.note || '').trim().toLowerCase();
-            const isTest = donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso');
-            return !isTest;
+            if (donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso')) {
+              console.log('Detected test donation. Auto-purging:', d.id);
+              deleteDoc(doc(db, 'donations', d.id)).catch(() => {
+                // Silently handle deletion error since items are already safely filtered on frontend list
+              });
+            }
           });
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          if (list.length > 0) setDonations(list);
-
-          if (adminUser) {
-            allItems.forEach(d => {
-              const donorLower = (d.donor || '').trim().toLowerCase();
-              const noteLower = (d.note || '').trim().toLowerCase();
-              if (donorLower === 'pco' || d.amount === 1470 || noteLower === 'pso' || donorLower.includes('pco') || noteLower.includes('pso')) {
-                deleteDoc(doc(db, 'donations', d.id)).catch(() => {});
-              }
-            });
-          }
         }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'donations');
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'donations');
       }
+    );
 
-      // 4. News
-      try {
-        const snap = await getDocs(collection(db, 'news'));
-        if (isMounted) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as NewsAnnouncement }));
+    // News snapshot
+    const unsubscribeNews = onSnapshot(
+      query(collection(db, 'news'), orderBy('createdAt', 'desc')),
+      (snapshot) => {
+        setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as NewsAnnouncement })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'news');
+      }
+    );
+
+    // Incidents snapshot
+    const unsubscribeIncidents = onSnapshot(
+      incidentsQuery,
+      (snapshot) => {
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as IncidentReport }));
+        if (!adminUser) {
           list.sort((a, b) => {
             const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
             const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
             return timeB - timeA;
           });
-          if (list.length > 0) setNews(list);
         }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'news');
+        setIncidents(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'incidents');
       }
+    );
 
-      // 5. Incidents / Reports
-      try {
-        const incidentsSnap = await getDocs(collection(db, 'incidents')).catch(() => ({ docs: [] }));
-        const reportsSnap = await getDocs(collection(db, 'reports')).catch(() => ({ docs: [] }));
-        if (isMounted) {
-          const listFromIncidents = incidentsSnap.docs.map(d => ({ id: d.id, ...d.data() as IncidentReport }));
-          const listFromReports = reportsSnap.docs.map(d => ({ id: d.id, ...d.data() as IncidentReport }));
-          const combined = [...listFromIncidents, ...listFromReports];
-          const filtered = combined.filter(inc => adminUser || (inc.status as string) !== 'rejected');
-          filtered.sort((a, b) => {
-            const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt as any) || 0;
-            const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt as any) || 0;
-            return timeB - timeA;
-          });
-          if (filtered.length > 0) setIncidents(filtered);
+    // Embassy setting snapshot
+    const unsubscribeEmbassy = onSnapshot(
+      doc(db, 'settings', 'embassy'),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setEmbassy(snapshot.data() as EmbassySetting);
         }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'incidents');
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/embassy');
       }
+    );
 
-      // 6. Embassy Setting
-      try {
-        const snap = await getDoc(doc(db, 'settings', 'embassy'));
-        if (isMounted && snap.exists()) {
-          setEmbassy(snap.data() as EmbassySetting);
+    // Founder setting snapshot
+    const unsubscribeFounder = onSnapshot(
+      doc(db, 'settings', 'founder'),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setFounderProfile(snapshot.data() as FounderProfile);
         }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'settings/embassy');
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/founder');
       }
+    );
 
-      // 7. Founder Setting
-      try {
-        const snap = await getDoc(doc(db, 'settings', 'founder'));
-        if (isMounted && snap.exists()) {
-          setFounderProfile(snap.data() as FounderProfile);
+    // Elections snapshot
+    const unsubscribeElections = onSnapshot(
+      query(collection(db, 'elections'), orderBy('createdAt', 'desc')),
+      (snapshot) => {
+        setElections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Election })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'elections');
+      }
+    );
+
+    // Ads snapshot
+    const unsubscribeAds = onSnapshot(
+      query(collection(db, 'ads'), orderBy('createdAt', 'desc')),
+      (snapshot) => {
+        setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as SponsoredAd })));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'ads');
+      }
+    );
+
+    // Cabinet Meetings snapshot (available to any authenticated user/cabinet officer)
+    let unsubscribeMeetings = () => {};
+    if (currentUser) {
+      unsubscribeMeetings = onSnapshot(
+        query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')),
+        (snapshot) => {
+          setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as CabinetMeeting })));
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, 'cabinet_meetings');
         }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'settings/founder');
-      }
-
-      // 8. Elections
-      try {
-        const snap = await getDocs(query(collection(db, 'elections'), orderBy('createdAt', 'desc')));
-        if (isMounted) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as Election }));
-          if (list.length > 0) setElections(list);
-        }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'elections');
-      }
-
-      // 9. Sponsored Ads
-      try {
-        const snap = await getDocs(query(collection(db, 'ads'), orderBy('createdAt', 'desc')));
-        if (isMounted) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() as SponsoredAd }));
-          setAds(list);
-        }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'ads');
-      }
-
-      // 10. Cabinet Meetings
-      if (currentUser) {
-        try {
-          const snap = await getDocs(query(collection(db, 'cabinet_meetings'), orderBy('createdAt', 'desc')));
-          if (isMounted) {
-            setMeetings(snap.docs.map(d => ({ id: d.id, ...d.data() as CabinetMeeting })));
-          }
-        } catch (err) {
-          handleFirestoreError(err, OperationType.GET, 'cabinet_meetings');
-        }
-      }
-    };
-
-    loadAllData();
+      );
+    }
 
     return () => {
-      isMounted = false;
+      unsubscribeMembers();
+      unsubscribeCabinet();
+      unsubscribeDonations();
+      unsubscribeNews();
+      unsubscribeIncidents();
+      unsubscribeEmbassy();
+      unsubscribeFounder();
+      unsubscribeElections();
+      unsubscribeAds();
+      unsubscribeMeetings();
     };
   }, [adminUser, currentUser]);
 
@@ -753,29 +714,15 @@ export default function App() {
 
   // Helper for Membership component direct registration
   const handleNewMemberRegister = async (data: Omit<Member, 'id' | 'createdAt' | 'status'>) => {
-    const tempId = 'mem-' + Date.now();
-    const newMember: Member = {
-      id: tempId,
-      ...data,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-
-    // Optimistically update state
-    setMembers(prev => [newMember, ...prev]);
-
     try {
-      const docRef = await addDoc(collection(db, 'members'), {
+      await addDoc(collection(db, 'members'), {
         ...data,
         status: 'pending',
         createdAt: Timestamp.now()
       });
-      if (docRef?.id) {
-        setMembers(prev => prev.map(m => m.id === tempId ? { ...m, id: docRef.id } : m));
-      }
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'members');
-      // Even if Firestore write is delayed, member remains in state & localStorage
+      throw err;
     }
   };
 
@@ -1061,7 +1008,14 @@ export default function App() {
   const unvotedOpenCount = openElections.filter(el => !userVotedElections[el.id || '']).length;
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#faf6ed] text-[#26302c]">
+    <div className={`min-h-screen flex flex-col font-sans ${isNationalThemeActive ? 'bg-emerald-950/5' : 'bg-amber-50/15'}`}>
+      
+      {/* 14 August Independence Day Announcement Bar */}
+      <NationalDayAnnouncementBar 
+        isThemeActive={isNationalThemeActive} 
+        onToggleTheme={() => setIsNationalThemeActive(!isNationalThemeActive)} 
+      />
+      
       {/* Sticky Glassmorphism Header Navbar */}
       <Navbar 
         activeTab={currentPage}

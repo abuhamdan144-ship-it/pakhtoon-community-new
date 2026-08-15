@@ -18,16 +18,11 @@ export default function Stats({
   electionVotesTotal = 3420
 }: StatsProps) {
   
-  const calculatedMembers = memberCount > 100 ? memberCount : 1280 + memberCount;
-  const calculatedCabinet = cabinetCount > 20 ? cabinetCount : 24 + cabinetCount;
-  const calculatedDonations = donationTotal >= 10000 ? donationTotal : 45200 + donationTotal;
-  const calculatedIncidents = incidentCount > 50 ? incidentCount : 112 + incidentCount;
-
   const statsList = [
     {
       id: 'members',
       label: 'Registered Diaspora Members',
-      value: calculatedMembers,
+      value: memberCount || 1280,
       prefix: '',
       suffix: '+',
       icon: Users,
@@ -38,7 +33,7 @@ export default function Stats({
     {
       id: 'cabinet',
       label: 'Executive Cabinet Officials',
-      value: calculatedCabinet,
+      value: cabinetCount || 34,
       prefix: '',
       suffix: '',
       icon: Landmark,
@@ -49,7 +44,7 @@ export default function Stats({
     {
       id: 'donations',
       label: 'Welfare Relief Pool (OMR)',
-      value: calculatedDonations,
+      value: donationTotal || 45200,
       prefix: 'OMR ',
       suffix: '',
       icon: DollarSign,
@@ -60,7 +55,7 @@ export default function Stats({
     {
       id: 'incidents',
       label: 'Repatriation & Medical Claims Settled',
-      value: calculatedIncidents,
+      value: incidentCount || 112,
       prefix: '',
       suffix: ' Cases',
       icon: AlertTriangle,

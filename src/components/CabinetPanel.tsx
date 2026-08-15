@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { CabinetMember, Member, CabinetMeeting } from '../types';
-import { DEFAULT_CABINET } from '../defaultData';
 import { 
   Search, Phone, Mail, Award, Users, ShieldAlert, CheckCircle,
   ThumbsUp, ThumbsDown, MessageSquare, Plus, Check,
@@ -68,33 +67,31 @@ export default function CabinetPanel({
   const [submitting, setSubmitting] = useState(false);
   const [votingId, setVotingId] = useState<string | null>(null);
 
-  const effectiveCabinet = cabinet && cabinet.length > 0 ? cabinet : DEFAULT_CABINET;
-
   // Authenticated cabinet member finder
-  const loggedInCabinetMember = effectiveCabinet.find(
+  const loggedInCabinetMember = cabinet.find(
     (cm) => cm.email && cm.email.toLowerCase().trim() === currentUser?.email?.toLowerCase().trim()
   );
   const isCabinetMember = !!loggedInCabinetMember || isAdmin;
 
   // Filter and sort Cabinet Members by Position priority
-  const sortedCabinet = [...effectiveCabinet]
+  const sortedCabinet = [...cabinet]
     .filter(cm => {
       const query = searchQuery.toLowerCase();
       return (
-        (cm.name || '').toLowerCase().includes(query) ||
-        (cm.position || '').toLowerCase().includes(query) ||
+        cm.name.toLowerCase().includes(query) ||
+        cm.position.toLowerCase().includes(query) ||
         (cm.phone && cm.phone.includes(query)) ||
         (cm.email && cm.email.toLowerCase().includes(query))
       );
     })
     .sort((a, b) => {
-      const priorityA = getPositionPriority(a.position || '');
-      const priorityB = getPositionPriority(b.position || '');
+      const priorityA = getPositionPriority(a.position);
+      const priorityB = getPositionPriority(b.position);
       
       if (priorityA !== priorityB) {
         return priorityA - priorityB;
       }
-      return (a.name || '').localeCompare(b.name || '');
+      return a.name.localeCompare(b.name);
     });
 
   // Approved general members
@@ -279,7 +276,7 @@ export default function CabinetPanel({
               }`}
             >
               <Award size={15} />
-              Executive Cabinet ({effectiveCabinet.length})
+              Executive Cabinet ({cabinet.length})
             </button>
             <button
               onClick={() => { setActiveSubTab('registered'); setSearchQuery(''); }}

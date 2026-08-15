@@ -4,18 +4,61 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Primary SEO Meta Tags -->
-    <title>Pakhtoon Community | Oman Diaspora Portal</title>
-    <meta name="description" content="Official community portal for the Pakhtoon diaspora in the Sultanate of Oman. Digital membership ID cards, executive cabinet, welfare claims, donations, and embassy coordination." />
-    <meta name="keywords" content="Pakhtoon Community Oman, Pashtun diaspora, Oman Pukhtoon Community, OPC Oman, Welfare Association" />
+    <!-- Primary Google SEO Meta Tags -->
+    <title>Pakhtoon Community | 14 August Independence Day Celebration 🇵🇰</title>
+    <meta name="description" content="Official portal of the Pakhtoon Community. Celebrating 14 August Independence Day with welfare coordination, digital cards, democratic voting, and community support." />
+    <meta name="keywords" content="14 August Pakistan Independence Day, Pakhtoon Community, Pashtun diaspora, Pakistan Zindabad, Pakhtoon Welfare Association" />
     <meta name="author" content="Pakhtoon Community" />
     <meta name="robots" content="index, follow" />
 
     <!-- Open Graph / Facebook SEO -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Pakhtoon Community | Oman Diaspora Portal" />
-    <meta property="og:description" content="Official community portal for the Pakhtoon diaspora in Oman: digital membership ID, executive cabinet, welfare claims, and community support." />
+    <meta property="og:title" content="🇵🇰 14 August – Independence Day Celebration | Pakhtoon Community" />
+    <meta property="og:description" content="Pakhtoon Community salutes the nation on 14 August Independence Day. Access membership verification, emergency report support, and community shuras." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1200" />
     <meta property="og:site_name" content="Pakhtoon Community" />
+
+    <!-- Twitter SEO Metadata -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="🇵🇰 14 August Independence Day | Pakhtoon Community" />
+    <meta name="twitter:description" content="Celebrating 14 August Freedom and Unity across the Pakhtoon diaspora." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1200" />
+
+    <!-- National Day Patriotic Theme Styles & Keyframes -->
+    <style>
+      :root {
+        --pakistan-green: #01411C;
+        --pakistan-green-light: #02682c;
+        --accent-gold: #fbbf24;
+      }
+      
+      /* Subtle Floating Stars/Sparkles Animation */
+      @keyframes sparkleFloat {
+        0%, 100% {
+          transform: translateY(0px) scale(1);
+          opacity: 0.7;
+        }
+        50% {
+          transform: translateY(-8px) scale(1.15);
+          opacity: 1;
+        }
+      }
+
+      .sparkle-animated {
+        animation: sparkleFloat 3s ease-in-out infinite;
+      }
+
+      /* Flag Waving Motion */
+      @keyframes flagWaveSmooth {
+        0%, 100% { transform: rotate(0deg) skewY(0deg); }
+        25% { transform: rotate(1deg) skewY(1deg); }
+        75% { transform: rotate(-1deg) skewY(-1deg); }
+      }
+
+      .flag-wave-element {
+        animation: flagWaveSmooth 4s ease-in-out infinite;
+      }
+    </style>
 
     <!-- Google Structured Schema Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -23,19 +66,20 @@
         "@context": "https://schema.org",
         "@type": "NGO",
         "name": "Pakhtoon Community",
-        "alternateName": "OPC",
-        "description": "Official community portal for the Pakhtoon diaspora across Oman offering digital cards, welfare relief, and democratic elections.",
+        "alternateName": "PC",
+        "description": "Official community portal celebrating 14 August Pakistan Independence Day with digital cards, shuras, and social welfare support.",
         "url": "https://pakhtooncommunity.org",
+        "logo": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=150",
         "contactPoint": {
           "@type": "ContactPoint",
-          "telephone": "+968 9911 1870",
-          "contactType": "Community Welfare & Emergency Helpline",
-          "availableLanguage": ["English", "Pashto", "Urdu", "Arabic"]
+          "telephone": "",
+          "contactType": "Emergency Support and Community Welfare Liaison",
+          "availableLanguage": ["English", "Pashto", "Urdu"]
         }
       }
     </script>
   </head>
-  <body class="bg-[#faf6ed] text-[#26302c] antialiased selection:bg-[#1b4d3e] selection:text-white">
+  <body class="bg-amber-50/15 text-slate-800 antialiased selection:bg-[#01411C] selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
