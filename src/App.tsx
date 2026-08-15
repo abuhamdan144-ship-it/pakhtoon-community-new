@@ -56,7 +56,7 @@ import {
   Member, Donation, CabinetMember, CabinetMeeting, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, FounderProfile 
 } from './types';
 import {
-  DEFAULT_MEMBERS, DEFAULT_CABINET, DEFAULT_NEWS, DEFAULT_ELECTIONS, DEFAULT_EMBASSY, DEFAULT_FOUNDER, DEFAULT_DONATIONS, DEFAULT_INCIDENTS
+  DEFAULT_MEMBERS, DEFAULT_CABINET, DEFAULT_NEWS, DEFAULT_ELECTIONS, DEFAULT_EMBASSY, DEFAULT_FOUNDER, DEFAULT_DONATIONS, DEFAULT_INCIDENTS, DEFAULT_ADS
 } from './defaultData';
 
 // Importing sub-components & modular components
@@ -241,7 +241,7 @@ export default function App() {
   const [embassy, setEmbassy] = useState<EmbassySetting>(DEFAULT_EMBASSY);
   const [founderProfile, setFounderProfile] = useState<FounderProfile>(DEFAULT_FOUNDER);
   const [elections, setElections] = useState<Election[]>(DEFAULT_ELECTIONS);
-  const [ads, setAds] = useState<SponsoredAd[]>([]);
+  const [ads, setAds] = useState<SponsoredAd[]>(DEFAULT_ADS);
   const [meetings, setMeetings] = useState<CabinetMeeting[]>([]);
 
   useEffect(() => {
