@@ -90,13 +90,6 @@ import CabinetPanel from './components/CabinetPanel';
 import LiveCardPreview from './components/LiveCardPreview';
 import AnimatedCounter from './components/AnimatedCounter';
 import FormSubmitButton from './components/FormSubmitButton';
-import { 
-  NationalDayAnnouncementBar, 
-  PakistanZindabadSection, 
-  CrescentStarIcon, 
-  PakistaniFlagVector, 
-  fireNationalConfetti 
-} from './components/NationalDayTheme';
 import { CARD_COLORS } from './components/CardColors';
 import logoImg from './assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import { translations, languageNames, Language } from './translations';
@@ -197,7 +190,6 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showPortalMainContent, setShowPortalMainContent] = useState(true);
-  const [isNationalThemeActive, setIsNationalThemeActive] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1069,14 +1061,7 @@ export default function App() {
   const unvotedOpenCount = openElections.filter(el => !userVotedElections[el.id || '']).length;
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans ${isNationalThemeActive ? 'bg-emerald-950/5' : 'bg-amber-50/15'}`}>
-      
-      {/* 14 August Independence Day Announcement Bar */}
-      <NationalDayAnnouncementBar 
-        isThemeActive={isNationalThemeActive} 
-        onToggleTheme={() => setIsNationalThemeActive(!isNationalThemeActive)} 
-      />
-      
+    <div className="min-h-screen flex flex-col font-sans bg-[#faf6ed] text-[#26302c]">
       {/* Sticky Glassmorphism Header Navbar */}
       <Navbar 
         activeTab={currentPage}
