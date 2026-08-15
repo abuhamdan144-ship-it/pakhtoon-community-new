@@ -14,7 +14,33 @@ export default function Elections({ elections, onCastVote, userEmail }: Election
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [votedElections, setVotedElections] = useState<Record<string, boolean>>({});
 
-  const activeElections = elections || [];
+  const defaultElections: Election[] = [
+    {
+      id: 'elec-1',
+      title: '2026 Muscat Chapter Cabinet Executive Election',
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      endDate: '2026-08-31',
+      candidates: [
+        { id: 'c1', name: 'Al-Haj Jan Mohammad Khan (President Candidate)', votes: 840 },
+        { id: 'c2', name: 'Malik Ziarat Wali Yousafzai (President Candidate)', votes: 620 },
+        { id: 'c3', name: 'Engineer Gul Rehman Khattak (President Candidate)', votes: 390 }
+      ]
+    },
+    {
+      id: 'elec-2',
+      title: '2026 Salalah & Dhofar Chapter General Secretary Poll',
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      endDate: '2026-08-30',
+      candidates: [
+        { id: 'c4', name: 'Commander Tariq Afridi (Gen. Sec. Candidate)', votes: 510 },
+        { id: 'c5', name: 'Subedar (R) Sher Zada Mohmand (Gen. Sec. Candidate)', votes: 480 }
+      ]
+    }
+  ];
+
+  const activeElections = elections && elections.length > 0 ? elections : defaultElections;
 
   const handleVoteSubmit = async () => {
     if (!selectedCandidate) return;

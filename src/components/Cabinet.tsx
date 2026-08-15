@@ -11,7 +11,58 @@ export default function Cabinet({ cabinet }: CabinetProps) {
   const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const membersToDisplay = cabinet || [];
+  const defaultCabinet: CabinetMember[] = [
+    {
+      id: 'default-1',
+      name: 'Sahibzada Khan',
+      position: 'Chairman Executive Council',
+      phone: '+968 99111870',
+      email: 'chairman@pakhtoonoman.org',
+      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'default-2',
+      name: 'Mohammad Ali Shinwari',
+      position: 'President Muscat Chapter',
+      phone: '+968 98223344',
+      email: 'president.muscat@pakhtoonoman.org',
+      photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'default-3',
+      name: 'Gul Zada Yousafzai',
+      position: 'General Secretary',
+      phone: '+968 97334455',
+      email: 'gensec@pakhtoonoman.org',
+      photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'default-4',
+      name: 'Dr. Tariq Khattak',
+      position: 'Welfare & Medical Affairs',
+      phone: '+968 96445566',
+      email: 'welfare@pakhtoonoman.org',
+      photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'default-5',
+      name: 'Engineer Bilal Afridi',
+      position: 'Chief Organizer Salalah',
+      phone: '+968 95556677',
+      email: 'salalah@pakhtoonoman.org',
+      photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'default-6',
+      name: 'Hazrat Shah Mohmand',
+      position: 'Finance & Treasury',
+      phone: '+968 94667788',
+      email: 'finance@pakhtoonoman.org',
+      photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
+    }
+  ];
+
+  const membersToDisplay = cabinet && cabinet.length > 0 ? cabinet : defaultCabinet;
 
   const filteredMembers = membersToDisplay.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

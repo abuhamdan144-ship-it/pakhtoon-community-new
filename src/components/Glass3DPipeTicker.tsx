@@ -7,9 +7,16 @@ interface Glass3DPipeTickerProps {
 }
 
 export default function Glass3DPipeTicker({ news }: Glass3DPipeTickerProps) {
+  const defaultBulletins = [
+    "🚨 OPC Diaspora Chapter: Support guidelines and emergency welfare claim services are active across Sultanate of Oman.",
+    "⭐ Community Coordination: Connect with Muscat & Salalah regional councils for legal and consular assistance.",
+    "🗳️ Elections Portal: Join digital democracy & register cabinet candidacies for community executive councils.",
+    "📞 24/7 Hotline Desk: Direct WhatsApp & Helpline contacts for community representatives updated."
+  ];
+
   const bulletinItems = news && news.length > 0 
     ? news.map(n => `📢 ${n.title}: ${n.content.slice(0, 150)}${n.content.length > 150 ? '...' : ''}`)
-    : ["No active announcements at the moment."];
+    : defaultBulletins;
 
   return (
     <div className="relative w-full my-4 font-sans select-none">

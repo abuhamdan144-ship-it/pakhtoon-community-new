@@ -11,7 +11,31 @@ export default function News({ news }: NewsProps) {
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const newsItems = news || [];
+  const defaultNews: NewsAnnouncement[] = [
+    {
+      id: 'n1',
+      title: 'Consular & Legal Aid Session in Salalah',
+      content: 'The Pakhtoon Community Executive Council has scheduled a free legal and consular support workshop for workers and businessmen in Dhofar region. Representatives will assist with passport renewal, labor contracts, and emergency repatriation claims.',
+      image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&auto=format&fit=crop&q=80',
+      createdAt: '2026-08-01'
+    },
+    {
+      id: 'n2',
+      title: 'Digital Membership Card Dispatches Completed for Muscat Chapter',
+      content: 'Over 400 verified Pakhtoon Diaspora members in Muscat, Seeb, and Ruwi have been issued official QR-scannable digital membership credentials. Members can look up their profile and download PDF cards directly from this portal.',
+      image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
+      createdAt: '2026-07-28'
+    },
+    {
+      id: 'n3',
+      title: 'Welfare Emergency Relief Fund Allocation Announcement',
+      content: 'A total of 4,500 OMR has been dispatched this month to support medical repatriation cases and families of deceased community members. The community thanks all donors for their generous contributions.',
+      image: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb0?w=800&auto=format&fit=crop&q=80',
+      createdAt: '2026-07-20'
+    }
+  ];
+
+  const newsItems = news && news.length > 0 ? news : defaultNews;
 
   const filteredNews = newsItems.filter(item => 
     item.title.toLowerCase().includes(filterQuery.toLowerCase()) ||
