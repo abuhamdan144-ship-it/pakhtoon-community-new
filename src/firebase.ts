@@ -9,9 +9,8 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize the App
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore targeting the configured database instance
-const databaseId = (firebaseConfig as any).firestoreDatabaseId;
-export const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+// Initialize Firestore targeting the default instance (Spark plan free tier compatible)
+export const db = getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);

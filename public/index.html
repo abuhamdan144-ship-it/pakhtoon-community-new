@@ -1,0 +1,2654 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- SEO Meta Tags -->
+  <title>Pakhtoon Community Portal</title>
+  <meta name="description" content="Official community portal for Pakhtoon families. Free membership, welfare support, elections and news." />
+  <meta name="keywords" content="Pakhtoon Community, Pakistani community, Pashto community, welfare support, membership card, community elections" />
+  <meta name="google-site-verification" content="bS7K0pHnKNvDSqzoOiBchLO3w7NNWyOvwACltIhUxmw" />
+
+  <style>
+    /* =========================================================
+       PURE CSS - GREEN & GOLD COMMUNITY THEME (NO EXTERNAL CSS)
+       ========================================================= */
+    :root {
+      --primary: #1b4d3e;
+      --dark-green: #0e2e25;
+      --gold: #d4af37;
+      --sand: #f3ead7;
+      --cream: #faf6ed;
+      --red: #c8102e;
+      --text: #26302c;
+      --muted: #6b7a73;
+      --line: #e2d8c2;
+      --white: #ffffff;
+      --shadow: 0 4px 14px rgba(14, 46, 37, 0.08);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background-color: var(--cream);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--dark-green);
+      font-weight: 700;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    /* TOP FLAG STRIPE */
+    .flag-stripe {
+      display: flex;
+      height: 6px;
+      width: 100%;
+    }
+    .flag-green { background: #00401a; flex: 2; }
+    .flag-white { background: #ffffff; flex: 1; }
+    .flag-red { background: var(--red); flex: 1; }
+
+    /* STICKY HEADER */
+    header {
+      background: var(--dark-green);
+      color: var(--white);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      border-bottom: 2px solid var(--gold);
+    }
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .brand-logo-circle {
+      width: 44px;
+      height: 44px;
+      background: var(--primary);
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: var(--gold);
+      font-family: Georgia, serif;
+      font-size: 18px;
+    }
+    .brand-text h1 {
+      font-size: 19px;
+      color: var(--white);
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .brand-text span {
+      font-size: 11px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: block;
+    }
+    .nav-links {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      list-style: none;
+    }
+    .nav-links button {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #e5ece9;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .nav-links button:hover, .nav-links button.active {
+      background: var(--primary);
+      color: var(--gold);
+      border-color: rgba(212, 175, 55, 0.4);
+    }
+    .nav-links button.admin-btn {
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+    }
+
+    /* MOBILE NAV */
+    .mobile-menu-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 20px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* MAIN CONTAINER */
+    main {
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      width: 100%;
+    }
+
+    .page-section {
+      display: none;
+    }
+    .page-section.active {
+      display: block;
+    }
+
+    /* HERO SECTION */
+    .hero-box {
+      background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary) 70%, #2a6855 100%);
+      color: var(--white);
+      border-radius: 12px;
+      padding: 40px 30px;
+      margin-bottom: 30px;
+      border: 1px solid var(--gold);
+      box-shadow: 0 8px 24px rgba(14, 46, 37, 0.15);
+      position: relative;
+    }
+    .hero-box h2 {
+      color: var(--white);
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    .hero-box p {
+      color: var(--sand);
+      max-width: 750px;
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+    .btn-gold {
+      background: var(--gold);
+      color: var(--dark-green);
+    }
+    .btn-gold:hover {
+      background: #e6be44;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
+    }
+    .btn-green {
+      background: var(--primary);
+      color: var(--white);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+    }
+    .btn-green:hover {
+      background: var(--dark-green);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      border: 1px solid var(--white);
+    }
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .btn-red {
+      background: var(--red);
+      color: var(--white);
+    }
+    .btn-red:hover {
+      background: #a30b23;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      border-top: 4px solid var(--gold);
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--dark-green);
+      font-family: Georgia, serif;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+
+    /* ADS BILLBOARD CAROUSEL */
+    .billboard-container {
+      background: var(--white);
+      border: 2px solid var(--gold);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow);
+    }
+    .billboard-header {
+      background: var(--dark-green);
+      color: var(--gold);
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .billboard-slide {
+      display: none;
+      padding: 16px;
+      align-items: center;
+      gap: 20px;
+      cursor: pointer;
+    }
+    .billboard-slide.active {
+      display: flex;
+    }
+    .billboard-slide img {
+      width: 120px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+    }
+    .billboard-info {
+      flex: 1;
+    }
+    .billboard-info h4 {
+      font-size: 16px;
+      color: var(--dark-green);
+      margin-bottom: 4px;
+    }
+    .billboard-info p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .billboard-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px;
+      background: var(--cream);
+    }
+    .billboard-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--line);
+      cursor: pointer;
+    }
+    .billboard-dot.active {
+      background: var(--gold);
+    }
+
+    /* DONATION ACCOUNT CARD */
+    .donation-bank-card {
+      background: linear-gradient(135deg, #fbf7ee 0%, #f4ebd6 100%);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+    .bank-details h3 {
+      font-size: 20px;
+      color: var(--dark-green);
+      margin-bottom: 8px;
+    }
+    .bank-row {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .bank-row strong {
+      color: var(--dark-green);
+      width: 140px;
+      display: inline-block;
+    }
+    .bank-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* CARDS & GRIDS */
+    .section-title {
+      font-size: 24px;
+      margin-bottom: 6px;
+      color: var(--dark-green);
+    }
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .cabinet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 35px;
+    }
+    .cabinet-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s;
+    }
+    .cabinet-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--gold);
+    }
+    .cabinet-img {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 12px;
+      border: 2px solid var(--gold);
+      background: var(--sand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: var(--dark-green);
+      font-size: 24px;
+    }
+    .cabinet-name {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--dark-green);
+    }
+    .cabinet-pos {
+      font-size: 12px;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .cabinet-phone {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* NEWS & INCIDENTS GRIDS */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 35px;
+    }
+    .news-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .news-card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: #eaeaea;
+    }
+    .news-content {
+      padding: 16px;
+    }
+    .news-date {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .news-title {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: var(--dark-green);
+    }
+    .news-desc {
+      font-size: 13px;
+      color: #4a5752;
+    }
+
+    /* TV CHANNELS BUTTONS */
+    .tv-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+    .tv-btn {
+      background: var(--white);
+      border: 1px solid var(--line);
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-weight: bold;
+      font-size: 13px;
+      color: var(--dark-green);
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tv-btn:hover {
+      background: var(--primary);
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+
+    /* EMBASSY CARD */
+    .embassy-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 35px;
+    }
+
+    /* FORMS */
+    .form-container {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 30px;
+      box-shadow: var(--shadow);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--dark-green);
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      font-size: 14px;
+      background: var(--cream);
+      color: var(--text);
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: var(--white);
+    }
+
+    /* ELECTIONS LIST & PROGRESS */
+    .election-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .election-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .badge-open { background: #e0f2e9; color: #0a6938; border: 1px solid #9cdbba; }
+    .badge-closed { background: #fbe9eb; color: #a81c2f; border: 1px solid #f2aeb7; }
+    .candidate-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .candidate-info {
+      flex: 1;
+    }
+    .candidate-bar {
+      height: 12px;
+      background: var(--sand);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .candidate-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--gold));
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* TABLES (ADMIN) */
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: var(--dark-green);
+      color: var(--sand);
+      font-weight: 600;
+    }
+    tr:hover td {
+      background: #fbf8f0;
+    }
+
+    /* ADMIN TABS */
+    .admin-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+    }
+    .admin-tab-btn {
+      background: var(--white);
+      border: 1px solid var(--line);
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--dark-green);
+    }
+    .admin-tab-btn.active {
+      background: var(--primary);
+      color: var(--gold);
+      border-color: var(--primary);
+    }
+    .admin-pane {
+      display: none;
+    }
+    .admin-pane.active {
+      display: block;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      position: relative;
+      border: 2px solid var(--gold);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 22px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--dark-green);
+      color: var(--sand);
+      padding: 30px 20px;
+      margin-top: 40px;
+      border-top: 3px solid var(--gold);
+      font-size: 13px;
+    }
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: var(--dark-green);
+        padding: 16px;
+        border-bottom: 2px solid var(--gold);
+      }
+      .nav-links.mobile-open {
+        display: flex;
+      }
+      .mobile-menu-toggle {
+        display: block;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-box h2 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pakistan Flag Stripe -->
+  <div class="flag-stripe">
+    <div class="flag-green"></div>
+    <div class="flag-white"></div>
+    <div class="flag-red"></div>
+  </div>
+
+  <!-- Header & Navigation -->
+  <header>
+    <div class="nav-container">
+      <div class="brand" onclick="showPage('home')">
+        <div class="brand-logo-circle">PC</div>
+        <div class="brand-text">
+          <h1>Pakhtoon Community</h1>
+          <span>Welfare & Solidarity Portal</span>
+        </div>
+      </div>
+
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+
+      <ul class="nav-links" id="navLinks">
+        <li><button onclick="showPage('home')" id="nav-home" class="active">Home</button></li>
+        <li><button onclick="showPage('membership')" id="nav-membership">Membership</button></li>
+        <li><button onclick="showPage('elections')" id="nav-elections">Elections</button></li>
+        <li><button onclick="showPage('incident')" id="nav-incident">Report Incident</button></li>
+        <li><button onclick="showPage('admin')" id="nav-admin" class="admin-btn">Admin Portal</button></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+
+    <!-- ==================== 1. HOME PAGE ==================== -->
+    <section id="page-home" class="page-section active">
+      
+      <!-- HERO -->
+      <div class="hero-box">
+        <h2>Pakhtoon Community Welfare Portal</h2>
+        <p>Serving community members in the Sultanate of Oman through social welfare assistance, verified digital identification cards, emergency repatriations, and transparent shura representation.</p>
+        <div class="hero-actions">
+          <button class="btn btn-gold" onclick="showPage('membership')">Apply for Digital Card</button>
+          <button class="btn btn-outline" onclick="showPage('incident')">Emergency Welfare Report</button>
+        </div>
+      </div>
+
+      <!-- LIVE STATS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statMembers">0</div>
+          <div class="stat-label">Verified Members</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statDonations">0 OMR</div>
+          <div class="stat-label">Welfare Fund Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statIncidents">0</div>
+          <div class="stat-label">Welfare Cases Resolved</div>
+        </div>
+      </div>
+
+      <!-- SPONSORED ADS BILLBOARD CAROUSEL -->
+      <div class="billboard-container" id="billboardBox" style="display:none;">
+        <div class="billboard-header">
+          <span>★ Community Sponsored Billboard</span>
+          <span id="adTimerNotice">Auto-Rotating</span>
+        </div>
+        <div id="billboardSlides">
+          <!-- Populated from Firestore `ads` -->
+        </div>
+        <div class="billboard-dots" id="billboardDots"></div>
+      </div>
+
+      <!-- DONATION ACCOUNT CARD -->
+      <div class="donation-bank-card">
+        <div class="bank-details">
+          <h3>Community Welfare Bait-ul-Maal Account</h3>
+          <div class="bank-row"><strong>Bank Name:</strong> Bank Dhofar</div>
+          <div class="bank-row"><strong>Account Title:</strong> IKRAM BACHA</div>
+          <div class="bank-row"><strong>Account No:</strong> 01011503131001</div>
+          <div class="bank-row"><strong>Mobile / Contact:</strong> +968 99111870</div>
+        </div>
+        <div class="bank-actions">
+          <a href="https://wa.me/96899111870?text=Salam%20regarding%20Community%20Donation" target="_blank" class="btn btn-green">WhatsApp Receipt</a>
+          <a href="tel:+96899111870" class="btn btn-gold">Call Treasurer</a>
+        </div>
+      </div>
+
+      <!-- LIVE TV SECTION -->
+      <div style="margin-bottom: 30px;">
+        <h3 class="section-title">Live Pashto & National Media</h3>
+        <p class="section-subtitle">Official streaming broadcasts and community news feeds</p>
+        <div class="tv-buttons">
+          <button class="tv-btn" onclick="openInNew('https://www.youtube.com/watch?v=live')">▶ Khyber News Live</button>
+          <button class="tv-btn" onclick="openInNew('https://avtkhyber.tv/live/')">▶ AVT Khyber Live</button>
+          <button class="tv-btn" onclick="openInNew('https://mjunoon.tv/')">▶ Mjunoon TV</button>
+          <button class="tv-btn" onclick="openInNew('https://arynews.tv/live')">▶ ARY News Live</button>
+          <button class="tv-btn" onclick="openInNew('https://www.geo.tv/live')">▶ Geo News Live</button>
+        </div>
+      </div>
+
+      <!-- EXECUTIVE CABINET -->
+      <div style="margin-bottom: 35px;">
+        <h3 class="section-title">Executive Cabinet</h3>
+        <p class="section-subtitle">Leadership council dedicated to diaspora representation</p>
+        <div class="cabinet-grid" id="homeCabinetGrid">
+          <!-- Populated from Firestore `cabinet` -->
+        </div>
+      </div>
+
+      <!-- NEWS BULLETINS -->
+      <div style="margin-bottom: 35px;">
+        <h3 class="section-title">Official Announcements</h3>
+        <p class="section-subtitle">Community bulletins, welfare circulars, and diplomatic events</p>
+        <div class="news-grid" id="homeNewsGrid">
+          <!-- Populated from Firestore `news` -->
+        </div>
+      </div>
+
+      <!-- PUBLISHED WELFARE INCIDENTS -->
+      <div style="margin-bottom: 35px;">
+        <h3 class="section-title">Published Welfare Reports</h3>
+        <p class="section-subtitle">Ongoing emergency cases coordinated with community donors</p>
+        <div id="homeIncidentsList">
+          <!-- Populated from Firestore `incidents` -->
+        </div>
+      </div>
+
+      <!-- EMBASSY OF PAKISTAN DETAILS -->
+      <div class="embassy-card">
+        <h3 style="color:var(--dark-green); margin-bottom:10px;">Pakistan Embassy Liaison Desk (Muscat)</h3>
+        <p id="embAddress" style="margin-bottom:6px;"><strong>Address:</strong> Diplomatic Enclave, Muscat, Sultanate of Oman</p>
+        <p id="embPhone" style="margin-bottom:6px;"><strong>Phone:</strong> +968 24696135</p>
+        <p id="embEmergency" style="margin-bottom:6px;"><strong>Emergency 24/7:</strong> +968 91234567</p>
+        <p id="embEmail" style="margin-bottom:6px;"><strong>Email:</strong> parepmuscat@mofa.gov.pk</p>
+        <p id="embHours" style="margin-bottom:6px;"><strong>Working Hours:</strong> Sun-Thu 08:00 AM - 03:00 PM</p>
+        <p id="embWebsite"><strong>Website:</strong> <a href="https://mofa.gov.pk/muscat-oman" target="_blank">mofa.gov.pk/muscat-oman</a></p>
+      </div>
+
+    </section>
+
+    <!-- ==================== 2. MEMBERSHIP REGISTRATION ==================== -->
+    <section id="page-membership" class="page-section">
+      <div class="form-container">
+        <h2 style="margin-bottom: 8px;">Digital Membership Card Registration</h2>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Submit your profile to receive an official Pakhtoon Community Identity Card & Certificate.</p>
+        
+        <form id="memberForm" onsubmit="handleMemberRegistration(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="mName" class="form-control" required placeholder="e.g. Khan Bahadur" />
+            </div>
+            <div class="form-group">
+              <label>Father Name *</label>
+              <input type="text" id="mFather" class="form-control" required placeholder="e.g. Gul Muhammad" />
+            </div>
+            <div class="form-group">
+              <label>CNIC / Passport Number *</label>
+              <input type="text" id="mCnic" class="form-control" required placeholder="17301-XXXXXXX-X" />
+            </div>
+            <div class="form-group">
+              <label>Home District *</label>
+              <input type="text" id="mDistrict" class="form-control" required placeholder="e.g. Swat, Mardan, Peshawar" />
+            </div>
+            <div class="form-group">
+              <label>Oman Phone Number *</label>
+              <input type="tel" id="mPhone" class="form-control" required placeholder="+968 XXXXXXXX" />
+            </div>
+            <div class="form-group">
+              <label>WhatsApp Number</label>
+              <input type="tel" id="mWhatsapp" class="form-control" placeholder="+968 XXXXXXXX" />
+            </div>
+            <div class="form-group full">
+              <label>Residence Address in Oman *</label>
+              <input type="text" id="mAddress" class="form-control" required placeholder="e.g. Ruwi, Muscat" />
+            </div>
+            <div class="form-group">
+              <label>Occupation / Profession</label>
+              <input type="text" id="mOccupation" class="form-control" placeholder="e.g. Heavy Driver, Engineer" />
+            </div>
+            <div class="form-group">
+              <label>Emergency Contact Person & Phone</label>
+              <input type="text" id="mEmergency" class="form-control" placeholder="Brother: +968 9XXXXXXX" />
+            </div>
+            <div class="form-group full">
+              <label>Passport Size Photograph (Optional)</label>
+              <input type="file" id="mPhoto" accept="image/*" class="form-control" onchange="handleMemberPhotoUpload(event)" />
+            </div>
+          </div>
+          <button type="submit" id="btnSubmitMember" class="btn btn-green" style="width:100%; margin-top:12px;">Submit Membership Application</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== 3. ELECTIONS & SHURA ==================== -->
+    <section id="page-elections" class="page-section">
+      <div style="max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 8px;">Community Elections & Shura Voting</h2>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:24px;">Democratic vote counting on verified community leadership positions (1 vote per device).</p>
+        
+        <div id="electionsContainer">
+          <!-- Populated from Firestore `elections` -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. REPORT INCIDENT ==================== -->
+    <section id="page-incident" class="page-section">
+      <div class="form-container">
+        <h2 style="margin-bottom: 8px; color:var(--red);">Report Emergency Welfare Incident</h2>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Report death, road accidents, legal distress, or emergency hospitalization for welfare committee action.</p>
+        
+        <form id="incidentForm" onsubmit="handleIncidentReport(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Incident Classification *</label>
+              <select id="incType" class="form-control" required>
+                <option value="Death">Repatriation / Death Case</option>
+                <option value="Injury">Medical / Critical Injury</option>
+                <option value="Loss">Financial Distress / Job Loss</option>
+                <option value="Legal">Embassy / Legal Assistance</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Person / Case Name *</label>
+              <input type="text" id="incName" class="form-control" required placeholder="Name of affected member" />
+            </div>
+            <div class="form-group">
+              <label>Incident Date *</label>
+              <input type="date" id="incDate" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Contact Phone Number *</label>
+              <input type="tel" id="incContact" class="form-control" required placeholder="+968 XXXXXXXX" />
+            </div>
+            <div class="form-group full">
+              <label>Incident Details & Immediate Needs *</label>
+              <textarea id="incDesc" rows="4" class="form-control" required placeholder="Describe location, hospital name, immediate requirements..."></textarea>
+            </div>
+          </div>
+          <button type="submit" id="btnSubmitIncident" class="btn btn-red" style="width:100%; margin-top:12px;">Submit Urgent Incident Report</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== 5. ADMIN DASHBOARD ==================== -->
+    <section id="page-admin" class="page-section">
+      
+      <!-- AUTH LOGIN PANE (WHEN LOGGED OUT) -->
+      <div id="adminLoginBox" class="form-container" style="max-width:400px; margin-top:30px;">
+        <h2 style="margin-bottom:12px;">Admin Portal Login</h2>
+        <form onsubmit="handleAdminLogin(event)">
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="adminEmail" class="form-control" required placeholder="admin@opc.org" />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="adminPass" class="form-control" required placeholder="••••••••" />
+          </div>
+          <button type="submit" class="btn btn-green" style="width:100%;">Sign In</button>
+        </form>
+      </div>
+
+      <!-- ADMIN DASHBOARD PANEL (WHEN LOGGED IN) -->
+      <div id="adminPanel" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h2>Administrator Control Room</h2>
+            <span id="adminUserBadge" style="font-size:12px; color:var(--muted);"></span>
+          </div>
+          <button class="btn btn-sm btn-outline" style="color:var(--red); border-color:var(--red);" onclick="adminLogout()">Sign Out</button>
+        </div>
+
+        <!-- Admin Tabs -->
+        <div class="admin-tabs">
+          <button class="admin-tab-btn active" onclick="showAdminTab('overview')">1. Overview</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('members')">2. Members</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('cabinet')">3. Cabinet</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('donations')">4. Donations</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('incidents')">5. Incidents</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('news')">6. News</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('elections')">7. Elections</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('ads')">8. Ads Billboard</button>
+          <button class="admin-tab-btn" onclick="showAdminTab('embassy')">9. Embassy</button>
+        </div>
+
+        <!-- TAB 1: OVERVIEW -->
+        <div id="adm-overview" class="admin-pane active">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="admTotalMembers">0</div><div class="stat-label">Total Registered Members</div></div>
+            <div class="stat-card"><div class="stat-value" id="admPendingMembers">0</div><div class="stat-label">Pending Approval</div></div>
+            <div class="stat-card"><div class="stat-value" id="admDonationsTotal">0 OMR</div><div class="stat-label">Total Donations</div></div>
+            <div class="stat-card"><div class="stat-value" id="admAdsRevenue">0 OMR</div><div class="stat-label">Billboard Ad Revenue</div></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: MEMBERS MANAGEMENT -->
+        <div id="adm-members" class="admin-pane">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3>Pending Applications</h3>
+            <button class="btn btn-sm btn-gold" onclick="exportMembers()">Export CSV</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name / Father</th>
+                  <th>CNIC</th>
+                  <th>District</th>
+                  <th>Phone</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admPendingMembersBody"></tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:30px; margin-bottom:12px;">Approved Members Directory</h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Number</th>
+                  <th>Name</th>
+                  <th>District</th>
+                  <th>Phone</th>
+                  <th>Cards / Cert</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admApprovedMembersBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 3: CABINET -->
+        <div id="adm-cabinet" class="admin-pane">
+          <div class="form-container" style="max-width:100%; margin-bottom:24px;">
+            <h4 id="cabFormTitle">Add Cabinet Member</h4>
+            <form onsubmit="handleSaveCabinet(event)">
+              <input type="hidden" id="cabEditId" value="" />
+              <div class="form-grid">
+                <div class="form-group"><label>Full Name *</label><input type="text" id="cabName" class="form-control" required /></div>
+                <div class="form-group">
+                  <label>Position Category *</label>
+                  <select id="cabPosition" class="form-control" required>
+                    <option value="Patron-in-Chief">Patron-in-Chief</option>
+                    <option value="President">President</option>
+                    <option value="Senior Vice President">Senior Vice President</option>
+                    <option value="Vice President">Vice President</option>
+                    <option value="General Secretary">General Secretary</option>
+                    <option value="Finance Secretary / Treasurer">Finance Secretary / Treasurer</option>
+                    <option value="Information Secretary">Information Secretary</option>
+                    <option value="Welfare Secretary">Welfare Secretary</option>
+                    <option value="Executive Member">Executive Member</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Phone</label><input type="text" id="cabPhone" class="form-control" /></div>
+                <div class="form-group"><label>Photo</label><input type="file" id="cabPhoto" accept="image/*" class="form-control" onchange="handleCabinetPhotoUpload(event)" /></div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn btn-green">Save Cabinet Member</button>
+                <button type="button" class="btn btn-outline" style="color:var(--text); border-color:var(--line);" onclick="resetCabinetForm()">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Name</th><th>Position</th><th>Phone</th><th>Actions</th></tr></thead>
+              <tbody id="admCabinetBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 4: DONATIONS -->
+        <div id="adm-donations" class="admin-pane">
+          <div class="form-container" style="max-width:100%; margin-bottom:24px;">
+            <h4>Add Donation Record</h4>
+            <form onsubmit="handleAddDonation(event)">
+              <div class="form-grid">
+                <div class="form-group"><label>Donor Name *</label><input type="text" id="donDonor" class="form-control" required /></div>
+                <div class="form-group"><label>Amount (OMR) *</label><input type="number" step="0.5" id="donAmount" class="form-control" required /></div>
+                <div class="form-group"><label>Date *</label><input type="date" id="donDate" class="form-control" required /></div>
+                <div class="form-group">
+                  <label>Payment Method</label>
+                  <select id="donMethod" class="form-control">
+                    <option value="Bank Transfer">Bank Transfer (Bank Dhofar)</option>
+                    <option value="Cash">Cash Handover</option>
+                    <option value="Online">Online / Card</option>
+                  </select>
+                </div>
+                <div class="form-group full"><label>Purpose / Note</label><input type="text" id="donNote" class="form-control" placeholder="e.g. Welfare Bait-ul-Maal" /></div>
+              </div>
+              <button type="submit" class="btn btn-green">Record Donation</button>
+            </form>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3>All Donations Log</h3>
+            <button class="btn btn-sm btn-gold" onclick="exportDonations()">Export CSV</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Donor</th><th>Amount</th><th>Date</th><th>Method</th><th>Note</th><th>Action</th></tr></thead>
+              <tbody id="admDonationsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 5: INCIDENTS -->
+        <div id="adm-incidents" class="admin-pane">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3>Incident Reports Log</h3>
+            <button class="btn btn-sm btn-gold" onclick="exportIncidents()">Export CSV</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Type</th><th>Name</th><th>Date</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="admIncidentsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 6: NEWS -->
+        <div id="adm-news" class="admin-pane">
+          <div class="form-container" style="max-width:100%; margin-bottom:24px;">
+            <h4 id="newsFormTitle">Publish Announcement</h4>
+            <form onsubmit="handleSaveNews(event)">
+              <input type="hidden" id="newsEditId" value="" />
+              <div class="form-group"><label>Bulletin Title *</label><input type="text" id="newsTitle" class="form-control" required /></div>
+              <div class="form-group"><label>Content *</label><textarea id="newsContent" rows="4" class="form-control" required></textarea></div>
+              <div class="form-group"><label>Cover Image</label><input type="file" id="newsImage" accept="image/*" class="form-control" onchange="handleNewsImageUpload(event)" /></div>
+              <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn btn-green">Publish Bulletin</button>
+                <button type="button" class="btn btn-outline" style="color:var(--text); border-color:var(--line);" onclick="resetNewsForm()">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Title</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody id="admNewsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 7: ELECTIONS -->
+        <div id="adm-elections" class="admin-pane">
+          <div class="form-container" style="max-width:100%; margin-bottom:24px;">
+            <h4>Create Shura Election</h4>
+            <form onsubmit="handleCreateElection(event)">
+              <div class="form-group"><label>Election Title *</label><input type="text" id="elTitle" class="form-control" required placeholder="e.g. Executive Cabinet 2026-2028 Election" /></div>
+              <button type="submit" class="btn btn-green">Create Election</button>
+            </form>
+          </div>
+
+          <div id="admElectionsList"></div>
+        </div>
+
+        <!-- TAB 8: ADS BILLBOARD -->
+        <div id="adm-ads" class="admin-pane">
+          <div class="form-container" style="max-width:100%; margin-bottom:24px;">
+            <h4 id="adFormTitle">Add Billboard Sponsor</h4>
+            <form onsubmit="handleSaveAd(event)">
+              <input type="hidden" id="adEditId" value="" />
+              <div class="form-grid">
+                <div class="form-group"><label>Advertiser / Business Name *</label><input type="text" id="adName" class="form-control" required /></div>
+                <div class="form-group"><label>Phone / WhatsApp</label><input type="text" id="adPhone" class="form-control" /></div>
+                <div class="form-group"><label>Caption / Tagline *</label><input type="text" id="adCaption" class="form-control" required /></div>
+                <div class="form-group"><label>Website / Social Link</label><input type="url" id="adLink" class="form-control" placeholder="https://..." /></div>
+                <div class="form-group"><label>Amount Paid (OMR)</label><input type="number" id="adAmount" class="form-control" /></div>
+                <div class="form-group"><label>Payment Method</label><input type="text" id="adMethod" class="form-control" placeholder="Bank Transfer" /></div>
+                <div class="form-group"><label>Start Date *</label><input type="date" id="adStart" class="form-control" required /></div>
+                <div class="form-group"><label>End Date *</label><input type="date" id="adEnd" class="form-control" required /></div>
+                <div class="form-group full"><label>Banner Image</label><input type="file" id="adImage" accept="image/*" class="form-control" onchange="handleAdImageUpload(event)" /></div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn btn-green">Save Billboard Ad</button>
+                <button type="button" class="btn btn-outline" style="color:var(--text); border-color:var(--line);" onclick="resetAdForm()">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3>Billboard Ads Directory</h3>
+            <button class="btn btn-sm btn-gold" onclick="exportAds()">Export CSV</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Advertiser</th><th>Period</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="admAdsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 9: EMBASSY SETTINGS -->
+        <div id="adm-embassy" class="admin-pane">
+          <div class="form-container" style="max-width:100%;">
+            <h4>Edit Pakistan Embassy Muscat Details</h4>
+            <form onsubmit="handleSaveEmbassy(event)">
+              <div class="form-grid">
+                <div class="form-group full"><label>Embassy Address</label><input type="text" id="embSetAddress" class="form-control" /></div>
+                <div class="form-group"><label>Phone Number</label><input type="text" id="embSetPhone" class="form-control" /></div>
+                <div class="form-group"><label>24/7 Emergency Line</label><input type="text" id="embSetEmergency" class="form-control" /></div>
+                <div class="form-group"><label>Official Email</label><input type="email" id="embSetEmail" class="form-control" /></div>
+                <div class="form-group"><label>Working Hours</label><input type="text" id="embSetHours" class="form-control" /></div>
+                <div class="form-group full"><label>Website Link</label><input type="url" id="embSetWebsite" class="form-control" /></div>
+              </div>
+              <button type="submit" class="btn btn-green" style="margin-top:10px;">Update Embassy Information</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: CARD & CERTIFICATE VIEWER -->
+  <div class="modal-overlay" id="docModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <h3 style="margin-bottom:16px;" id="modalDocTitle">Member Documents</h3>
+      
+      <!-- Canvas Display for Card / Certificate -->
+      <div style="text-align:center; margin-bottom:16px;">
+        <canvas id="docCanvas" width="600" height="380" style="max-width:100%; height:auto; border:2px solid var(--gold); border-radius:6px; box-shadow:var(--shadow);"></canvas>
+      </div>
+
+      <div style="display:flex; justify-content:center; gap:10px;">
+        <button class="btn btn-gold" id="btnDownloadDoc">Download PNG</button>
+        <button class="btn btn-outline" style="color:var(--text); border-color:var(--line);" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <div>
+        <h4 style="color:var(--gold); margin-bottom:8px;">Pakhtoon Community</h4>
+        <p>A non-profit diaspora welfare initiative dedicated to social relief, democratic representation, and cultural unity in the Sultanate of Oman.</p>
+      </div>
+      <div>
+        <h4 style="color:var(--gold); margin-bottom:8px;">Quick Links</h4>
+        <p><a href="#" onclick="showPage('home')" style="color:var(--sand);">Home Portal</a></p>
+        <p><a href="#" onclick="showPage('membership')" style="color:var(--sand);">Apply for Card</a></p>
+        <p><a href="#" onclick="showPage('elections')" style="color:var(--sand);">Community Elections</a></p>
+        <p><a href="#" onclick="showPage('incident')" style="color:var(--sand);">Welfare Desk</a></p>
+      </div>
+      <div>
+        <h4 style="color:var(--gold); margin-bottom:8px;">Emergency Contact</h4>
+        <p>Bait-ul-Maal Desk: +968 99111870</p>
+        <p>Embassy Helpline: +968 24696135</p>
+        <p style="margin-top:10px; color:var(--gold); font-size:11px;">© 2026 Pakhtoon Community Portal</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================
+       FIREBASE CDN IMPORTS & LOGIC (EXACT CONFIG & COLLECTIONS)
+       ========================================================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+      getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, runTransaction, Timestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { 
+      getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    // EXACT PRESERVED FIREBASE CONFIGURATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyDummyKeyForVercelOrAppletEnvironment",
+      authDomain: "opc-new-48a8d.firebaseapp.com",
+      projectId: "opc-new-48a8d",
+      storageBucket: "opc-new-48a8d.appspot.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Global Store
+    window.dataStore = {
+      members: [],
+      donations: [],
+      incidents: [],
+      cabinet: [],
+      news: [],
+      elections: [],
+      ads: [],
+      embassy: {},
+      counters: { lastMemberNumber: 1000 }
+    };
+
+    // --- REALTIME FIRESTORE LISTENERS ---
+
+    // 1. Members
+    onSnapshot(collection(db, "members"), (snapshot) => {
+      const list = [];
+      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
+      window.dataStore.members = list;
+      
+      const approved = list.filter(m => m.status === 'approved');
+      document.getElementById('statMembers').textContent = approved.length;
+      document.getElementById('admTotalMembers').textContent = list.length;
+      document.getElementById('admPendingMembers').textContent = list.filter(m => m.status === 'pending').length;
+      renderAdminMembers(list);
+    }, err => console.log("Members error:", err));
+
+    // 2. Donations
+    onSnapshot(collection(db, "donations"), (snapshot) => {
+      const list = [];
+      let total = 0;
+      snapshot.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        list.push(item);
+        total += Number(item.amount) || 0;
+      });
+      window.dataStore.donations = list;
+      document.getElementById('statDonations').textContent = total.toLocaleString() + ' OMR';
+      document.getElementById('admDonationsTotal').textContent = total.toLocaleString() + ' OMR';
+      renderAdminDonations(list);
+    }, err => console.log("Donations error:", err));
+
+    // 3. Incidents
+    onSnapshot(collection(db, "incidents"), (snapshot) => {
+      const list = [];
+      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
+      window.dataStore.incidents = list;
+      document.getElementById('statIncidents').textContent = list.filter(i => i.status === 'published' || i.status === 'closed').length;
+      renderHomeIncidents(list.filter(i => i.status === 'published'));
+      renderAdminIncidents(list);
+    }, err => console.log("Incidents error:", err));
+
+    // 4. Cabinet
+    onSnapshot(collection(db, "cabinet"), (snapshot) => {
+      const list = [];
+      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
+      window.dataStore.cabinet = list;
+      renderHomeCabinet(list);
+      renderAdminCabinet(list);
+    }, err => console.log("Cabinet error:", err));
+
+    // 5. News
+    onSnapshot(collection(db, "news"), (snapshot) => {
+      const list = [];
+      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
+      window.dataStore.news = list;
+      renderHomeNews(list);
+      renderAdminNews(list);
+    }, err => console.log("News error:", err));
+
+    // 6. Elections
+    onSnapshot(collection(db, "elections"), (snapshot) => {
+      const list = [];
+      snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
+      window.dataStore.elections = list;
+      renderElectionsPage(list);
+      renderAdminElections(list);
+    }, err => console.log("Elections error:", err));
+
+    // 7. Ads
+    onSnapshot(collection(db, "ads"), (snapshot) => {
+      const list = [];
+      let revenue = 0;
+      snapshot.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        list.push(item);
+        revenue += Number(item.amount) || 0;
+      });
+      window.dataStore.ads = list;
+      document.getElementById('admAdsRevenue').textContent = revenue.toLocaleString() + ' OMR';
+      renderBillboard(list);
+      renderAdminAds(list);
+    }, err => console.log("Ads error:", err));
+
+    // 8. Settings / Embassy
+    onSnapshot(doc(db, "settings", "embassy"), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        window.dataStore.embassy = data;
+        if (data.address) document.getElementById('embAddress').innerHTML = '<strong>Address:</strong> ' + escapeHtml(data.address);
+        if (data.phone) document.getElementById('embPhone').innerHTML = '<strong>Phone:</strong> ' + escapeHtml(data.phone);
+        if (data.emergency) document.getElementById('embEmergency').innerHTML = '<strong>Emergency 24/7:</strong> ' + escapeHtml(data.emergency);
+        if (data.email) document.getElementById('embEmail').innerHTML = '<strong>Email:</strong> ' + escapeHtml(data.email);
+        if (data.hours) document.getElementById('embHours').innerHTML = '<strong>Working Hours:</strong> ' + escapeHtml(data.hours);
+        if (data.website) document.getElementById('embWebsite').innerHTML = `<strong>Website:</strong> <a href="${escapeHtml(data.website)}" target="_blank">${escapeHtml(data.website)}</a>`;
+
+        // Fill admin inputs
+        document.getElementById('embSetAddress').value = data.address || '';
+        document.getElementById('embSetPhone').value = data.phone || '';
+        document.getElementById('embSetEmergency').value = data.emergency || '';
+        document.getElementById('embSetEmail').value = data.email || '';
+        document.getElementById('embSetHours').value = data.hours || '';
+        document.getElementById('embSetWebsite').value = data.website || '';
+      }
+    }, err => console.log("Embassy settings error:", err));
+
+    // 9. Settings / Counters
+    onSnapshot(doc(db, "settings", "counters"), (snapshot) => {
+      if (snapshot.exists()) {
+        window.dataStore.counters = snapshot.data();
+      }
+    }, err => console.log("Counters error:", err));
+
+    // Auth State Observer
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('adminLoginBox').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        document.getElementById('adminUserBadge').textContent = 'Logged in as: ' + user.email;
+      } else {
+        document.getElementById('adminLoginBox').style.display = 'block';
+        document.getElementById('adminPanel').style.display = 'none';
+      }
+    });
+
+    // --- FORM ACTIONS ---
+
+    // 1. Submit Member Registration
+    window.handleMemberRegistration = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitMember');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const payload = {
+          name: document.getElementById('mName').value.trim(),
+          father: document.getElementById('mFather').value.trim(),
+          cnic: document.getElementById('mCnic').value.trim(),
+          district: document.getElementById('mDistrict').value.trim(),
+          phone: document.getElementById('mPhone').value.trim(),
+          whatsapp: document.getElementById('mWhatsapp').value.trim(),
+          address: document.getElementById('mAddress').value.trim(),
+          occupation: document.getElementById('mOccupation').value.trim(),
+          emergency: document.getElementById('mEmergency').value.trim(),
+          photo: window.uploadedMemberPhoto || '',
+          status: 'pending',
+          membershipId: '',
+          createdAt: Timestamp.now()
+        };
+
+        await addDoc(collection(db, "members"), payload);
+        alert("Registration submitted successfully! Your application will be approved by the community cabinet.");
+        document.getElementById('memberForm').reset();
+        window.uploadedMemberPhoto = '';
+        showPage('home');
+      } catch (err) {
+        alert("Error saving registration: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Membership Application';
+      }
+    };
+
+    // 2. Submit Incident Report
+    window.handleIncidentReport = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmitIncident');
+      btn.disabled = true;
+      btn.textContent = 'Reporting...';
+
+      try {
+        const payload = {
+          type: document.getElementById('incType').value,
+          name: document.getElementById('incName').value.trim(),
+          date: document.getElementById('incDate').value,
+          contact: document.getElementById('incContact').value.trim(),
+          description: document.getElementById('incDesc').value.trim(),
+          status: 'pending',
+          createdAt: Timestamp.now()
+        };
+
+        await addDoc(collection(db, "incidents"), payload);
+        alert("Incident report submitted. Community welfare volunteers will reach out immediately.");
+        document.getElementById('incidentForm').reset();
+        showPage('home');
+      } catch (err) {
+        alert("Error saving incident: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Urgent Incident Report';
+      }
+    };
+
+    // 3. Admin Login & Logout
+    window.handleAdminLogin = async (e) => {
+      e.preventDefault();
+      try {
+        const email = document.getElementById('adminEmail').value;
+        const pass = document.getElementById('adminPass').value;
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        alert("Admin login failed: " + err.message);
+      }
+    };
+
+    window.adminLogout = async () => {
+      await signOut(auth);
+    };
+
+    // 4. Member Approvals & ID Generation
+    window.approveMember = async (id) => {
+      try {
+        const currentYear = new Date().getFullYear();
+        let nextNum = 1001;
+
+        // Atomic transaction on counters
+        const counterRef = doc(db, "settings", "counters");
+        await runTransaction(db, async (transaction) => {
+          const counterDoc = await transaction.get(counterRef);
+          if (counterDoc.exists()) {
+            nextNum = (counterDoc.data().lastMemberNumber || 1000) + 1;
+            transaction.update(counterRef, { lastMemberNumber: nextNum });
+          } else {
+            transaction.set(counterRef, { lastMemberNumber: nextNum });
+          }
+        });
+
+        const membershipId = `OPC-OM-${currentYear}-${nextNum}`;
+        await updateDoc(doc(db, "members", id), {
+          status: 'approved',
+          membershipId: membershipId,
+          approvedAt: Timestamp.now()
+        });
+        alert("Member approved successfully with ID: " + membershipId);
+      } catch (err) {
+        alert("Error approving member: " + err.message);
+      }
+    };
+
+    window.rejectMember = async (id) => {
+      if (!confirm("Are you sure you want to reject this application?")) return;
+      try {
+        await updateDoc(doc(db, "members", id), { status: 'rejected' });
+      } catch (err) {
+        alert("Error rejecting member: " + err.message);
+      }
+    };
+
+    window.deleteMember = async (id) => {
+      if (!confirm("Permanently delete this member record?")) return;
+      try {
+        await deleteDoc(doc(db, "members", id));
+      } catch (err) {
+        alert("Error deleting member: " + err.message);
+      }
+    };
+
+    // 5. Cabinet CRUD
+    window.handleSaveCabinet = async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('cabEditId').value;
+      const data = {
+        name: document.getElementById('cabName').value.trim(),
+        position: document.getElementById('cabPosition').value,
+        phone: document.getElementById('cabPhone').value.trim(),
+        photo: window.uploadedCabPhoto || ''
+      };
+
+      try {
+        if (editId) {
+          if (!data.photo) delete data.photo;
+          await updateDoc(doc(db, "cabinet", editId), data);
+        } else {
+          await addDoc(collection(db, "cabinet"), data);
+        }
+        resetCabinetForm();
+      } catch (err) {
+        alert("Error saving cabinet member: " + err.message);
+      }
+    };
+
+    window.editCabinet = (id) => {
+      const item = window.dataStore.cabinet.find(c => c.id === id);
+      if (!item) return;
+      document.getElementById('cabEditId').value = item.id;
+      document.getElementById('cabName').value = item.name || '';
+      document.getElementById('cabPosition').value = item.position || '';
+      document.getElementById('cabPhone').value = item.phone || '';
+      document.getElementById('cabFormTitle').textContent = 'Edit Cabinet Member';
+    };
+
+    window.deleteCabinet = async (id) => {
+      if (!confirm("Delete cabinet member?")) return;
+      await deleteDoc(doc(db, "cabinet", id));
+    };
+
+    window.resetCabinetForm = () => {
+      document.getElementById('cabEditId').value = '';
+      document.getElementById('cabName').value = '';
+      document.getElementById('cabPhone').value = '';
+      document.getElementById('cabPhoto').value = '';
+      window.uploadedCabPhoto = '';
+      document.getElementById('cabFormTitle').textContent = 'Add Cabinet Member';
+    };
+
+    // 6. Donations CRUD
+    window.handleAddDonation = async (e) => {
+      e.preventDefault();
+      try {
+        await addDoc(collection(db, "donations"), {
+          donor: document.getElementById('donDonor').value.trim(),
+          amount: Number(document.getElementById('donAmount').value) || 0,
+          date: document.getElementById('donDate').value,
+          method: document.getElementById('donMethod').value,
+          note: document.getElementById('donNote').value.trim(),
+          createdAt: Timestamp.now()
+        });
+        document.getElementById('donDonor').value = '';
+        document.getElementById('donAmount').value = '';
+        document.getElementById('donNote').value = '';
+      } catch (err) {
+        alert("Error adding donation: " + err.message);
+      }
+    };
+
+    window.deleteDonation = async (id) => {
+      if (!confirm("Delete donation record?")) return;
+      await deleteDoc(doc(db, "donations", id));
+    };
+
+    // 7. Incidents Status & Delete
+    window.setIncidentStatus = async (id, status) => {
+      await updateDoc(doc(db, "incidents", id), { status: status });
+    };
+
+    window.deleteIncident = async (id) => {
+      if (!confirm("Delete incident report?")) return;
+      await deleteDoc(doc(db, "incidents", id));
+    };
+
+    // 8. News CRUD
+    window.handleSaveNews = async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('newsEditId').value;
+      const data = {
+        title: document.getElementById('newsTitle').value.trim(),
+        content: document.getElementById('newsContent').value.trim(),
+        image: window.uploadedNewsImage || '',
+        createdAt: Timestamp.now()
+      };
+
+      try {
+        if (editId) {
+          if (!data.image) delete data.image;
+          await updateDoc(doc(db, "news", editId), data);
+        } else {
+          await addDoc(collection(db, "news"), data);
+        }
+        resetNewsForm();
+      } catch (err) {
+        alert("Error saving bulletin: " + err.message);
+      }
+    };
+
+    window.editNews = (id) => {
+      const item = window.dataStore.news.find(n => n.id === id);
+      if (!item) return;
+      document.getElementById('newsEditId').value = item.id;
+      document.getElementById('newsTitle').value = item.title || '';
+      document.getElementById('newsContent').value = item.content || '';
+      document.getElementById('newsFormTitle').textContent = 'Edit Announcement';
+    };
+
+    window.deleteNews = async (id) => {
+      if (!confirm("Delete news bulletin?")) return;
+      await deleteDoc(doc(db, "news", id));
+    };
+
+    window.resetNewsForm = () => {
+      document.getElementById('newsEditId').value = '';
+      document.getElementById('newsTitle').value = '';
+      document.getElementById('newsContent').value = '';
+      document.getElementById('newsImage').value = '';
+      window.uploadedNewsImage = '';
+      document.getElementById('newsFormTitle').textContent = 'Publish Announcement';
+    };
+
+    // 9. Elections CRUD & Voting
+    window.handleCreateElection = async (e) => {
+      e.preventDefault();
+      try {
+        await addDoc(collection(db, "elections"), {
+          title: document.getElementById('elTitle').value.trim(),
+          status: 'open',
+          candidates: [],
+          createdAt: Timestamp.now()
+        });
+        document.getElementById('elTitle').value = '';
+      } catch (err) {
+        alert("Error creating election: " + err.message);
+      }
+    };
+
+    window.addCandidate = async (electionId) => {
+      const name = prompt("Enter Candidate Full Name:");
+      if (!name) return;
+      try {
+        const elecRef = doc(db, "elections", electionId);
+        await runTransaction(db, async (t) => {
+          const docSnap = await t.get(elecRef);
+          if (!docSnap.exists()) return;
+          const candidates = docSnap.data().candidates || [];
+          candidates.push({
+            id: 'c_' + Date.now(),
+            name: name.trim(),
+            votes: 0
+          });
+          t.update(elecRef, { candidates });
+        });
+      } catch (err) {
+        alert("Error adding candidate: " + err.message);
+      }
+    };
+
+    window.deleteCandidate = async (electionId, candidateId) => {
+      if (!confirm("Remove candidate?")) return;
+      const elecRef = doc(db, "elections", electionId);
+      await runTransaction(db, async (t) => {
+        const docSnap = await t.get(elecRef);
+        if (!docSnap.exists()) return;
+        const candidates = (docSnap.data().candidates || []).filter(c => c.id !== candidateId);
+        t.update(elecRef, { candidates });
+      });
+    };
+
+    window.toggleElectionStatus = async (electionId, current) => {
+      const newStatus = current === 'open' ? 'closed' : 'open';
+      await updateDoc(doc(db, "elections", electionId), { status: newStatus });
+    };
+
+    window.resetElectionVotes = async (electionId) => {
+      if (!confirm("Reset all vote counters to 0 for this election?")) return;
+      const elecRef = doc(db, "elections", electionId);
+      await runTransaction(db, async (t) => {
+        const docSnap = await t.get(elecRef);
+        if (!docSnap.exists()) return;
+        const candidates = (docSnap.data().candidates || []).map(c => ({ ...c, votes: 0 }));
+        t.update(elecRef, { candidates });
+      });
+    };
+
+    window.deleteElection = async (electionId) => {
+      if (!confirm("Delete election completely?")) return;
+      await deleteDoc(doc(db, "elections", electionId));
+    };
+
+    window.castVote = async (electionId, candidateId) => {
+      const votedKey = 'opc_voted_' + electionId;
+      if (localStorage.getItem(votedKey)) {
+        alert("You have already cast your vote in this election from this device.");
+        return;
+      }
+
+      try {
+        const elecRef = doc(db, "elections", electionId);
+        await runTransaction(db, async (t) => {
+          const docSnap = await t.get(elecRef);
+          if (!docSnap.exists()) throw "Election not found";
+          if (docSnap.data().status !== 'open') throw "Election is closed";
+
+          const candidates = [...docSnap.data().candidates];
+          const cand = candidates.find(c => c.id === candidateId);
+          if (cand) {
+            cand.votes = (cand.votes || 0) + 1;
+            t.update(elecRef, { candidates });
+          }
+        });
+        localStorage.setItem(votedKey, 'true');
+        alert("Your vote has been counted successfully!");
+      } catch (err) {
+        alert("Voting error: " + err);
+      }
+    };
+
+    // 10. Ads CRUD
+    window.handleSaveAd = async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('adEditId').value;
+      const data = {
+        name: document.getElementById('adName').value.trim(),
+        phone: document.getElementById('adPhone').value.trim(),
+        caption: document.getElementById('adCaption').value.trim(),
+        link: document.getElementById('adLink').value.trim(),
+        amount: Number(document.getElementById('adAmount').value) || 0,
+        method: document.getElementById('adMethod').value.trim(),
+        start: document.getElementById('adStart').value,
+        end: document.getElementById('adEnd').value,
+        image: window.uploadedAdImage || '',
+        createdAt: Timestamp.now()
+      };
+
+      try {
+        if (editId) {
+          if (!data.image) delete data.image;
+          await updateDoc(doc(db, "ads", editId), data);
+        } else {
+          await addDoc(collection(db, "ads"), data);
+        }
+        resetAdForm();
+      } catch (err) {
+        alert("Error saving ad: " + err.message);
+      }
+    };
+
+    window.editAd = (id) => {
+      const item = window.dataStore.ads.find(a => a.id === id);
+      if (!item) return;
+      document.getElementById('adEditId').value = item.id;
+      document.getElementById('adName').value = item.name || '';
+      document.getElementById('adPhone').value = item.phone || '';
+      document.getElementById('adCaption').value = item.caption || '';
+      document.getElementById('adLink').value = item.link || '';
+      document.getElementById('adAmount').value = item.amount || '';
+      document.getElementById('adMethod').value = item.method || '';
+      document.getElementById('adStart').value = item.start || '';
+      document.getElementById('adEnd').value = item.end || '';
+      document.getElementById('adFormTitle').textContent = 'Edit Billboard Sponsor';
+    };
+
+    window.deleteAd = async (id) => {
+      if (!confirm("Delete ad banner?")) return;
+      await deleteDoc(doc(db, "ads", id));
+    };
+
+    window.resetAdForm = () => {
+      document.getElementById('adEditId').value = '';
+      document.getElementById('adName').value = '';
+      document.getElementById('adPhone').value = '';
+      document.getElementById('adCaption').value = '';
+      document.getElementById('adLink').value = '';
+      document.getElementById('adAmount').value = '';
+      document.getElementById('adMethod').value = '';
+      document.getElementById('adStart').value = '';
+      document.getElementById('adEnd').value = '';
+      document.getElementById('adImage').value = '';
+      window.uploadedAdImage = '';
+      document.getElementById('adFormTitle').textContent = 'Add Billboard Sponsor';
+    };
+
+    // 11. Embassy Update
+    window.handleSaveEmbassy = async (e) => {
+      e.preventDefault();
+      try {
+        await setDoc(doc(db, "settings", "embassy"), {
+          address: document.getElementById('embSetAddress').value.trim(),
+          phone: document.getElementById('embSetPhone').value.trim(),
+          emergency: document.getElementById('embSetEmergency').value.trim(),
+          email: document.getElementById('embSetEmail').value.trim(),
+          hours: document.getElementById('embSetHours').value.trim(),
+          website: document.getElementById('embSetWebsite').value.trim()
+        }, { merge: true });
+        alert("Pakistan Embassy details updated successfully!");
+      } catch (err) {
+        alert("Error saving embassy details: " + err.message);
+      }
+    };
+
+  </script>
+
+  <!-- =========================================================
+       PURE JAVASCRIPT UI RENDERING, CANVAS DRAWING & UTILITIES
+       ========================================================= -->
+  <script>
+    // Navigation Router
+    function showPage(pageId) {
+      document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('page-' + pageId);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+      const activeNav = document.getElementById('nav-' + pageId);
+      if (activeNav) activeNav.classList.add('active');
+
+      const navList = document.getElementById('navLinks');
+      if (navList) navList.classList.remove('mobile-open');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleMobileMenu() {
+      document.getElementById('navLinks').classList.toggle('mobile-open');
+    }
+
+    function showAdminTab(tab) {
+      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-pane').forEach(p => p.classList.remove('active'));
+
+      event.target.classList.add('active');
+      const pane = document.getElementById('adm-' + tab);
+      if (pane) pane.classList.add('active');
+    }
+
+    function openInNew(url) {
+      window.open(url, '_blank');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDate(ts) {
+      if (!ts) return '';
+      if (ts.toDate) return ts.toDate().toLocaleDateString('en-GB');
+      return new Date(ts).toLocaleDateString('en-GB');
+    }
+
+    function todayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function adStatus(ad) {
+      const today = todayStr();
+      if (ad.start && ad.start > today) return { label: 'Scheduled', color: '#b89428' };
+      if (ad.end && ad.end < today) return { label: 'Expired', color: '#a81c2f' };
+      return { label: 'Active', color: '#0a6938' };
+    }
+
+    // Image Resizer Helper
+    function resizeImage(file, maxSize, cb) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if (w > h) {
+            if (w > maxSize) { h = (h / w) * maxSize; w = maxSize; }
+          } else {
+            if (h > maxSize) { w = (w / h) * maxSize; h = maxSize; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          cb(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Photo Upload Handlers
+    function handleMemberPhotoUpload(e) {
+      resizeImage(e.target.files[0], 280, (b64) => { window.uploadedMemberPhoto = b64; });
+    }
+    function handleCabinetPhotoUpload(e) {
+      resizeImage(e.target.files[0], 240, (b64) => { window.uploadedCabPhoto = b64; });
+    }
+    function handleNewsImageUpload(e) {
+      resizeImage(e.target.files[0], 600, (b64) => { window.uploadedNewsImage = b64; });
+    }
+    function handleAdImageUpload(e) {
+      resizeImage(e.target.files[0], 600, (b64) => { window.uploadedAdImage = b64; });
+    }
+
+    // --- HTML RENDERERS ---
+
+    // 1. Home Cabinet Grid
+    function renderHomeCabinet(list) {
+      const el = document.getElementById('homeCabinetGrid');
+      if (!el) return;
+      if (!list || list.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted); font-size:13px;">Cabinet members will be published shortly.</p>';
+        return;
+      }
+      el.innerHTML = list.map(c => `
+        <div class="cabinet-card">
+          ${c.photo ? `<img src="${c.photo}" class="cabinet-img" />` : `<div class="cabinet-img">${escapeHtml((c.name || 'P')[0])}</div>`}
+          <div class="cabinet-name">${escapeHtml(c.name || '')}</div>
+          <div class="cabinet-pos">${escapeHtml(c.position || '')}</div>
+          <div class="cabinet-phone">${escapeHtml(c.phone || '')}</div>
+        </div>
+      `).join('');
+    }
+
+    // 2. Home News Grid
+    function renderHomeNews(list) {
+      const el = document.getElementById('homeNewsGrid');
+      if (!el) return;
+      if (!list || list.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted); font-size:13px;">No announcements posted yet.</p>';
+        return;
+      }
+      el.innerHTML = list.map(n => `
+        <div class="news-card">
+          ${n.image ? `<img src="${n.image}" />` : ''}
+          <div class="news-content">
+            <div class="news-date">${formatDate(n.createdAt)}</div>
+            <h4 class="news-title">${escapeHtml(n.title || '')}</h4>
+            <p class="news-desc">${escapeHtml(n.content || '')}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 3. Home Incidents List
+    function renderHomeIncidents(list) {
+      const el = document.getElementById('homeIncidentsList');
+      if (!el) return;
+      if (!list || list.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted); font-size:13px;">No active welfare cases published.</p>';
+        return;
+      }
+      el.innerHTML = list.map(i => `
+        <div class="stat-card" style="text-align:left; margin-bottom:12px; border-left:4px solid var(--red); border-top:1px solid var(--line);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="color:var(--dark-green);">${escapeHtml(i.name || '')} (${escapeHtml(i.type || '')})</h4>
+            <span class="badge badge-open">Active Case</span>
+          </div>
+          <p style="font-size:13px; margin:6px 0; color:#3a4a44;">${escapeHtml(i.description || '')}</p>
+          <div style="font-size:11px; color:var(--muted);">Date: ${escapeHtml(i.date || '')} | Contact: ${escapeHtml(i.contact || '')}</div>
+        </div>
+      `).join('');
+    }
+
+    // 4. Billboard Carousel & Dot Indicator
+    let billboardIdx = 0;
+    let billboardTimer = null;
+
+    function renderBillboard(ads) {
+      const box = document.getElementById('billboardBox');
+      const slidesEl = document.getElementById('billboardSlides');
+      const dotsEl = document.getElementById('billboardDots');
+      if (!box || !slidesEl || !dotsEl) return;
+
+      const activeAds = ads.filter(a => {
+        const s = adStatus(a);
+        return s.label === 'Active';
+      });
+
+      if (activeAds.length === 0) {
+        box.style.display = 'none';
+        return;
+      }
+
+      box.style.display = 'block';
+      slidesEl.innerHTML = activeAds.map((ad, i) => `
+        <div class="billboard-slide ${i === 0 ? 'active' : ''}" id="adSlide_${i}" onclick="if('${escapeHtml(ad.link)}') openInNew('${escapeHtml(ad.link)}')">
+          ${ad.image ? `<img src="${ad.image}" />` : ''}
+          <div class="billboard-info">
+            <h4>${escapeHtml(ad.name || '')}</h4>
+            <p>${escapeHtml(ad.caption || '')}</p>
+            <span style="font-size:11px; color:var(--gold); font-weight:bold;">${escapeHtml(ad.phone || '')}</span>
+          </div>
+        </div>
+      `).join('');
+
+      dotsEl.innerHTML = activeAds.map((_, i) => `
+        <div class="billboard-dot ${i === 0 ? 'active' : ''}" onclick="setBillboardSlide(${i})"></div>
+      `).join('');
+
+      if (billboardTimer) clearInterval(billboardTimer);
+      billboardIdx = 0;
+      billboardTimer = setInterval(() => {
+        if (activeAds.length > 1) {
+          billboardIdx = (billboardIdx + 1) % activeAds.length;
+          setBillboardSlide(billboardIdx);
+        }
+      }, 5000);
+    }
+
+    function setBillboardSlide(i) {
+      billboardIdx = i;
+      document.querySelectorAll('.billboard-slide').forEach((s, idx) => {
+        s.classList.toggle('active', idx === i);
+      });
+      document.querySelectorAll('.billboard-dot').forEach((d, idx) => {
+        d.classList.toggle('active', idx === i);
+      });
+    }
+
+    // 5. Elections Page Renderer
+    function renderElectionsPage(list) {
+      const el = document.getElementById('electionsContainer');
+      if (!el) return;
+      if (!list || list.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted); font-size:13px;">No elections are currently scheduled.</p>';
+        return;
+      }
+
+      el.innerHTML = list.map(e => {
+        const isOpen = e.status === 'open';
+        const candidates = e.candidates || [];
+        const totalVotes = candidates.reduce((s, c) => s + (c.votes || 0), 0);
+
+        return `
+          <div class="election-card">
+            <div class="election-header">
+              <h3 style="font-size:18px;">${escapeHtml(e.title || '')}</h3>
+              <span class="badge ${isOpen ? 'badge-open' : 'badge-closed'}">${isOpen ? 'Voting Open' : 'Closed'}</span>
+            </div>
+
+            <div style="margin-top:12px;">
+              ${candidates.map(c => {
+                const pct = totalVotes > 0 ? Math.round(((c.votes || 0) / totalVotes) * 100) : 0;
+                return `
+                  <div class="candidate-row">
+                    <div class="candidate-info">
+                      <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;">
+                        <span>${escapeHtml(c.name || '')}</span>
+                        <span>${c.votes || 0} votes (${pct}%)</span>
+                      </div>
+                      <div class="candidate-bar">
+                        <div class="candidate-fill" style="width:${pct}%;"></div>
+                      </div>
+                    </div>
+                    ${isOpen ? `
+                      <button class="btn btn-sm btn-gold" onclick="castVote('${e.id}', '${c.id}')">Vote</button>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px;">Total Votes Recorded: ${totalVotes}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- ADMIN TABLES RENDERERS ---
+
+    // Admin Members
+    function renderAdminMembers(list) {
+      const pendingBody = document.getElementById('admPendingMembersBody');
+      const approvedBody = document.getElementById('admApprovedMembersBody');
+      if (!pendingBody || !approvedBody) return;
+
+      const pending = list.filter(m => m.status === 'pending');
+      const approved = list.filter(m => m.status === 'approved');
+
+      pendingBody.innerHTML = pending.length === 0 ? '<tr><td colspan="5">No pending applications</td></tr>' :
+        pending.map(m => `
+          <tr>
+            <td><strong>${escapeHtml(m.name || '')}</strong><br><small>S/O ${escapeHtml(m.father || '')}</small></td>
+            <td>${escapeHtml(m.cnic || '')}</td>
+            <td>${escapeHtml(m.district || '')}</td>
+            <td>${escapeHtml(m.phone || '')}</td>
+            <td>
+              <button class="btn btn-sm btn-green" onclick="approveMember('${m.id}')">Approve</button>
+              <button class="btn btn-sm btn-red" onclick="rejectMember('${m.id}')">Reject</button>
+            </td>
+          </tr>
+        `).join('');
+
+      approvedBody.innerHTML = approved.length === 0 ? '<tr><td colspan="6">No approved members yet</td></tr>' :
+        approved.map(m => `
+          <tr>
+            <td><strong style="color:var(--primary);">${escapeHtml(m.membershipId || '')}</strong></td>
+            <td>${escapeHtml(m.name || '')}</td>
+            <td>${escapeHtml(m.district || '')}</td>
+            <td>${escapeHtml(m.phone || '')}</td>
+            <td>
+              <button class="btn btn-sm btn-gold" onclick="viewDocuments('${m.id}', 'card')">Card</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="viewDocuments('${m.id}', 'cert')">Certificate</button>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-red" onclick="deleteMember('${m.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    // Admin Cabinet
+    function renderAdminCabinet(list) {
+      const body = document.getElementById('admCabinetBody');
+      if (!body) return;
+      body.innerHTML = list.length === 0 ? '<tr><td colspan="4">No cabinet members</td></tr>' :
+        list.map(c => `
+          <tr>
+            <td>${escapeHtml(c.name || '')}</td>
+            <td>${escapeHtml(c.position || '')}</td>
+            <td>${escapeHtml(c.phone || '')}</td>
+            <td>
+              <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="editCabinet('${c.id}')">Edit</button>
+              <button class="btn btn-sm btn-red" onclick="deleteCabinet('${c.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    // Admin Donations
+    function renderAdminDonations(list) {
+      const body = document.getElementById('admDonationsBody');
+      if (!body) return;
+      body.innerHTML = list.length === 0 ? '<tr><td colspan="6">No donation records</td></tr>' :
+        list.map(d => `
+          <tr>
+            <td>${escapeHtml(d.donor || '')}</td>
+            <td><strong>${Number(d.amount || 0).toLocaleString()} OMR</strong></td>
+            <td>${escapeHtml(d.date || '')}</td>
+            <td>${escapeHtml(d.method || '')}</td>
+            <td>${escapeHtml(d.note || '')}</td>
+            <td><button class="btn btn-sm btn-red" onclick="deleteDonation('${d.id}')">Delete</button></td>
+          </tr>
+        `).join('');
+    }
+
+    // Admin Incidents
+    function renderAdminIncidents(list) {
+      const body = document.getElementById('admIncidentsBody');
+      if (!body) return;
+      body.innerHTML = list.length === 0 ? '<tr><td colspan="6">No incidents recorded</td></tr>' :
+        list.map(i => `
+          <tr>
+            <td><strong>${escapeHtml(i.type || '')}</strong></td>
+            <td>${escapeHtml(i.name || '')}</td>
+            <td>${escapeHtml(i.date || '')}</td>
+            <td>${escapeHtml(i.contact || '')}</td>
+            <td><span class="badge ${i.status === 'published' ? 'badge-open' : 'badge-closed'}">${escapeHtml(i.status || 'pending')}</span></td>
+            <td>
+              <button class="btn btn-sm btn-green" onclick="setIncidentStatus('${i.id}', 'published')">Publish</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="setIncidentStatus('${i.id}', 'closed')">Close</button>
+              <button class="btn btn-sm btn-red" onclick="deleteIncident('${i.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    // Admin News
+    function renderAdminNews(list) {
+      const body = document.getElementById('admNewsBody');
+      if (!body) return;
+      body.innerHTML = list.length === 0 ? '<tr><td colspan="3">No announcements</td></tr>' :
+        list.map(n => `
+          <tr>
+            <td><strong>${escapeHtml(n.title || '')}</strong></td>
+            <td>${formatDate(n.createdAt)}</td>
+            <td>
+              <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="editNews('${n.id}')">Edit</button>
+              <button class="btn btn-sm btn-red" onclick="deleteNews('${n.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    // Admin Elections
+    function renderAdminElections(list) {
+      const el = document.getElementById('admElectionsList');
+      if (!el) return;
+      if (list.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted); font-size:13px;">No elections created.</p>';
+        return;
+      }
+      el.innerHTML = list.map(e => `
+        <div class="election-card">
+          <div class="election-header">
+            <h4>${escapeHtml(e.title || '')}</h4>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-sm ${e.status === 'open' ? 'btn-red' : 'btn-green'}" onclick="toggleElectionStatus('${e.id}', '${e.status}')">
+                ${e.status === 'open' ? 'Close Voting' : 'Open Voting'}
+              </button>
+              <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="addCandidate('${e.id}')">+ Candidate</button>
+              <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="resetElectionVotes('${e.id}')">Reset Votes</button>
+              <button class="btn btn-sm btn-gold" onclick="exportElectionResults('${e.id}')">Export CSV</button>
+              <button class="btn btn-sm btn-red" onclick="deleteElection('${e.id}')">Delete</button>
+            </div>
+          </div>
+          <div style="font-size:12px; margin-top:8px;">
+            ${(e.candidates || []).map(c => `
+              <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--line);">
+                <span>${escapeHtml(c.name || '')} (${c.votes || 0} votes)</span>
+                <button class="btn btn-sm btn-red" style="padding:2px 6px; font-size:10px;" onclick="deleteCandidate('${e.id}', '${c.id}')">Remove</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Admin Ads
+    function renderAdminAds(list) {
+      const body = document.getElementById('admAdsBody');
+      if (!body) return;
+      body.innerHTML = list.length === 0 ? '<tr><td colspan="5">No billboard sponsors</td></tr>' :
+        list.map(a => {
+          const st = adStatus(a);
+          return `
+            <tr>
+              <td><strong>${escapeHtml(a.name || '')}</strong><br><small>${escapeHtml(a.caption || '')}</small></td>
+              <td>${escapeHtml(a.start || '')} to ${escapeHtml(a.end || '')}</td>
+              <td>${Number(a.amount || 0).toLocaleString()} OMR</td>
+              <td><span class="badge" style="background:${st.color}20; color:${st.color};">${st.label}</span></td>
+              <td>
+                <button class="btn btn-sm btn-outline" style="color:var(--text); border-color:var(--line);" onclick="editAd('${a.id}')">Edit</button>
+                <button class="btn btn-sm btn-red" onclick="deleteAd('${a.id}')">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+    }
+
+    // --- CANVAS GENERATORS: MEMBERSHIP CARD & CERTIFICATE ---
+
+    function drawCard(member) {
+      const canvas = document.getElementById('docCanvas');
+      canvas.width = 600;
+      canvas.height = 380;
+      const ctx = canvas.getContext('2d');
+
+      // Background Gradient
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, '#0e2e25');
+      grad.addColorStop(0.6, '#1b4d3e');
+      grad.addColorStop(1, '#071f18');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Gold Double Border
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+
+      // Header Branding
+      ctx.fillStyle = '#d4af37';
+      ctx.font = 'bold 20px Georgia, serif';
+      ctx.fillText('PAKHTOON COMMUNITY', 30, 48);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Arial, sans-serif';
+      ctx.fillText('OFFICIAL DIGITAL IDENTITY CARD • SULTANATE OF OMAN', 30, 68);
+
+      // Divider
+      ctx.strokeStyle = '#d4af37';
+      ctx.beginPath();
+      ctx.moveTo(30, 80);
+      ctx.lineTo(canvas.width - 30, 80);
+      ctx.stroke();
+
+      // Fields
+      ctx.fillStyle = '#f3ead7';
+      ctx.font = '13px Arial, sans-serif';
+
+      ctx.fillText('Membership ID:', 30, 115);
+      ctx.fillStyle = '#d4af37';
+      ctx.font = 'bold 15px Georgia, serif';
+      ctx.fillText(member.membershipId || 'OPC-OM-2026-XXXX', 150, 115);
+
+      ctx.fillStyle = '#f3ead7';
+      ctx.font = '13px Arial, sans-serif';
+      ctx.fillText('Full Name:', 30, 145);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.fillText(member.name || '', 150, 145);
+
+      ctx.fillStyle = '#f3ead7';
+      ctx.font = '13px Arial, sans-serif';
+      ctx.fillText('Father Name:', 30, 175);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(member.father || '', 150, 175);
+
+      ctx.fillStyle = '#f3ead7';
+      ctx.fillText('CNIC / Passport:', 30, 205);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(member.cnic || '', 150, 205);
+
+      ctx.fillStyle = '#f3ead7';
+      ctx.fillText('Home District:', 30, 235);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(member.district || '', 150, 235);
+
+      ctx.fillStyle = '#f3ead7';
+      ctx.fillText('Phone / Contact:', 30, 265);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(member.phone || '', 150, 265);
+
+      ctx.fillStyle = '#f3ead7';
+      ctx.fillText('Issue Date:', 30, 295);
+      ctx.fillStyle = '#d4af37';
+      ctx.fillText(formatDate(member.approvedAt || member.createdAt), 150, 295);
+
+      // Photo Drawing
+      if (member.photo) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, canvas.width - 160, 100, 130, 150);
+          ctx.strokeStyle = '#d4af37';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(canvas.width - 160, 100, 130, 150);
+        };
+        img.src = member.photo;
+      } else {
+        ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+        ctx.fillRect(canvas.width - 160, 100, 130, 150);
+        ctx.strokeStyle = '#d4af37';
+        ctx.strokeRect(canvas.width - 160, 100, 130, 150);
+        ctx.fillStyle = '#d4af37';
+        ctx.font = 'bold 12px Arial, sans-serif';
+        ctx.fillText('NO PHOTO', canvas.width - 130, 180);
+      }
+
+      // Footer Banner
+      ctx.fillStyle = '#071f18';
+      ctx.fillRect(16, canvas.height - 45, canvas.width - 32, 29);
+      ctx.fillStyle = '#d4af37';
+      ctx.font = '10px Arial, sans-serif';
+      ctx.fillText('VERIFIED DIASPORA SOLIDARITY MEMBER • SULTANATE OF OMAN', 30, canvas.height - 27);
+    }
+
+    function drawCertificate(member) {
+      const canvas = document.getElementById('docCanvas');
+      canvas.width = 600;
+      canvas.height = 420;
+      const ctx = canvas.getContext('2d');
+
+      // Cream Background
+      ctx.fillStyle = '#faf6ed';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Outer & Inner Borders
+      ctx.strokeStyle = '#1b4d3e';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+
+      // Certificate Title
+      ctx.fillStyle = '#1b4d3e';
+      ctx.font = 'bold 24px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAKHTOON COMMUNITY', canvas.width / 2, 58);
+
+      ctx.fillStyle = '#d4af37';
+      ctx.font = 'bold 12px Arial, sans-serif';
+      ctx.fillText('CERTIFICATE OF REGISTERED MEMBERSHIP', canvas.width / 2, 80);
+
+      // Body Text
+      ctx.fillStyle = '#26302c';
+      ctx.font = '13px Georgia, serif';
+      ctx.fillText('This is to officially certify that', canvas.width / 2, 125);
+
+      // Member Name Large
+      ctx.fillStyle = '#0e2e25';
+      ctx.font = 'bold 22px Georgia, serif';
+      ctx.fillText(member.name || 'Member Name', canvas.width / 2, 160);
+
+      ctx.fillStyle = '#26302c';
+      ctx.font = '13px Arial, sans-serif';
+      ctx.fillText(`S/O ${member.father || ''} | CNIC: ${member.cnic || ''} | District: ${member.district || ''}`, canvas.width / 2, 190);
+
+      ctx.fillText('is a fully registered and accredited member of the Pakhtoon Community Welfare Portal,', canvas.width / 2, 230);
+      ctx.fillText('entitled to representation and welfare assistance under the official diaspora shura.', canvas.width / 2, 250);
+
+      ctx.fillStyle = '#1b4d3e';
+      ctx.font = 'bold 13px Georgia, serif';
+      ctx.fillText(`Membership Identification: ${member.membershipId || 'OPC-OM-2026-XXXX'}`, canvas.width / 2, 290);
+      ctx.fillText(`Date of Issue: ${formatDate(member.approvedAt || member.createdAt)}`, canvas.width / 2, 310);
+
+      // Signatures
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = '#6b7a73';
+      ctx.beginPath();
+      ctx.moveTo(60, 370);
+      ctx.lineTo(200, 370);
+      ctx.moveTo(canvas.width - 200, 370);
+      ctx.lineTo(canvas.width - 60, 370);
+      ctx.stroke();
+
+      ctx.fillStyle = '#6b7a73';
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillText('President Signature', 80, 388);
+      ctx.fillText('General Secretary', canvas.width - 180, 388);
+      ctx.textAlign = 'left'; // Reset
+    }
+
+    function viewDocuments(id, type) {
+      const member = window.dataStore.members.find(m => m.id === id);
+      if (!member) return;
+
+      const modal = document.getElementById('docModal');
+      const title = document.getElementById('modalDocTitle');
+      const dlBtn = document.getElementById('btnDownloadDoc');
+
+      modal.classList.add('active');
+
+      if (type === 'card') {
+        title.textContent = 'Digital Membership Card - ' + member.name;
+        drawCard(member);
+        dlBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.download = `Card_${member.membershipId || member.name}.png`;
+          a.href = document.getElementById('docCanvas').toDataURL();
+          a.click();
+        };
+      } else {
+        title.textContent = 'Official Certificate - ' + member.name;
+        drawCertificate(member);
+        dlBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.download = `Certificate_${member.membershipId || member.name}.png`;
+          a.href = document.getElementById('docCanvas').toDataURL();
+          a.click();
+        };
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('docModal').classList.remove('active');
+    }
+
+    // --- CSV EXPORT UTILITY ---
+
+    function downloadCSV(rows, columns, filename) {
+      if (!rows || rows.length === 0) {
+        alert("No data available to export.");
+        return;
+      }
+      const header = columns.map(c => `"${c.header}"`).join(',');
+      const body = rows.map(r => {
+        return columns.map(c => {
+          let val = r[c.key] || '';
+          if (c.formatter) val = c.formatter(val, r);
+          val = String(val).replace(/"/g, '""');
+          return `"${val}"`;
+        }).join(',');
+      }).join('\n');
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent(header + '\n' + body);
+      const link = document.createElement('a');
+      link.setAttribute('href', csvContent);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function exportMembers() {
+      downloadCSV(window.dataStore.members, [
+        { header: 'Membership ID', key: 'membershipId' },
+        { header: 'Name', key: 'name' },
+        { header: 'Father Name', key: 'father' },
+        { header: 'CNIC', key: 'cnic' },
+        { header: 'District', key: 'district' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'WhatsApp', key: 'whatsapp' },
+        { header: 'Occupation', key: 'occupation' },
+        { header: 'Status', key: 'status' }
+      ], 'Pakhtoon_Members.csv');
+    }
+
+    function exportDonations() {
+      downloadCSV(window.dataStore.donations, [
+        { header: 'Donor Name', key: 'donor' },
+        { header: 'Amount (OMR)', key: 'amount' },
+        { header: 'Date', key: 'date' },
+        { header: 'Method', key: 'method' },
+        { header: 'Note', key: 'note' }
+      ], 'Pakhtoon_Donations.csv');
+    }
+
+    function exportIncidents() {
+      downloadCSV(window.dataStore.incidents, [
+        { header: 'Type', key: 'type' },
+        { header: 'Name', key: 'name' },
+        { header: 'Date', key: 'date' },
+        { header: 'Contact', key: 'contact' },
+        { header: 'Status', key: 'status' },
+        { header: 'Description', key: 'description' }
+      ], 'Pakhtoon_Incidents.csv');
+    }
+
+    function exportAds() {
+      downloadCSV(window.dataStore.ads, [
+        { header: 'Advertiser', key: 'name' },
+        { header: 'Caption', key: 'caption' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'Amount', key: 'amount' },
+        { header: 'Start Date', key: 'start' },
+        { header: 'End Date', key: 'end' }
+      ], 'Pakhtoon_Ads.csv');
+    }
+
+    function exportElectionResults(electionId) {
+      const elec = window.dataStore.elections.find(e => e.id === electionId);
+      if (!elec || !elec.candidates) return;
+      downloadCSV(elec.candidates, [
+        { header: 'Candidate Name', key: 'name' },
+        { header: 'Total Votes', key: 'votes' }
+      ], `Election_${elec.title.replace(/\s+/g, '_')}.csv`);
+    }
+  </script>
+</body>
+</html>
