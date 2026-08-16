@@ -3,8 +3,21 @@ import { motion } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
-  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, onSnapshot, query, orderBy, limit 
+  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, runTransaction, arrayUnion, Timestamp, getDocs, getDoc, query, orderBy, limit 
 } from 'firebase/firestore';
+
+function onSnapshot(queryOrDoc: any, onNext: any, onError?: any) {
+  if (queryOrDoc.type === 'document') {
+    getDoc(queryOrDoc).then(docSnap => onNext({
+      exists: () => docSnap.exists(),
+      data: () => docSnap.data(),
+      id: docSnap.id
+    })).catch(onError);
+  } else {
+    getDocs(queryOrDoc).then(onNext).catch(onError);
+  }
+  return () => {};
+}
 import { db, auth, handleFirestoreError } from '../firebase';
 import { 
   Member, Donation, CabinetMember, NewsAnnouncement, IncidentReport, EmbassySetting, Election, SponsoredAd, CabinetMeeting, FounderProfile, AdminLog, OperationType 

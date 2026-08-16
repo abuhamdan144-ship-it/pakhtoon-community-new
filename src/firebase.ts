@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, initializeFirestore } from 'firebase/firestore';
 import { OperationType, FirestoreErrorInfo } from './types';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -8,7 +8,9 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore targeting the specific applet Database ID instance
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432');
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 // Initialize Auth
 export const auth = getAuth(app);

@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  collection, onSnapshot, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where, deleteDoc 
+  collection, getDocs, addDoc, query, orderBy, Timestamp, doc, runTransaction, getDoc, setDoc, where, deleteDoc 
 } from 'firebase/firestore';
+
+function onSnapshot(queryOrDoc: any, onNext: any, onError?: any) {
+  if (queryOrDoc.type === 'document') {
+    getDoc(queryOrDoc).then(docSnap => onNext({
+      exists: () => docSnap.exists(),
+      data: () => docSnap.data(),
+      id: docSnap.id
+    })).catch(onError);
+  } else {
+    getDocs(queryOrDoc).then(onNext).catch(onError);
+  }
+  return () => {};
+}
 import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from './firebase';
 
