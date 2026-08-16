@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, initializeFirestore } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 import { OperationType, FirestoreErrorInfo } from './types';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -10,6 +10,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore targeting the specific applet Database ID instance
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
+  localCache: memoryLocalCache()
 }, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 // Initialize Auth

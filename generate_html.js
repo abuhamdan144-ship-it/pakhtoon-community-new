@@ -1,4 +1,21 @@
-<!DOCTYPE html>
+import fs from 'fs';
+
+let config;
+try {
+  const configStr = fs.readFileSync('firebase-applet-config.json', 'utf8');
+  config = JSON.parse(configStr);
+} catch (e) {
+  config = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "opc-new-48a8d.firebaseapp.com",
+    projectId: "opc-new-48a8d",
+    storageBucket: "opc-new-48a8d.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+}
+
+const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -444,12 +461,12 @@
     import { initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyAWmYNZbjpijp6NGO-Lw743kogqtJimBCo",
-      authDomain: "opc-new-48a8d.firebaseapp.com",
-      projectId: "opc-new-48a8d",
-      storageBucket: "opc-new-48a8d.firebasestorage.app",
-      messagingSenderId: "211508737297",
-      appId: "1:211508737297:web:32aa85d2f0efad1b4008b0"
+      apiKey: "${config.apiKey}",
+      authDomain: "${config.authDomain}",
+      projectId: "${config.projectId}",
+      storageBucket: "${config.storageBucket}",
+      messagingSenderId: "${config.messagingSenderId}",
+      appId: "${config.appId}"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -476,7 +493,7 @@
         }
       } else {
         document.getElementById('page-' + pageId).classList.remove('hidden');
-        const link = document.querySelector(`.nav-links a[href="#${pageId}"]`);
+        const link = document.querySelector(\`.nav-links a[href="#\${pageId}"]\`);
         if(link) link.classList.add('active');
         
         if(pageId === 'home') loadHomeData();
@@ -529,12 +546,12 @@
         let cabHtml = '';
         cabSnap.forEach(c => {
           const d = c.data();
-          cabHtml += `<div class="card flex items-center gap-4">
+          cabHtml += \`<div class="card flex items-center gap-4">
             <div style="width: 50px; height: 50px; background: #eee; border-radius: 50%; overflow: hidden;">
-               <img src="${d.photo || ''}" onerror="this.style.display='none'" style="width:100%; height:100%; object-fit: cover;">
+               <img src="\${d.photo || ''}" onerror="this.style.display='none'" style="width:100%; height:100%; object-fit: cover;">
             </div>
-            <div><h4 style="margin:0;">${d.name}</h4><p style="font-size: 0.8rem; color: var(--gold); font-weight: bold; margin:0;">${d.position}</p></div>
-          </div>`;
+            <div><h4 style="margin:0;">\${d.name}</h4><p style="font-size: 0.8rem; color: var(--gold); font-weight: bold; margin:0;">\${d.position}</p></div>
+          </div>\`;
         });
         document.getElementById('home-cabinet-list').innerHTML = cabHtml || '<p>No cabinet members found.</p>';
 
@@ -543,7 +560,7 @@
         let newsHtml = '';
         newsSnap.forEach(n => {
           const d = n.data();
-          newsHtml += `<div class="card"><h4>${d.title}</h4><p class="mt-2 text-sm">${d.content}</p></div>`;
+          newsHtml += \`<div class="card"><h4>\${d.title}</h4><p class="mt-2 text-sm">\${d.content}</p></div>\`;
         });
         document.getElementById('home-news-list').innerHTML = newsHtml || '<p>No news published.</p>';
 
@@ -552,11 +569,11 @@
         let incHtml = '';
         incPubSnap.forEach(i => {
           const d = i.data();
-          incHtml += `<div class="card incident-card-${d.type}">
-            <div class="flex justify-between"><h4>${d.name}</h4> <span class="badge badge-danger">${d.type}</span></div>
-            <p class="mt-2 text-sm">${d.description}</p>
-            <p class="mt-2 text-xs" style="color: var(--muted);">Date: ${d.date}</p>
-          </div>`;
+          incHtml += \`<div class="card incident-card-\${d.type}">
+            <div class="flex justify-between"><h4>\${d.name}</h4> <span class="badge badge-danger">\${d.type}</span></div>
+            <p class="mt-2 text-sm">\${d.description}</p>
+            <p class="mt-2 text-xs" style="color: var(--muted);">Date: \${d.date}</p>
+          </div>\`;
         });
         document.getElementById('home-incidents-list').innerHTML = incHtml || '<p>No public incidents.</p>';
 
@@ -575,7 +592,7 @@
       
       let dotsHtml = '';
       activeAds.forEach((_, i) => {
-        dotsHtml += `<div class="ad-dot ${i === currentAdIndex ? 'active' : ''}"></div>`;
+        dotsHtml += \`<div class="ad-dot \${i === currentAdIndex ? 'active' : ''}"></div>\`;
       });
       document.getElementById('ad-dots').innerHTML = dotsHtml;
     }
@@ -640,20 +657,20 @@
           let candsHtml = '';
           (d.candidates || []).forEach((c, idx) => {
             const votes = c.votes || 0;
-            candsHtml += `
+            candsHtml += \`
               <div class="card mt-2 flex justify-between items-center" style="background: #f9f9f9;">
-                <div><strong>${c.name}</strong> <br> ${votes} votes</div>
-                ${isOpen ? `<button class="btn btn-gold" onclick="voteE('${doc.id}', ${idx})">Vote</button>` : ''}
+                <div><strong>\${c.name}</strong> <br> \${votes} votes</div>
+                \${isOpen ? \`<button class="btn btn-gold" onclick="voteE('\${doc.id}', \${idx})">Vote</button>\` : ''}
               </div>
-            `;
+            \`;
           });
-          html += `<div class="card">
+          html += \`<div class="card">
             <div class="flex justify-between items-center mb-4">
-              <h3 style="margin:0;">${d.title}</h3>
-              <span class="badge ${isOpen ? 'badge-success' : 'badge-danger'}">${isOpen ? 'OPEN' : 'CLOSED'}</span>
+              <h3 style="margin:0;">\${d.title}</h3>
+              <span class="badge \${isOpen ? 'badge-success' : 'badge-danger'}">\${isOpen ? 'OPEN' : 'CLOSED'}</span>
             </div>
-            ${candsHtml}
-          </div>`;
+            \${candsHtml}
+          </div>\`;
         });
         document.getElementById('elections-list').innerHTML = html || '<p>No elections found.</p>';
       } catch (err) {
@@ -736,23 +753,23 @@
           
           if(d.status === 'pending') {
             pendingCount++;
-            pHtml += `<tr>
-              <td>${d.name}</td><td>${d.father}</td><td>${d.cnic}</td><td>${d.phone}</td><td>${d.district}</td><td>${new Date(d.createdAt).toLocaleDateString()}</td>
+            pHtml += \`<tr>
+              <td>\${d.name}</td><td>\${d.father}</td><td>\${d.cnic}</td><td>\${d.phone}</td><td>\${d.district}</td><td>\${new Date(d.createdAt).toLocaleDateString()}</td>
               <td>
-                <button class="btn btn-primary" onclick="approveMem('${d.id}')">Approve</button>
-                <button class="btn btn-danger" onclick="delDoc('members', '${d.id}')">Reject</button>
+                <button class="btn btn-primary" onclick="approveMem('\${d.id}')">Approve</button>
+                <button class="btn btn-danger" onclick="delDoc('members', '\${d.id}')">Reject</button>
               </td>
-            </tr>`;
+            </tr>\`;
           } else {
             approvedCount++;
-            aHtml += `<tr>
-              <td>${d.membershipId}</td><td>${d.name}</td><td>${d.phone}</td><td>${d.district}</td><td>${new Date(d.createdAt).toLocaleDateString()}</td>
+            aHtml += \`<tr>
+              <td>\${d.membershipId}</td><td>\${d.name}</td><td>\${d.phone}</td><td>\${d.district}</td><td>\${new Date(d.createdAt).toLocaleDateString()}</td>
               <td>
-                <button class="btn btn-gold" onclick="genCard('${d.id}')">Card</button>
-                <button class="btn btn-gold" onclick="genCert('${d.id}')">Cert</button>
-                <button class="btn btn-danger" onclick="delDoc('members', '${d.id}')">Del</button>
+                <button class="btn btn-gold" onclick="genCard('\${d.id}')">Card</button>
+                <button class="btn btn-gold" onclick="genCert('\${d.id}')">Cert</button>
+                <button class="btn btn-danger" onclick="delDoc('members', '\${d.id}')">Del</button>
               </td>
-            </tr>`;
+            </tr>\`;
           }
         });
 
@@ -785,7 +802,7 @@
           current++;
           transaction.set(counterRef, { lastMemberNumber: current }, { merge: true });
           const year = new Date().getFullYear();
-          newId = `OPC-OM-${year}-${String(current).padStart(4, '0')}`;
+          newId = \`OPC-OM-\${year}-\${String(current).padStart(4, '0')}\`;
           transaction.update(doc(db, 'members', id), {
             status: 'approved',
             membershipId: newId,
@@ -933,4 +950,7 @@
 
   </script>
 </body>
-</html>
+</html>`;
+
+fs.writeFileSync('single-page-app.html', html);
+console.log('Successfully generated single-page-app.html');
