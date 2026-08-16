@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Vote, CheckCircle2, UserCheck, Shield, Sparkles, Award, BarChart3, AlertCircle } from 'lucide-react';
 import { Election } from '../types';
 

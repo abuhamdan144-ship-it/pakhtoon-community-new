@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Plus, PhoneCall, CheckCircle2, Clock, ShieldAlert, Heart, FileText, Send } from 'lucide-react';
 import { IncidentReport } from '../types';
 

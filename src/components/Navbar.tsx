@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Shield, Menu, X, Landmark, FileText, Vote, AlertTriangle, Tv, 
   UserCheck, Globe, ChevronDown, Lock, Home as HomeIcon 

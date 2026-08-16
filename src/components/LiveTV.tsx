@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Tv, Radio, Play, Volume2, ShieldCheck, Globe, Maximize2, Sparkles, MessageSquare } from 'lucide-react';
 
 export default function LiveTV() {

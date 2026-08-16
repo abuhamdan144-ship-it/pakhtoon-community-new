@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Landmark, PhoneCall, Mail, MapPin, Globe, Shield, Heart, ExternalLink } from 'lucide-react';
 import logoImg from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
 

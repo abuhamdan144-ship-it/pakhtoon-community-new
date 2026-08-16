@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Users, Landmark, DollarSign, AlertTriangle, Building, Award, Vote } from 'lucide-react';
 
 interface StatsProps {

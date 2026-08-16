@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Newspaper, Search, Calendar, Tag, Sparkles, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { NewsAnnouncement } from '../types';
 

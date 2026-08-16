@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { UserCheck, ShieldCheck, CreditCard, Upload, Send, Search, CheckCircle2, Award, Download, ArrowRight } from 'lucide-react';
 import LiveCardPreview from './LiveCardPreview';
 import { Member } from '../types';
