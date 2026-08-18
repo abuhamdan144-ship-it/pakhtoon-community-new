@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import membersData from '../data/members.json';
 import { motion } from 'motion/react';
 import AnimatedCounter from './AnimatedCounter';
 import { User, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -120,6 +121,39 @@ export default function AdminPanel({
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+
+  // PDF Import State
+  const [importLoading, setImportLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState('');
+
+  const handleImportMembers = async () => {
+    if (!confirm('This will import 600 members from the PDF. CRITICAL: You must temporarily change your Firestore Database Rules to "allow write: if true;" before clicking OK. Proceed?')) return;
+    
+    setImportLoading(true);
+    setImportProgress('Starting import...');
+    try {
+      const data = membersData;
+      
+      let success = 0;
+      for (let i = 0; i < data.length; i += 20) {
+        const batch = data.slice(i, i + 20);
+        await Promise.all(batch.map(async (m: any) => {
+          const newId = `OPC-OM-2024-${String(m.sno).padStart(4, '0')}`;
+          await setDoc(doc(db, 'members', `mem-${m.sno}`), {
+            ...m,
+            membershipId: newId,
+            approvedAt: Timestamp.now()
+          });
+          success++;
+        }));
+        setImportProgress(`Importing: ${success} of 600 members...`);
+      }
+      setImportProgress(`Successfully imported ${success} members! You can now change your Firestore Rules back to "allow write: if false;".`);
+    } catch (err: any) {
+      setImportProgress(`Error: ${err.message}. Did you change Firestore rules to allow write?`);
+    }
+    setImportLoading(false);
+  };
 
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'directory' | 'cabinet' | 'donations' | 'incidents' | 'news' | 'embassy' | 'founder' | 'elections' | 'ads' | 'workspace' | 'meetings' | 'logs'>('overview');
@@ -2427,7 +2461,19 @@ export default function AdminPanel({
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <h3 className="text-xl font-bold font-serif text-emerald-950 mb-3">Community Snapshot</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xl font-bold font-serif text-emerald-950">Community Snapshot</h3>
+              <div className="flex flex-col items-end gap-1">
+                <button 
+                  onClick={handleImportMembers}
+                  disabled={importLoading}
+                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-1.5 px-4 rounded text-xs transition shadow-sm disabled:opacity-50"
+                >
+                  {importLoading ? 'Importing...' : 'Import 600 Members from PDF'}
+                </button>
+                {importProgress && <span className="text-[10px] text-amber-600 font-semibold">{importProgress}</span>}
+              </div>
+            </div>
             
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <motion.div 

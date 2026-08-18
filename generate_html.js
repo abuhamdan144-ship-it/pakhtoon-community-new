@@ -1,20 +1,5 @@
 import fs from 'fs';
 
-let config;
-try {
-  const configStr = fs.readFileSync('firebase-applet-config.json', 'utf8');
-  config = JSON.parse(configStr);
-} catch (e) {
-  config = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "opc-new-48a8d.firebaseapp.com",
-    projectId: "opc-new-48a8d",
-    storageBucket: "opc-new-48a8d.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-}
-
 const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -458,19 +443,20 @@ const html = `<!DOCTYPE html>
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     // We import initializeFirestore to bypass billing error
-    import { initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeFirestore, memoryLocalCache } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // EXACT CONFIGURATION FROM USER PROMPT
     const firebaseConfig = {
-      apiKey: "${config.apiKey}",
-      authDomain: "${config.authDomain}",
-      projectId: "${config.projectId}",
-      storageBucket: "${config.storageBucket}",
-      messagingSenderId: "${config.messagingSenderId}",
-      appId: "${config.appId}"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "opc-new-48a8d.firebaseapp.com",
+      projectId: "opc-new-48a8d",
+      storageBucket: "opc-new-48a8d.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+    const db = initializeFirestore(app, { experimentalForceLongPolling: true, localCache: memoryLocalCache() });
     const auth = getAuth(app);
 
     // GLOBAL STATE
@@ -512,9 +498,14 @@ const html = `<!DOCTYPE html>
     // HOME DATA LOADER
     async function loadHomeData() {
       try {
-        // Stats
-        const memSnap = await getDocs(query(collection(db, 'members'), where('status', '==', 'approved')));
-        document.getElementById('stat-members').innerText = memSnap.size;
+        // Members - Handle potential old data structures by querying all first, then filtering if status exists
+        const memSnap = await getDocs(collection(db, 'members'));
+        let approvedCount = 0;
+        memSnap.forEach(doc => {
+          // If status isn't set, we might assume approved depending on old schema, but let's stick to status if it exists
+          if (!doc.data().status || doc.data().status === 'approved') approvedCount++;
+        });
+        document.getElementById('stat-members').innerText = approvedCount;
         
         const incSnap = await getDocs(collection(db, 'incidents'));
         document.getElementById('stat-incidents').innerText = incSnap.size;
@@ -579,6 +570,7 @@ const html = `<!DOCTYPE html>
 
       } catch (err) {
         console.error("Home load error:", err);
+        document.getElementById("app-content").insertAdjacentHTML("afterbegin", "<div class=\\"card badge-danger\\" style=\\"margin: 1rem;\\">Error loading live data. Please check your API Key and Firebase Rules. " + err.message + "</div>");
       }
     }
 
@@ -763,7 +755,7 @@ const html = `<!DOCTYPE html>
           } else {
             approvedCount++;
             aHtml += \`<tr>
-              <td>\${d.membershipId}</td><td>\${d.name}</td><td>\${d.phone}</td><td>\${d.district}</td><td>\${new Date(d.createdAt).toLocaleDateString()}</td>
+              <td>\${d.membershipId || 'N/A'}</td><td>\${d.name}</td><td>\${d.phone}</td><td>\${d.district}</td><td>\${d.createdAt ? new Date(d.createdAt).toLocaleDateString() : 'N/A'}</td>
               <td>
                 <button class="btn btn-gold" onclick="genCard('\${d.id}')">Card</button>
                 <button class="btn btn-gold" onclick="genCert('\${d.id}')">Cert</button>
@@ -864,7 +856,7 @@ const html = `<!DOCTYPE html>
       ctx.textAlign = 'left';
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 22px Arial';
-      ctx.fillText(m.name, 220, 140);
+      ctx.fillText(m.name || '', 220, 140);
       
       ctx.font = '16px Arial';
       ctx.fillStyle = '#faf6ed';
@@ -874,7 +866,7 @@ const html = `<!DOCTYPE html>
 
       ctx.fillStyle = '#d4af37';
       ctx.font = 'bold 20px monospace';
-      ctx.fillText('ID: ' + m.membershipId, 220, 310);
+      ctx.fillText('ID: ' + (m.membershipId || 'PENDING'), 220, 310);
       
       ctx.fillStyle = '#fff';
       ctx.font = '12px Arial';
@@ -924,7 +916,7 @@ const html = `<!DOCTYPE html>
 
       ctx.fillStyle = '#0e2e25';
       ctx.font = 'bold 36px Georgia';
-      ctx.fillText(m.name, 400, 300);
+      ctx.fillText(m.name || '', 400, 300);
 
       ctx.fillStyle = '#26302c';
       ctx.font = '18px Arial';
@@ -932,7 +924,7 @@ const html = `<!DOCTYPE html>
 
       ctx.fillStyle = '#1b4d3e';
       ctx.font = 'bold 20px monospace';
-      ctx.fillText('Membership ID: ' + m.membershipId, 400, 410);
+      ctx.fillText('Membership ID: ' + (m.membershipId || 'PENDING'), 400, 410);
 
       // Signatures
       ctx.strokeStyle = '#26302c';
@@ -952,5 +944,6 @@ const html = `<!DOCTYPE html>
 </body>
 </html>`;
 
+fs.writeFileSync('index.html', html);
 fs.writeFileSync('single-page-app.html', html);
-console.log('Successfully generated single-page-app.html');
+console.log('Fixed config in index.html to precisely use YOUR_API_KEY');
