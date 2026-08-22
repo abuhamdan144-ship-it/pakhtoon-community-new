@@ -457,7 +457,7 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = initializeFirestore(app, { experimentalForceLongPolling: true, localCache: memoryLocalCache() });
+    const db = initializeFirestore(app, { databaseId: 'ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432', experimentalForceLongPolling: true, localCache: memoryLocalCache() });
     const auth = getAuth(app);
 
     // GLOBAL STATE
