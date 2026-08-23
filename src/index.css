@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --color-forest: #1b4d3e;
+  --color-forest-dark: #0e2e25;
+  --color-gold: #d4af37;
+  --color-gold-light: #f0d060;
+  --color-cream: #faf6ed;
+  --color-red: #c8102e;
+  --color-text: #26302c;
+  
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-text;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-forest-dark;
+  }
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/20;
+}
+
+.dark-glass {
+  @apply bg-forest-dark/80 backdrop-blur-md border border-gold/20;
+}
+
+.gold-gradient-text {
+  @apply bg-gradient-to-r from-gold to-gold-light bg-clip-text text-transparent;
+}
+
+.gold-glow {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+}
+
+.isometric-card {
+  transform: rotateX(10deg) rotateY(-15deg);
+  transition: transform 0.3s ease;
+}
+.isometric-card:hover {
+  transform: rotateX(0deg) rotateY(0deg) scale(1.05);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold);
+  border-radius: 4px;
+}
