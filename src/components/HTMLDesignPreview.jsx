@@ -1325,35 +1325,6 @@ export default function HTMLDesignPreview() {
         }
       `}</style>
 
-      {/* ═══ TOP BANNER CONTROLLER ═══ */}
-      <div style={{
-        background: 'linear-gradient(90deg, #1b4d3e, #0a2a1f)',
-        borderBottom: '1px solid rgba(212,175,55,0.4)',
-        padding: '8px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        fontSize: '12px',
-        color: '#f0d060',
-        zIndex: 1100,
-        position: 'relative'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-          <span style={{
-            background: '#d4af37',
-            color: '#0a2a1f',
-            padding: '2px 8px',
-            borderRadius: '999px',
-            fontSize: '10px',
-            fontWeight: 800
-          }}>LIVE PREVIEW</span>
-          <span>Single-File HTML & Design System Mode (Isolated Preview — Not Pushed to GitHub)</span>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Link to="/membership" style={{ color: '#ffffff', textDecoration: 'underline' }}>Membership Portal</Link>
-          <Link to="/admin" style={{ color: '#ffffff', textDecoration: 'underline' }}>Admin Dashboard</Link>
-        </div>
-      </div>
 
       {/* ═══ HEADER ═══ */}
       <header className={`opc-header ${scrolled ? 'scrolled' : ''}`}>
