@@ -1,12 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { collections } from '../firebase/collections';
+import { onSnapshot, query } from 'firebase/firestore';
 
-const mockCandidates = [
-  { name: 'Dr. Ahmad Gul', votes: 450, total: 1000 },
-  { name: 'Eng. Sheraz Khan', votes: 320, total: 1000 },
+const fallbackCandidates = [
+  { id: 1, name: 'Dr. Ahmad Gul', votes: 450, total: 1000 },
+  { id: 2, name: 'Eng. Sheraz Khan', votes: 320, total: 1000 },
 ];
 
 export default function Elections() {
+  const [candidates, setCandidates] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(query(collections.elections), (snap) => {
+      let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCandidates(data.length > 0 ? data : fallbackCandidates);
+    }, (error) => {
+      console.log(error);
+      setCandidates(fallbackCandidates);
+    });
+    return () => unsub();
+  }, []);
+
   return (
     <section className="py-24 bg-cream">
       <div className="container mx-auto px-6 max-w-3xl">
@@ -19,10 +34,10 @@ export default function Elections() {
           </div>
           
           <div className="space-y-6">
-            {mockCandidates.map((c, i) => {
-              const percent = (c.votes / c.total) * 100;
+            {candidates.map((c, i) => {
+              const percent = ((c.votes || 0) / (c.total || 1000)) * 100;
               return (
-                <div key={i}>
+                <div key={c.id || i}>
                   <div className="flex justify-between mb-2">
                     <span className="font-bold text-gray-800">{c.name}</span>
                     <span className="text-gold font-mono font-bold">{Math.round(percent)}%</span>
@@ -36,7 +51,7 @@ export default function Elections() {
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1 font-mono">{c.votes} votes</p>
+                  <p className="text-xs text-gray-500 mt-1 font-mono">{c.votes || 0} votes</p>
                 </div>
               );
             })}

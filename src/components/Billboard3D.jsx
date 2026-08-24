@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { collections } from '../firebase/collections';
+import { onSnapshot, query } from 'firebase/firestore';
 
-// Mock ads data since Firebase isn't seeded yet
-const mockAds = [
+const fallbackAds = [
   { id: 1, name: "Al Madina Logistics", image: "https://images.unsplash.com/photo-1586528116311-ad8ed7c50800?w=800&q=80", caption: "Trusted Logistics Partner" },
   { id: 2, name: "Oman Travels", image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80", caption: "Fly home safely" }
 ];
 
 export default function Billboard3D() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [ads, setAds] = useState([]);
 
   useEffect(() => {
+    const unsub = onSnapshot(query(collections.ads), (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAds(data.length > 0 ? data : fallbackAds);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (ads.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % mockAds.length);
+      setCurrentIndex((prev) => (prev + 1) % ads.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [ads]);
+
+  if (ads.length === 0) return null;
 
   return (
     <section className="py-24 bg-cream overflow-hidden">
@@ -57,13 +70,13 @@ export default function Billboard3D() {
                 transition={{ duration: 0.8, ease: "easeInOut" }}
               >
                 <img 
-                  src={mockAds[currentIndex].image} 
-                  alt={mockAds[currentIndex].name}
+                  src={ads[currentIndex]?.image} 
+                  alt={ads[currentIndex]?.name}
                   className="w-full h-full object-cover opacity-80"
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
-                  <h3 className="text-2xl font-bold text-gold">{mockAds[currentIndex].name}</h3>
-                  <p className="text-white">{mockAds[currentIndex].caption}</p>
+                  <h3 className="text-2xl font-bold text-gold">{ads[currentIndex]?.name}</h3>
+                  <p className="text-white">{ads[currentIndex]?.caption}</p>
                 </div>
               </motion.div>
             </AnimatePresence>

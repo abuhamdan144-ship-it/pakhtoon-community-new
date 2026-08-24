@@ -1,16 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, FileText, Database, Settings, LogOut } from 'lucide-react';
+import { collections } from '../firebase/collections';
+import { onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const tabs = ['Overview', 'Members', 'Donations', 'Settings'];
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('Overview');
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Fake auth for demo
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  
+  const [members, setMembers] = useState([]);
+
+  useEffect(() => {
+    const q = query(collections.members, orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMembers(data);
+    });
+    return () => unsub();
+  }, []);
 
   if (!isAuthenticated) {
     return <div className="min-h-screen pt-20 flex items-center justify-center">Login required.</div>;
   }
+
+  const approvedMembers = members.filter(m => m.status === 'approved');
+  const pendingMembers = members.filter(m => m.status === 'pending');
 
   return (
     <div className="min-h-screen pt-20 bg-[#f4f7f6]">
@@ -63,15 +79,15 @@ export default function Admin() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <p className="text-sm text-gray-500 font-bold mb-1">Total Members</p>
-                    <p className="text-4xl font-mono text-forest-dark">1,250</p>
+                    <p className="text-4xl font-mono text-forest-dark">{approvedMembers.length}</p>
                   </div>
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <p className="text-sm text-gray-500 font-bold mb-1">Pending Approval</p>
-                    <p className="text-4xl font-mono text-orange-500">24</p>
+                    <p className="text-4xl font-mono text-orange-500">{pendingMembers.length}</p>
                   </div>
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <p className="text-sm text-gray-500 font-bold mb-1">Total Donations</p>
-                    <p className="text-4xl font-mono text-green-600">45K <span className="text-lg">OMR</span></p>
+                    <p className="text-4xl font-mono text-green-600">0 <span className="text-lg">OMR</span></p>
                   </div>
                 </div>
               )}
@@ -84,16 +100,22 @@ export default function Admin() {
                         <th className="p-4 border-b">ID</th>
                         <th className="p-4 border-b">Name</th>
                         <th className="p-4 border-b">Status</th>
-                        <th className="p-4 border-b">Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b">
-                        <td className="p-4 font-mono">OPC-2026-001</td>
-                        <td className="p-4 font-bold">Rahim Khan</td>
-                        <td className="p-4"><span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Approved</span></td>
-                        <td className="p-4"><button className="text-gold font-bold text-sm">Manage</button></td>
-                      </tr>
+                      {members.map(m => (
+                        <tr key={m.id} className="border-b">
+                          <td className="p-4 font-mono">{m.membershipId || 'PENDING'}</td>
+                          <td className="p-4 font-bold">{m.name}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              m.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {m.status.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

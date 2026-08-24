@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { collections } from '../firebase/collections';
+import { addDoc } from 'firebase/firestore';
 
 export default function Membership() {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const watchedName = watch('name', 'YOUR NAME');
@@ -12,9 +14,18 @@ export default function Membership() {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    // Simulate Firebase delay
-    await new Promise(r => setTimeout(r, 1500));
-    toast.success('Application submitted successfully!');
+    try {
+      await addDoc(collections.members, {
+        ...data,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      toast.success('Application submitted successfully!');
+      reset();
+    } catch (error) {
+      toast.error('Failed to submit application: ' + error.message);
+      console.error(error);
+    }
     setIsSubmitting(false);
   };
 
@@ -45,7 +56,7 @@ export default function Membership() {
                     className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all bg-gray-50 focus:bg-white"
                     placeholder="Enter full name"
                   />
-                  {errors.name && <span className="text-red text-xs mt-1">Required</span>}
+                  {errors.name && <span className="text-red-500 text-xs mt-1">Required</span>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
