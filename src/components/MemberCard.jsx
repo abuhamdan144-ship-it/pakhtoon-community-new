@@ -1,25 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Download, Image as ImageIcon, LockKeyhole, Mail, Phone, Search, Send, ShieldCheck } from 'lucide-react';
-import { RecaptchaVerifier, onAuthStateChanged, signInWithPhoneNumber, signOut } from 'firebase/auth';
-import { getDocs, query, where } from 'firebase/firestore';
+import { Download, Image as ImageIcon, KeyRound, Mail, Search, Send, ShieldCheck } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
-import { auth } from '../firebase/config';
-import { collections } from '../firebase/collections';
+import { app } from '../firebase/config';
 
-const normalizePhone = (value = '') => value.replace(/[\s()-]/g, '');
-
-const friendlyAuthError = (error) => {
-  const code = String(error?.code || '');
-  const message = String(error?.message || '');
-  if (code.includes('invalid-app-credential') || message.includes('error-code:-39')) {
-    return 'Phone verification could not start. Please allow the reCAPTCHA check, disable content blockers for this site, and try again. If it continues, the OPC administrator must authorize this website domain in Firebase Authentication.';
-  }
-  if (code.includes('too-many-requests')) return 'Too many attempts. Please wait a few minutes before requesting another code.';
-  if (code.includes('invalid-phone-number')) return 'Enter the registered Oman mobile number in international format, for example +968XXXXXXXX.';
-  return message || 'Unable to send the verification code. Please try again.';
-};
+const functions = getFunctions(app, 'us-central1');
+const lookupApprovedMemberCard = httpsCallable(functions, 'lookupMemberCardByPin');
 
 const imageFromDataUrl = (source) => new Promise((resolve, reject) => {
   const image = new Image();
@@ -98,7 +86,7 @@ function buildCardImage(member) {
       context.fillText('MEMBERSHIP ID', textX, 365);
       context.fillStyle = '#d4af37';
       context.font = '700 38px monospace';
-      context.fillText(member.membershipId || 'PENDING', textX, 415);
+      context.fillText(member.membershipId || 'OPC-MEMBER', textX, 415);
       context.fillStyle = 'rgba(255,255,255,.65)';
       context.font = '600 18px Arial, sans-serif';
       context.fillText('STATUS', textX, 485);
@@ -125,83 +113,34 @@ function buildCardImage(member) {
 
 export default function MemberCard() {
   const location = useLocation();
-  const [phone, setPhone] = useState('');
   const [lookupValue, setLookupValue] = useState(() => location.state?.lookup || '');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [confirmation, setConfirmation] = useState(null);
+  const [pin, setPin] = useState('');
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [authPhone, setAuthPhone] = useState('');
-  const recaptchaRef = useRef(null);
-  const verifierRef = useRef(null);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setAuthPhone(user?.phoneNumber || '');
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => () => verifierRef.current?.clear?.(), []);
-
-  const requestCode = async (event) => {
+  const lookupCard = async (event) => {
     event.preventDefault();
-    const normalizedPhone = normalizePhone(phone);
-    if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
-      toast.error('Enter the registered mobile number in international format, for example +968XXXXXXXX.');
+    const lookup = lookupValue.trim();
+    const accessPin = pin.trim();
+    if (!lookup) {
+      toast.error('Enter the approved member name or registered mobile number.');
       return;
     }
-    if (!lookupValue.trim()) {
-      toast.error('Enter the approved member name or mobile number used for your card.');
+    if (!/^\d{6}$/.test(accessPin)) {
+      toast.error('Enter the six-digit card access PIN provided by OPC.');
       return;
     }
 
     setLoading(true);
     try {
-      verifierRef.current?.clear?.();
-      verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current, { size: 'normal' });
-      const result = await signInWithPhoneNumber(auth, normalizedPhone, verifierRef.current);
-      setConfirmation(result);
-      toast.success('A verification code was sent to your registered phone.');
-    } catch (error) {
-      verifierRef.current?.clear?.();
-      verifierRef.current = null;
-      toast.error(friendlyAuthError(error));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyAndLoadCard = async (event) => {
-    event.preventDefault();
-    if (!confirmation || !verificationCode.trim()) return;
-
-    setLoading(true);
-    try {
-      const credential = await confirmation.confirm(verificationCode.trim());
-      const verifiedPhone = normalizePhone(credential.user.phoneNumber || '');
-      const lookup = lookupValue.trim();
-      const normalizedLookup = normalizePhone(lookup);
-      let record = null;
-      const phoneSnapshot = await getDocs(query(collections.memberCards, where('phone', '==', verifiedPhone)));
-      const candidateRecords = phoneSnapshot.docs.map((entry) => entry.data());
-      record = candidateRecords.find((candidate) => String(candidate.name || '').trim().toLowerCase() === lookup.toLowerCase())
-        || candidateRecords.find((candidate) => normalizePhone(candidate.phone || '') === normalizedLookup)
-        || null;
-      if (!record || record.status !== 'approved' || normalizePhone(record.phone) !== verifiedPhone) {
-        throw new Error('No approved card matched this verified phone number and member name or mobile number.');
-      }
-      setMember({
-        name: record.name || '',
-        membershipId: record.membershipId || 'OPC-MEMBER',
-        photo: record.photo || '',
-        status: record.status,
-      });
+      const response = await lookupApprovedMemberCard({ lookup, pin: accessPin });
+      const record = response.data;
+      if (!record?.approved || !record.name) throw new Error('No approved membership card matched these details.');
+      setMember(record);
       toast.success('Your approved membership card is ready.');
     } catch (error) {
-      toast.error(error?.code?.includes('invalid-verification-code') ? 'The SMS code is incorrect or expired. Request a new code and try again.' : (error?.message || 'The verification code or membership details were not accepted.'));
-      await signOut(auth);
-      setAuthPhone('');
+      toast.error(error?.message || 'No approved membership card matched these details.');
+      setMember(null);
     } finally {
       setLoading(false);
     }
@@ -232,78 +171,38 @@ export default function MemberCard() {
   const downloadCard = async () => {
     if (!member) return;
     setLoading(true);
-    try {
-      const blob = await buildCardPdf();
-      downloadBlob(blob, 'pdf');
-      toast.success('PDF membership card downloaded.');
-    } catch (error) {
-      toast.error(error?.message || 'Unable to download the card.');
-    } finally {
-      setLoading(false);
-    }
+    try { downloadBlob(await buildCardPdf(), 'pdf'); toast.success('PDF membership card downloaded.'); }
+    catch (error) { toast.error(error?.message || 'Unable to download the card.'); }
+    finally { setLoading(false); }
   };
 
   const downloadCardImage = async () => {
     if (!member) return;
     setLoading(true);
-    try {
-      const blob = await buildCardImage(member);
-      downloadBlob(blob, 'png');
-      toast.success('Image membership card downloaded.');
-    } catch (error) {
-      toast.error(error?.message || 'Unable to download the card image.');
-    } finally {
-      setLoading(false);
-    }
+    try { downloadBlob(await buildCardImage(member), 'png'); toast.success('Image membership card downloaded.'); }
+    catch (error) { toast.error(error?.message || 'Unable to download the card image.'); }
+    finally { setLoading(false); }
   };
 
-  const shareCardOnWhatsApp = async () => {
+  const shareCard = async (channel) => {
     if (!member) return;
     setLoading(true);
     try {
       const blob = await buildCardPdf();
       const file = new File([blob], `${member.membershipId || 'opc-membership-card'}.pdf`, { type: 'application/pdf' });
-      const message = `My approved Oman Pakhtoon Community membership card is attached. Membership ID: ${member.membershipId}.`;
+      const text = `My approved Oman Pakhtoon Community membership card is ready. Membership ID: ${member.membershipId}.`;
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: 'OPC membership card', text: message, files: [file] });
+        await navigator.share({ title: 'OPC membership card', text, files: [file] });
+      } else if (channel === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${text} Download the card from ${window.location.origin}/card.`)}`, '_blank', 'noopener,noreferrer');
+        toast.success('WhatsApp opened. Attach the downloaded card if needed.');
       } else {
-        window.open(`https://wa.me/?text=${encodeURIComponent(`${message} Download it from ${window.location.origin}/card after phone verification.`)}`, '_blank', 'noopener,noreferrer');
-        toast.success('WhatsApp opened. Attach the downloaded PDF if your browser does not support file sharing.');
+        window.location.href = `mailto:?subject=${encodeURIComponent(`OPC membership card - ${member.membershipId}`)}&body=${encodeURIComponent(`${text}\n\nPlease attach the downloaded PDF or PNG card.`)}`;
+        toast.success('Your email app opened. Attach the downloaded card if needed.');
       }
     } catch (error) {
       if (error?.name !== 'AbortError') toast.error(error?.message || 'Unable to share the card.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const shareCardByEmail = async () => {
-    if (!member) return;
-    setLoading(true);
-    try {
-      const blob = await buildCardPdf();
-      const file = new File([blob], `${member.membershipId || 'opc-membership-card'}.pdf`, { type: 'application/pdf' });
-      const subject = `OPC membership card - ${member.membershipId}`;
-      const body = `My approved Oman Pakhtoon Community membership card is ready. Membership ID: ${member.membershipId}.`;
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: subject, text: body, files: [file] });
-      } else {
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${body}\n\nPlease attach the downloaded PDF or PNG card to this email.`)}`;
-        toast.success('Your email app opened. Attach the downloaded card if your device does not support file sharing.');
-      }
-    } catch (error) {
-      if (error?.name !== 'AbortError') toast.error(error?.message || 'Unable to prepare the email.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetLookup = async () => {
-    await signOut(auth).catch(() => {});
-    setAuthPhone('');
-    setConfirmation(null);
-    setVerificationCode('');
-    setMember(null);
+    } finally { setLoading(false); }
   };
 
   return (
@@ -311,43 +210,22 @@ export default function MemberCard() {
       <main className="mx-auto max-w-xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl sm:p-9">
         <Link to="/" className="text-sm font-bold text-forest-dark underline decoration-gold decoration-2 underline-offset-4">← Return to OPC</Link>
         <div className="mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-forest-dark text-gold"><ShieldCheck size={25} /></div>
-        <p className="mt-4 text-xs font-bold uppercase tracking-[.2em] text-gold">Secure card access</p>
+        <p className="mt-4 text-xs font-bold uppercase tracking-[.2em] text-gold">Approved member access</p>
         <h1 className="mt-2 font-serif text-3xl font-bold text-forest-dark">Download your membership card</h1>
-          <p className="mt-3 text-sm leading-6 text-gray-600">Verify the phone number registered with OPC, then search with your exact approved member name or registered mobile number. Only approved records can open a card.</p>
+        <p className="mt-3 text-sm leading-6 text-gray-600">Enter your approved member name or registered mobile number and the private six-digit PIN provided by OPC.</p>
 
-        {!confirmation && !member && (
-          <form className="mt-7 space-y-5" onSubmit={requestCode}>
-            <label className="block text-sm font-semibold text-gray-700">Registered mobile number for SMS verification
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" autoComplete="tel" placeholder="+968XXXXXXXX" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
-            </label>
-            <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><Search size={16} /> Search by approved member name or mobile number</span>
-              <input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} inputMode="text" placeholder="Exact full name or +968 mobile number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
-            </label>
-            <p className="text-xs leading-5 text-gray-500">For privacy, the lookup runs only after SMS verification. Enter the exact full name or mobile number saved on the approved OPC record. Oman ID and membership-ID search are not used here.</p>
-            <div ref={recaptchaRef} />
-            <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-5 py-3.5 font-bold text-gold disabled:opacity-70"><Phone size={18} /> {loading ? 'Sending code…' : 'Send verification code'}</button>
-          </form>
-        )}
+        {!member && <form className="mt-7 space-y-5" onSubmit={lookupCard}>
+          <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><Search size={16} /> Approved member name or mobile number</span>
+            <input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} autoComplete="name tel" placeholder="Full name or +968 mobile number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
+          </label>
+          <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><KeyRound size={16} /> Private card access PIN</span>
+            <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6-digit PIN" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 tracking-[.35em] outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
+          </label>
+          <p className="text-xs leading-5 text-gray-500">Only approved OPC records can unlock a card. Your PIN is checked securely by the OPC server and is never displayed on the card.</p>
+          <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-5 py-3.5 font-bold text-gold disabled:opacity-70"><ShieldCheck size={18} /> {loading ? 'Checking approved record…' : 'Open my card'}</button>
+        </form>}
 
-        {confirmation && !member && (
-          <form className="mt-7 space-y-5" onSubmit={verifyAndLoadCard}>
-            <p className="rounded-xl bg-forest-dark/[.05] p-4 text-sm text-forest-dark">A code was sent to {authPhone || normalizePhone(phone)}. Enter it below to unlock your approved card.</p>
-            <label className="block text-sm font-semibold text-gray-700">SMS verification code
-              <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="123456" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-center font-mono text-xl tracking-[.35em] outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
-            </label>
-            <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-5 py-3.5 font-bold text-gold disabled:opacity-70"><LockKeyhole size={18} /> {loading ? 'Verifying…' : 'Verify and open card'}</button>
-          </form>
-        )}
-
-        {member && (
-          <div className="mt-7 rounded-2xl bg-gradient-to-br from-forest-dark to-forest p-6 text-white shadow-lg">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-16 overflow-hidden rounded border border-gold/50 bg-white/10">{member.photo ? <img src={member.photo} alt="Member profile" className="h-full w-full object-cover" /> : null}</div>
-              <div><p className="text-xs font-bold uppercase tracking-[.16em] text-gold">Approved OPC member</p><h2 className="mt-1 text-xl font-bold">{member.name}</h2><p className="mt-1 font-mono text-sm text-white/75">{member.membershipId}</p></div>
-            </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2"><button type="button" onClick={downloadCard} disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gold px-5 py-3.5 font-bold text-forest-dark disabled:opacity-70"><Download size={18} /> {loading ? 'Preparing…' : 'Download PDF'}</button><button type="button" onClick={downloadCardImage} disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 px-5 py-3.5 font-bold text-white disabled:opacity-70"><ImageIcon size={18} /> Download image</button><button type="button" onClick={shareCardOnWhatsApp} disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gold/60 px-5 py-3.5 font-bold text-gold disabled:opacity-70"><Send size={18} /> Send by WhatsApp</button><button type="button" onClick={shareCardByEmail} disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 px-5 py-3.5 font-bold text-white disabled:opacity-70"><Mail size={18} /> Send by email</button></div><button type="button" onClick={resetLookup} className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-white/70 underline underline-offset-4 hover:text-white">Search another approved card</button>
-          </div>
-        )}
+        {member && <section className="mt-7 rounded-2xl bg-forest-dark p-4 text-white"><p className="text-sm text-white/80">Approved card for <strong className="text-gold">{member.name}</strong></p><div className="mt-4 overflow-hidden rounded-xl border border-gold/30 bg-white/5"><img src={member.previewUrl || ''} alt="OPC membership card preview" className="hidden" /><p className="p-4 text-sm text-white/70">Your card is ready. Choose a download or sharing option below.</p></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="button" onClick={downloadCard} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-4 py-3 font-bold text-forest-dark disabled:opacity-70"><Download size={17} /> Download PDF</button><button type="button" onClick={downloadCardImage} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 px-4 py-3 font-bold text-white disabled:opacity-70"><ImageIcon size={17} /> Download image</button><button type="button" onClick={() => shareCard('whatsapp')} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gold/60 px-4 py-3 font-bold text-gold disabled:opacity-70"><Send size={17} /> Send by WhatsApp</button><button type="button" onClick={() => shareCard('email')} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 px-4 py-3 font-bold text-white disabled:opacity-70"><Mail size={17} /> Send by email</button></div><button type="button" onClick={() => { setMember(null); setPin(''); }} className="mt-5 text-xs font-bold uppercase tracking-[.14em] text-white/70 underline underline-offset-4">Search another approved card</button></section>}
       </main>
     </div>
   );

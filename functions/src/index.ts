@@ -4,6 +4,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as nodemailer from "nodemailer";
 import { google } from "googleapis";
 import { Readable } from "stream";
@@ -13,6 +14,35 @@ const app = initializeApp();
 const FIRESTORE_DATABASE_ID = "ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432";
 const db = getFirestore(app, FIRESTORE_DATABASE_ID);
 const storageBucket = getStorage(app).bucket();
+
+function normalisePhone(value: string): string {
+  return String(value || "").replace(/[\s()-]/g, "");
+}
+
+export const lookupMemberCardByPin = onCall({ region: "us-central1" }, async (request) => {
+  const lookup = String(request.data?.lookup || "").trim();
+  const pin = String(request.data?.pin || "").replace(/\D/g, "");
+  if (!lookup || !/^\d{6}$/.test(pin)) {
+    throw new HttpsError("invalid-argument", "Enter the approved member name or mobile number and six-digit PIN.");
+  }
+
+  const looksLikePhone = /^\+?\d[\d\s()-]{7,}$/.test(lookup);
+  const searchValue = looksLikePhone ? normalisePhone(lookup) : lookup.toLowerCase();
+  const field = looksLikePhone ? "phone" : "nameKey";
+  const snapshot = await db.collection("memberCards").where(field, "==", searchValue).limit(5).get();
+  const card = snapshot.docs.map((entry) => entry.data()).find((candidate) => candidate.status === "approved" && String(candidate.cardPin || "") === pin);
+  if (!card) {
+    throw new HttpsError("not-found", "No approved membership card matched these details.");
+  }
+
+  return {
+    approved: true,
+    name: String(card.name || ""),
+    membershipId: String(card.membershipId || "OPC-MEMBER"),
+    photo: String(card.photo || ""),
+    status: "approved",
+  };
+});
 const BACKUP_COLLECTIONS = ["members", "memberCards", "cabinet", "events", "news", "donations", "incidents", "elections", "ads", "comments", "settings", "admin_logs", "cabinet_meetings"];
 
 

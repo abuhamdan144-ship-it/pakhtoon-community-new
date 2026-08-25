@@ -10,6 +10,7 @@ const historicalDatabaseId =
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
+export { app };
 export const db = getFirestore(app, historicalDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
