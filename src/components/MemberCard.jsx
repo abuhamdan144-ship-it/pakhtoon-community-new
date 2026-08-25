@@ -126,8 +126,8 @@ export default function MemberCard() {
       toast.error('Enter the approved member name or registered mobile number.');
       return;
     }
-    if (!/^\d{6}$/.test(accessPin)) {
-      toast.error('Enter the six-digit card access PIN provided by OPC.');
+    if (!/^\d{4}$/.test(accessPin)) {
+      toast.error('Enter the last four digits of your registered mobile number.');
       return;
     }
 
@@ -212,14 +212,14 @@ export default function MemberCard() {
         <div className="mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-forest-dark text-gold"><ShieldCheck size={25} /></div>
         <p className="mt-4 text-xs font-bold uppercase tracking-[.2em] text-gold">Approved member access</p>
         <h1 className="mt-2 font-serif text-3xl font-bold text-forest-dark">Download your membership card</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-600">Enter your approved member name or registered mobile number and the private six-digit PIN provided by OPC.</p>
+        <p className="mt-3 text-sm leading-6 text-gray-600">Enter your approved member name or registered mobile number and the private four-digit PIN made from the last four digits of your registered mobile number.</p>
 
         {!member && <form className="mt-7 space-y-5" onSubmit={lookupCard}>
           <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><Search size={16} /> Approved member name or mobile number</span>
             <input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} autoComplete="name tel" placeholder="Full name or +968 mobile number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
           </label>
-          <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><KeyRound size={16} /> Private card access PIN</span>
-            <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6-digit PIN" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 tracking-[.35em] outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
+          <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><KeyRound size={16} /> Card access PIN (last 4 mobile digits)</span>
+            <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="one-time-code" maxLength={4} placeholder="Last 4 digits" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 tracking-[.35em] outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
           </label>
           <p className="text-xs leading-5 text-gray-500">Only approved OPC records can unlock a card. Your PIN is checked securely by the OPC server and is never displayed on the card.</p>
           <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-5 py-3.5 font-bold text-gold disabled:opacity-70"><ShieldCheck size={18} /> {loading ? 'Checking approved record…' : 'Open my card'}</button>
