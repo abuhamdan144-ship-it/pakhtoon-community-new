@@ -15,7 +15,6 @@ import Elections from './components/Elections';
 import Membership from './components/Membership';
 import MemberCard from './components/MemberCard';
 import Admin from './components/Admin';
-import MemberCard from './components/MemberCard';
 import ScrollProgress from './components/ScrollProgress';
 import CursorTrail from './components/CursorTrail';
 import WhatsAppFloat from './components/WhatsAppFloat';
