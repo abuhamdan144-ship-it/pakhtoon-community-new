@@ -4,7 +4,7 @@ import {
   AlertTriangle, CalendarDays, CheckCircle2, Edit3, FileText, ImagePlus, LoaderCircle, LogIn, LogOut, Newspaper, Plus, Save, ShieldCheck, Trash2, Users, XCircle,
 } from 'lucide-react';
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { collections } from '../firebase/collections';
 
@@ -223,7 +223,14 @@ export default function Admin() {
     setBusy(true);
     try {
       const eligible = approvedMembers.filter((member) => member.membershipId);
-      await Promise.all(eligible.map((member) => syncMemberCard(member)));
+      for (let offset = 0; offset < eligible.length; offset += 400) {
+        const batch = writeBatch(db);
+        eligible.slice(offset, offset + 400).forEach((member) => {
+          const membershipId = String(member.membershipId).trim().toUpperCase();
+          batch.set(doc(collections.memberCards, membershipId), { membershipId, name: member.name || '', phone: normalizePhone(member.phone || ''), photo: String(member.photo || '').length <= 800000 ? member.photo : '', status: 'approved', updatedAt: serverTimestamp() }, { merge: true });
+        });
+        await batch.commit();
+      }
       setDataError(eligible.length === approvedMembers.length ? '' : `${eligible.length} approved cards synced; ${approvedMembers.length - eligible.length} approved members still need a membership ID.`);
     } catch (error) {
       setDataError(error?.message || 'Unable to synchronize approved membership cards.');
