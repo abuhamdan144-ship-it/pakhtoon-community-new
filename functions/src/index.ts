@@ -1,13 +1,19 @@
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as nodemailer from "nodemailer";
+import { google } from "googleapis";
+import { Readable } from "stream";
 
-// Initialize the Firebase Admin SDK
-initializeApp();
-
-const db = getFirestore();
+// Initialize the Firebase Admin SDK against the recovered named OPC database.
+const app = initializeApp();
+const FIRESTORE_DATABASE_ID = "ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432";
+const db = getFirestore(app, FIRESTORE_DATABASE_ID);
+const storageBucket = getStorage(app).bucket();
+const BACKUP_COLLECTIONS = ["members", "memberCards", "cabinet", "events", "news", "donations", "incidents", "elections", "ads", "comments", "settings", "admin_logs", "cabinet_meetings"];
 
 
 /**
@@ -37,8 +43,63 @@ function getEmailTransporter() {
  * Cloud Function Trigger: Listen to document updates on 'members/{memberId}' collection.
  * Triggers when a member's status is changed from 'pending' (or others) to 'approved'.
  */
+function serialiseBackupValue(value: unknown): unknown {
+  if (value instanceof Timestamp) return { __type: "timestamp", value: value.toDate().toISOString() };
+  if (Array.isArray(value)) return value.map(serialiseBackupValue);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, serialiseBackupValue(entry)]));
+  return value;
+}
+
+export const monthlyOpcBackup = onSchedule({
+  schedule: "0 2 1 * *",
+  timeZone: "Asia/Muscat",
+  region: "us-central1",
+}, async () => {
+  const collections: Record<string, Record<string, unknown>[]> = {};
+  for (const collectionName of BACKUP_COLLECTIONS) {
+    const snapshot = await db.collection(collectionName).get();
+    collections[collectionName] = snapshot.docs.map((entry) => ({ id: entry.id, data: serialiseBackupValue(entry.data()) as Record<string, unknown> }));
+  }
+  const generatedAt = new Date().toISOString();
+  const payload = JSON.stringify({ schemaVersion: 1, generatedAt, projectId: "opc-new-48a8d", databaseId: FIRESTORE_DATABASE_ID, collections }, null, 2);
+  const filePath = `opc-backups/${generatedAt.slice(0, 7)}/opc-firestore-${generatedAt.replace(/[:.]/g, "-")}.json`;
+  const file = storageBucket.file(filePath);
+  await file.save(Buffer.from(payload), { contentType: "application/json", resumable: false, metadata: { metadata: { generatedAt, databaseId: FIRESTORE_DATABASE_ID, retentionMonths: "12" } } });
+
+  const driveFolderId = process.env.OPC_BACKUP_DRIVE_FOLDER_ID;
+  if (driveFolderId) {
+    try {
+      const googleAuth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/drive.file"] });
+      const drive = google.drive({ version: "v3", auth: googleAuth });
+      await drive.files.create({ requestBody: { name: `opc-firestore-${generatedAt.replace(/[:.]/g, "-")}.json`, mimeType: "application/json", parents: [driveFolderId] }, media: { mimeType: "application/json", body: Readable.from([payload]) }, fields: "id,name" });
+      logger.info("Monthly OPC backup copied to the private Google Drive folder.");
+    } catch (error) {
+      logger.warn(`Firebase Storage backup succeeded, but Google Drive copy failed: ${String(error)}`);
+    }
+  } else {
+    logger.warn("OPC_BACKUP_DRIVE_FOLDER_ID is not configured; monthly backup is currently stored only in private Firebase Storage.");
+  }
+
+  const [files] = await storageBucket.getFiles({ prefix: "opc-backups/" });
+  const datedFiles = files.filter((candidate) => candidate.name.endsWith(".json")).sort((a, b) => String(b.metadata.updated || "").localeCompare(String(a.metadata.updated || "")));
+  await Promise.all(datedFiles.slice(12).map((candidate) => candidate.delete()));
+  logger.info(`Monthly OPC backup saved to ${filePath}; retained ${Math.min(12, datedFiles.length)} copies.`);
+});
+
+export const refreshPublicMemberStats = onDocumentWritten({
+  document: "members/{memberId}",
+  database: FIRESTORE_DATABASE_ID,
+}, async () => {
+  const snapshot = await db.collection("members").get();
+  const totalMembers = snapshot.size;
+  const approvedMembers = snapshot.docs.filter((member) => member.data().status === "approved").length;
+  await db.doc("settings/publicStats").set({ totalMembers, approvedMembers, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  logger.info(`Updated public member stats: ${approvedMembers} approved of ${totalMembers} total.`);
+});
+
 export const onMemberStatusUpdated = onDocumentUpdated({
-  document: "members/{memberId}"
+  document: "members/{memberId}",
+  database: FIRESTORE_DATABASE_ID,
 }, async (event) => {
   const memberId = event.params.memberId;
   const change = event.data;

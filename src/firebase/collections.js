@@ -11,5 +11,6 @@ export const collections = {
   ads: collection(db, 'ads'),
   events: collection(db, 'events'),
   memberCards: collection(db, 'memberCards'),
-  settings: collection(db, 'settings')
+  settings: collection(db, 'settings'),
+  comments: collection(db, 'comments')
 };

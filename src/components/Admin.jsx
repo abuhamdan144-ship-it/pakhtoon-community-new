@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, Edit3, FileText, ImagePlus, LoaderCircle, LogIn, LogOut, Newspaper, Plus, Save, ShieldCheck, Trash2, Users, XCircle,
+  AlertTriangle, CalendarDays, CheckCircle2, Edit3, FileText, ImagePlus, LoaderCircle, LogIn, LogOut, MessageCircle, Newspaper, Plus, Save, ShieldCheck, Trash2, Users, XCircle,
 } from 'lucide-react';
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
@@ -18,6 +18,7 @@ const TABS = [
   { label: 'Incidents', icon: AlertTriangle },
   { label: 'Elections', icon: CheckCircle2 },
   { label: 'Ads', icon: ImagePlus },
+  { label: 'Comments', icon: MessageCircle },
 ];
 
 const AUTHORISED_ADMIN_EMAILS = new Set([
@@ -111,6 +112,7 @@ export default function Admin() {
   const [incidents, setIncidents] = useState([]);
   const [elections, setElections] = useState([]);
   const [ads, setAds] = useState([]);
+  const [comments, setComments] = useState([]);
   const [editingRecord, setEditingRecord] = useState(null);
   const [recordDraft, setRecordDraft] = useState({});
   const [creatingMember, setCreatingMember] = useState(false);
@@ -118,7 +120,7 @@ export default function Admin() {
   const [editingMember, setEditingMember] = useState(null);
   const [memberDraft, setMemberDraft] = useState({});
   const [editingEvent, setEditingEvent] = useState(null);
-  const [eventDraft, setEventDraft] = useState({ title: '', date: '', venue: '', description: '', image: '', status: 'published' });
+  const [eventDraft, setEventDraft] = useState({ title: '', date: '', venue: '', description: '', image: '', status: 'published', successful: false });
   const [editingProfile, setEditingProfile] = useState(null);
   const [profileDraft, setProfileDraft] = useState({});
 
@@ -128,7 +130,7 @@ export default function Admin() {
   const filteredMembers = members.filter((member) => {
     const term = memberQuery.trim().toLowerCase();
     if (!term) return true;
-    return [member.name, member.membershipId, member.phone, member.cnic, member.status].some((value) => String(value || '').toLowerCase().includes(term));
+    return [member.name, member.membershipId, member.phone, member.omanId, member.omanLocation, member.district, member.status].some((value) => String(value || '').toLowerCase().includes(term));
   });
 
   useEffect(() => {
@@ -142,12 +144,12 @@ export default function Admin() {
 
   useEffect(() => {
     if (!authorised) {
-      setMembers([]); setEvents([]); setCabinet([]); setNews([]); setDonations([]); setIncidents([]); setElections([]); setAds([]); setDataError('');
+      setMembers([]); setEvents([]); setCabinet([]); setNews([]); setDonations([]); setIncidents([]); setElections([]); setAds([]); setComments([]); setDataError('');
       return undefined;
     }
     setDataError('');
     const unsubscribers = [
-      onSnapshot(query(collections.members, orderBy('createdAt', 'desc')), (snapshot) => setMembers(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read membership records.')),
+      onSnapshot(query(collections.members, orderBy('createdAt', 'desc')), (snapshot) => { const records = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })); setMembers(records); setDoc(doc(collections.settings, 'publicStats'), { totalMembers: records.length, approvedMembers: records.filter((member) => member.status === 'approved').length, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {}); }, () => setDataError('Your administrator account cannot read membership records.')),
       onSnapshot(collections.events, (snapshot) => setEvents(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read event records.')),
       onSnapshot(collections.cabinet, (snapshot) => setCabinet(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read cabinet records.')),
       onSnapshot(collections.news, (snapshot) => { setNews(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))); setDataError((current) => current.includes('news records') ? '' : current); }, () => setDataError('Your administrator account cannot read news records.')),
@@ -155,6 +157,7 @@ export default function Admin() {
       onSnapshot(collections.incidents, (snapshot) => setIncidents(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read incident records.')),
       onSnapshot(collections.elections, (snapshot) => setElections(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read election records.')),
       onSnapshot(collections.ads, (snapshot) => setAds(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read advertising records.')),
+      onSnapshot(collections.comments, (snapshot) => setComments(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read comments.')),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [authorised]);
@@ -182,14 +185,14 @@ export default function Admin() {
   const startNewMember = () => {
     setCreatingMember(true);
     setEditingMember(null);
-    setMemberDraft({ name: '', father: '', phone: '', cnic: '', district: '', address: '', membershipId: '', status: 'pending', photo: '' });
+    setMemberDraft({ name: '', father: '', phone: '', omanId: '', omanLocation: '', district: '', address: '', membershipId: '', status: 'pending', photo: '' });
   };
 
   const startMemberEdit = (member) => {
     setCreatingMember(false);
     setEditingMember(member);
     setMemberDraft({
-      name: member.name || '', father: member.father || '', phone: member.phone || '', cnic: member.cnic || '', district: member.district || '', address: member.address || '', membershipId: member.membershipId || '', status: member.status || 'pending', photo: member.photo || '',
+      name: member.name || '', father: member.father || '', phone: member.phone || '', omanId: member.omanId || '', omanLocation: member.omanLocation || '', district: member.district || '', address: member.address || '', membershipId: member.membershipId || '', status: member.status || 'pending', photo: member.photo || '',
     });
   };
 
@@ -200,6 +203,7 @@ export default function Admin() {
       await setDoc(doc(collections.memberCards, membershipId), {
         membershipId,
         name: record.name || '',
+        omanId: record.omanId || '',
         phone: normalizePhone(record.phone || ''),
         photo: String(record.photo || '').length <= 800000 ? record.photo : '',
         status: 'approved',
@@ -235,7 +239,7 @@ export default function Admin() {
         const batch = writeBatch(db);
         eligible.slice(offset, offset + 400).forEach((member) => {
           const membershipId = String(member.membershipId).trim().toUpperCase();
-          batch.set(doc(collections.memberCards, membershipId), { membershipId, name: member.name || '', phone: normalizePhone(member.phone || ''), photo: String(member.photo || '').length <= 800000 ? member.photo : '', status: 'approved', updatedAt: serverTimestamp() }, { merge: true });
+          batch.set(doc(collections.memberCards, membershipId), { membershipId, name: member.name || '', omanId: member.omanId || '', phone: normalizePhone(member.phone || ''), photo: String(member.photo || '').length <= 800000 ? member.photo : '', status: 'approved', updatedAt: serverTimestamp() }, { merge: true });
         });
         await batch.commit();
       }
@@ -296,7 +300,7 @@ export default function Admin() {
       if (editingEvent) await updateDoc(doc(db, 'events', editingEvent.id), payload);
       else await addDoc(collections.events, { ...payload, createdAt: serverTimestamp(), createdBy: user?.email || '' });
       setEditingEvent(null);
-      setEventDraft({ title: '', date: '', venue: '', description: '', image: '', status: 'published' });
+      setEventDraft({ title: '', date: '', venue: '', description: '', image: '', status: 'published', successful: false });
     } catch (error) { setDataError(error?.message || 'Unable to save the event.'); }
     finally { setBusy(false); }
   };
@@ -380,6 +384,21 @@ export default function Admin() {
     finally { setBusy(false); }
   };
 
+  const updateCommentStatus = async (comment, status) => {
+    setBusy(true);
+    try { await updateDoc(doc(collections.comments, comment.id), { status, moderatedAt: serverTimestamp(), moderatedBy: user?.email || '' }); }
+    catch (error) { setDataError(error?.message || 'Unable to moderate this comment.'); }
+    finally { setBusy(false); }
+  };
+
+  const deleteComment = async (comment) => {
+    if (!window.confirm(`Permanently delete this comment from ${comment.name || 'member'}?`)) return;
+    setBusy(true);
+    try { await deleteDoc(doc(collections.comments, comment.id)); }
+    catch (error) { setDataError(error?.message || 'Unable to delete this comment.'); }
+    finally { setBusy(false); }
+  };
+
   const startNewOperational = (type) => {
     setEditingRecord({ type, id: null });
     setRecordDraft({
@@ -443,7 +462,7 @@ export default function Admin() {
 
             {activeTab === 'Members' && <section><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><input value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder="Search name, membership ID, phone or ID number" className="w-full max-w-xl rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" /><div className="flex flex-wrap items-center gap-3"><p className="text-sm text-gray-500">{filteredMembers.length} records</p><button type="button" onClick={startNewMember} className="inline-flex items-center gap-1 rounded-lg bg-forest-dark px-3 py-2 text-xs font-bold text-gold"><Plus size={14} />New member</button><button type="button" disabled={busy || approvedMembers.length === 0} onClick={syncApprovedMemberCards} className="rounded-lg border border-gold/50 px-3 py-2 text-xs font-bold text-forest-dark hover:bg-gold/10 disabled:opacity-50">Sync approved cards</button></div></div><div className="overflow-hidden rounded-xl border border-gray-200"><div className="overflow-x-auto"><table className="w-full min-w-[890px] text-left"><thead className="bg-gray-50 text-sm text-gray-600"><tr><th className="px-5 py-4">Photo</th><th className="px-5 py-4">Member</th><th className="px-5 py-4">Membership ID</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-right">Actions</th></tr></thead><tbody>{filteredMembers.map((member) => <tr key={member.id} className="border-t hover:bg-gray-50"><td className="px-5 py-3"><div className="h-10 w-10 overflow-hidden rounded-full bg-gray-100">{member.photo && <img src={member.photo} alt="" className="h-full w-full object-cover" />}</div></td><td className="px-5 py-3"><p className="font-bold text-gray-800">{member.name}</p><p className="text-xs text-gray-500">{member.phone || 'No phone saved'}</p></td><td className="px-5 py-3 font-mono text-sm text-gray-600">{member.membershipId || 'PENDING'}</td><td className="px-5 py-3"><StatusPill value={member.status} /></td><td className="px-5 py-3"><div className="flex justify-end gap-2">{member.status === 'pending' && <><button type="button" disabled={busy} onClick={() => updateMemberStatus(member, 'approved')} className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-2.5 py-2 text-xs font-bold text-white"><CheckCircle2 size={14} />Approve</button><button type="button" disabled={busy} onClick={() => updateMemberStatus(member, 'rejected')} className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-2 text-xs font-bold text-white"><XCircle size={14} />Reject</button></>}<button type="button" onClick={() => startMemberEdit(member)} className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:border-gold hover:text-forest-dark"><Edit3 size={15} /></button><button type="button" onClick={() => deleteMember(member)} className="rounded-lg border border-red-100 p-2 text-red-600 hover:bg-red-50"><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div></div></section>}
 
-            {activeTab === 'Events' && <section className="grid gap-8 xl:grid-cols-[360px_1fr]"><form onSubmit={saveEvent} className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-5"><div className="flex items-center justify-between"><h2 className="font-bold text-gray-800">{editingEvent ? 'Edit event' : 'Create event'}</h2>{editingEvent && <button type="button" onClick={() => { setEditingEvent(null); setEventDraft({ title: '', date: '', venue: '', description: '', image: '', status: 'published' }); }} className="text-sm font-bold text-gray-500">Cancel</button>}</div><Field label="Event title" value={eventDraft.title} onChange={(value) => setEventDraft({ ...eventDraft, title: value })} required /><Field label="Event date" type="date" value={eventDraft.date} onChange={(value) => setEventDraft({ ...eventDraft, date: value })} /><Field label="Venue" value={eventDraft.venue} onChange={(value) => setEventDraft({ ...eventDraft, venue: value })} /><div><div className="flex items-center justify-between gap-3"><label className="block text-sm font-semibold text-gray-700">Event summary</label>{eventDraft.description && <button type="button" onClick={() => setEventDraft({ ...eventDraft, description: '' })} className="text-xs font-bold text-red-600 hover:underline">Clear summary</button>}</div><textarea value={eventDraft.description} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows="4" placeholder="Write the public event summary" className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 outline-none focus:border-gold" /></div><ImageField label="Event image" value={eventDraft.image} onClear={() => setEventDraft({ ...eventDraft, image: '' })} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setEventDraft({ ...eventDraft, image: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /><label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={eventDraft.status === 'published'} onChange={(event) => setEventDraft({ ...eventDraft, status: event.target.checked ? 'published' : 'draft' })} /> Publish to public event section</label><button disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{editingEvent ? 'Save event' : 'Create event'}</button></form><div className="grid gap-4 md:grid-cols-2">{events.map((record) => <article key={record.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white"><div className="h-36 bg-forest-dark/5">{record.image && <img src={record.image} alt="" className="h-full w-full object-cover" />}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><h3 className="font-bold text-gray-800">{record.title}</h3><StatusPill value={record.status} /></div><p className="mt-2 text-xs font-medium text-gray-500">{record.date || 'Date to be announced'} · {record.venue || 'Venue to be announced'}</p><p className="mt-3 line-clamp-3 text-sm text-gray-600">{record.description}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => { setEditingEvent(record); setEventDraft({ title: record.title || '', date: asDate(record.date), venue: record.venue || '', description: record.description || '', image: record.image || '', status: record.status || 'draft' }); }} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700"><Edit3 size={14} />Edit</button><button type="button" onClick={() => deleteEvent(record)} className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-3 py-2 text-xs font-bold text-red-600"><Trash2 size={14} />Remove</button></div></div></article>)}</div></section>}
+            {activeTab === 'Events' && <section className="grid gap-8 xl:grid-cols-[360px_1fr]"><form onSubmit={saveEvent} className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-5"><div className="flex items-center justify-between"><h2 className="font-bold text-gray-800">{editingEvent ? 'Edit event' : 'Create event'}</h2>{editingEvent && <button type="button" onClick={() => { setEditingEvent(null); setEventDraft({ title: '', date: '', venue: '', description: '', image: '', status: 'published', successful: false }); }} className="text-sm font-bold text-gray-500">Cancel</button>}</div><Field label="Event title" value={eventDraft.title} onChange={(value) => setEventDraft({ ...eventDraft, title: value })} required /><Field label="Event date" type="date" value={eventDraft.date} onChange={(value) => setEventDraft({ ...eventDraft, date: value })} /><Field label="Venue" value={eventDraft.venue} onChange={(value) => setEventDraft({ ...eventDraft, venue: value })} /><div><div className="flex items-center justify-between gap-3"><label className="block text-sm font-semibold text-gray-700">Event summary</label>{eventDraft.description && <button type="button" onClick={() => setEventDraft({ ...eventDraft, description: '' })} className="text-xs font-bold text-red-600 hover:underline">Clear summary</button>}</div><textarea value={eventDraft.description} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows="4" placeholder="Write the public event summary" className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 outline-none focus:border-gold" /></div><ImageField label="Event image" value={eventDraft.image} onClear={() => setEventDraft({ ...eventDraft, image: '' })} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setEventDraft({ ...eventDraft, image: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /><label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={eventDraft.status === 'published'} onChange={(event) => setEventDraft({ ...eventDraft, status: event.target.checked ? 'published' : 'draft' })} /> Publish to public event section</label><label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={Boolean(eventDraft.successful)} onChange={(event) => setEventDraft({ ...eventDraft, successful: event.target.checked })} /> Show in Successful Events</label><button disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{editingEvent ? 'Save event' : 'Create event'}</button></form><div className="grid gap-4 md:grid-cols-2">{events.map((record) => <article key={record.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white"><div className="h-36 bg-forest-dark/5">{record.image && <img src={record.image} alt="" className="h-full w-full object-cover" />}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><h3 className="font-bold text-gray-800">{record.title}</h3><StatusPill value={record.status} /></div><p className="mt-2 text-xs font-medium text-gray-500">{record.date || 'Date to be announced'} · {record.venue || 'Venue to be announced'}</p><p className="mt-3 line-clamp-3 text-sm text-gray-600">{record.description}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => { setEditingEvent(record); setEventDraft({ title: record.title || '', date: asDate(record.date), venue: record.venue || '', description: record.description || '', image: record.image || '', status: record.status || 'draft', successful: Boolean(record.successful) }); }} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700"><Edit3 size={14} />Edit</button><button type="button" onClick={() => deleteEvent(record)} className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-3 py-2 text-xs font-bold text-red-600"><Trash2 size={14} />Remove</button></div></div></article>)}</div></section>}
 
             {activeTab === 'Cabinet' && <ProfileGrid label="Cabinet members" records={cabinet} type="cabinet" onEdit={startProfileEdit} onDelete={deleteProfile} onAdd={startNewProfile} />}
             {activeTab === 'News' && <ProfileGrid label="News posts" records={news} type="news" onEdit={startProfileEdit} onDelete={deleteProfile} onAdd={startNewProfile} />}
@@ -451,11 +470,12 @@ export default function Admin() {
             {activeTab === 'Incidents' && <OperationalSection label="Incident records" type="incidents" records={incidents} onEdit={startOperationalEdit} onDelete={deleteOperationalRecord} onStatus={updateOperationalStatus} onAdd={startNewOperational} />}
             {activeTab === 'Elections' && <OperationalSection label="Election records" type="elections" records={elections} onEdit={startOperationalEdit} onDelete={deleteOperationalRecord} onStatus={updateOperationalStatus} onAdd={startNewOperational} />}
             {activeTab === 'Ads' && <OperationalSection label="Sponsored ads" type="ads" records={ads} onEdit={startOperationalEdit} onDelete={deleteOperationalRecord} onStatus={updateOperationalStatus} onAdd={startNewOperational} />}
+            {activeTab === 'Comments' && <CommentsSection comments={comments} onStatus={updateCommentStatus} onDelete={deleteComment} />}
           </motion.div></AnimatePresence>
         </main>
       </div>
 
-      {(editingMember || creatingMember) && <Modal title={creatingMember ? 'Add new member' : 'Edit member record'} onClose={() => { setCreatingMember(false); setEditingMember(null); }}><form onSubmit={saveMember} className="grid gap-4 md:grid-cols-2"><Field label="Full name" value={memberDraft.name} onChange={(value) => setMemberDraft({ ...memberDraft, name: value })} required /><Field label="Father's name" value={memberDraft.father} onChange={(value) => setMemberDraft({ ...memberDraft, father: value })} required /><Field label="Phone" value={memberDraft.phone} onChange={(value) => setMemberDraft({ ...memberDraft, phone: value })} required /><Field label="CNIC / Passport" value={memberDraft.cnic} onChange={(value) => setMemberDraft({ ...memberDraft, cnic: value })} required /><Field label="Membership ID" value={memberDraft.membershipId} onChange={(value) => setMemberDraft({ ...memberDraft, membershipId: value.toUpperCase() })} /><label className="block text-sm font-semibold text-gray-700">Status<select value={memberDraft.status} onChange={(event) => setMemberDraft({ ...memberDraft, status: event.target.value })} className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label><Field label="District" value={memberDraft.district} onChange={(value) => setMemberDraft({ ...memberDraft, district: value })} required /><Field label="Address" value={memberDraft.address} onChange={(value) => setMemberDraft({ ...memberDraft, address: value })} required /><div className="md:col-span-2"><ImageField label="Membership-card photo" value={memberDraft.photo} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setMemberDraft({ ...memberDraft, photo: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /></div><button disabled={busy} className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{creatingMember ? 'Create member' : 'Save member'}</button></form></Modal>}
+      {(editingMember || creatingMember) && <Modal title={creatingMember ? 'Add new member' : 'Edit member record'} onClose={() => { setCreatingMember(false); setEditingMember(null); }}><form onSubmit={saveMember} className="grid gap-4 md:grid-cols-2"><Field label="Full name" value={memberDraft.name} onChange={(value) => setMemberDraft({ ...memberDraft, name: value })} required /><Field label="Father's name" value={memberDraft.father} onChange={(value) => setMemberDraft({ ...memberDraft, father: value })} required /><Field label="Phone" value={memberDraft.phone} onChange={(value) => setMemberDraft({ ...memberDraft, phone: value })} required /><Field label="Oman ID card number" value={memberDraft.omanId} onChange={(value) => setMemberDraft({ ...memberDraft, omanId: value })} required /><Field label="Membership ID" value={memberDraft.membershipId} onChange={(value) => setMemberDraft({ ...memberDraft, membershipId: value.toUpperCase() })} /><label className="block text-sm font-semibold text-gray-700">Status<select value={memberDraft.status} onChange={(event) => setMemberDraft({ ...memberDraft, status: event.target.value })} className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label><Field label="Oman location" value={memberDraft.omanLocation} onChange={(value) => setMemberDraft({ ...memberDraft, omanLocation: value })} required /><Field label="District of origin" value={memberDraft.district} onChange={(value) => setMemberDraft({ ...memberDraft, district: value })} required /><Field label="Address" value={memberDraft.address} onChange={(value) => setMemberDraft({ ...memberDraft, address: value })} required /><div className="md:col-span-2"><ImageField label="Membership-card photo" value={memberDraft.photo} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setMemberDraft({ ...memberDraft, photo: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /></div><button disabled={busy} className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{creatingMember ? 'Create member' : 'Save member'}</button></form></Modal>}
       {editingRecord && <Modal title={`${editingRecord.id ? 'Edit' : 'New'} ${{ donations: 'donation', incidents: 'incident', elections: 'election', ads: 'advertisement' }[editingRecord.type]}`} onClose={() => setEditingRecord(null)}><form onSubmit={saveOperationalRecord} className="grid gap-4 md:grid-cols-2">
         {editingRecord.type === 'donations' && <><Field label="Donor name" value={recordDraft.donor} onChange={(value) => setRecordDraft({ ...recordDraft, donor: value })} required /><Field label="Phone" value={recordDraft.phone} onChange={(value) => setRecordDraft({ ...recordDraft, phone: value })} /><Field label="Amount (OMR)" type="number" value={recordDraft.amount} onChange={(value) => setRecordDraft({ ...recordDraft, amount: value })} required /><Field label="Date" type="date" value={recordDraft.date} onChange={(value) => setRecordDraft({ ...recordDraft, date: value })} /><TextAreaField label="Description" value={recordDraft.description} onChange={(value) => setRecordDraft({ ...recordDraft, description: value })} /><StatusField value={recordDraft.status} options={['pending', 'approved', 'rejected']} onChange={(value) => setRecordDraft({ ...recordDraft, status: value })} /></>}
         {editingRecord.type === 'incidents' && <><Field label="Reporter name" value={recordDraft.name} onChange={(value) => setRecordDraft({ ...recordDraft, name: value })} required /><Field label="Phone" value={recordDraft.phone} onChange={(value) => setRecordDraft({ ...recordDraft, phone: value })} /><Field label="Date" type="date" value={recordDraft.date} onChange={(value) => setRecordDraft({ ...recordDraft, date: value })} /><TextAreaField label="Incident description" value={recordDraft.description} onChange={(value) => setRecordDraft({ ...recordDraft, description: value })} required /><StatusField value={recordDraft.status} options={['pending', 'published', 'closed', 'rejected']} onChange={(value) => setRecordDraft({ ...recordDraft, status: value })} /></>}
@@ -466,6 +486,10 @@ export default function Admin() {
       {editingProfile && <Modal title={`${editingProfile.id ? 'Edit' : 'Add'} ${editingProfile.type === 'cabinet' ? 'cabinet member' : 'news post'}`} onClose={() => setEditingProfile(null)}><form onSubmit={saveProfile} className="space-y-4">{editingProfile.type === 'cabinet' ? <><Field label="Name" value={profileDraft.name} onChange={(value) => setProfileDraft({ ...profileDraft, name: value })} required /><Field label="Position" value={profileDraft.position} onChange={(value) => setProfileDraft({ ...profileDraft, position: value })} required /><ImageField label="Profile photo" value={profileDraft.photo} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setProfileDraft({ ...profileDraft, photo: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /></> : <><Field label="Title" value={profileDraft.title} onChange={(value) => setProfileDraft({ ...profileDraft, title: value })} required /><label className="block text-sm font-semibold text-gray-700">Summary<textarea value={profileDraft.summary} onChange={(event) => setProfileDraft({ ...profileDraft, summary: event.target.value })} rows="5" className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2" /></label><ImageField label="News image" value={profileDraft.image} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setProfileDraft({ ...profileDraft, image: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /><label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={profileDraft.status === 'published'} onChange={(event) => setProfileDraft({ ...profileDraft, status: event.target.checked ? 'published' : 'draft' })} /> Published</label></>}<button disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{editingProfile.id ? 'Save changes' : 'Create record'}</button></form></Modal>}
     </div>
   );
+}
+
+function CommentsSection({ comments, onStatus, onDelete }) {
+  return <section><div className="mb-5 flex items-center justify-between"><div><h2 className="font-bold text-gray-800">Member comments</h2><p className="mt-1 text-sm text-gray-500">Approve respectful comments, hide bad comments, or delete them permanently.</p></div><span className="text-sm text-gray-500">{comments.length} records</span></div><div className="grid gap-4">{comments.length === 0 && <div className="rounded-xl border border-dashed border-gray-300 p-6 text-sm text-gray-500">No member comments yet.</div>}{comments.map((comment) => <article key={comment.id} className="rounded-xl border border-gray-200 p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-bold text-gray-800">{comment.name || 'Anonymous member'}</p><p className="mt-1 text-sm text-gray-600">{comment.text}</p><p className="mt-2 text-xs text-gray-400">Event ID: {comment.eventId || '—'}</p></div><StatusPill value={comment.status || 'pending'} /></div><div className="mt-4 flex flex-wrap gap-2">{comment.status !== 'approved' && <button type="button" onClick={() => onStatus(comment, 'approved')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Approve</button>}{comment.status !== 'hidden' && <button type="button" onClick={() => onStatus(comment, 'hidden')} className="rounded-lg border border-orange-200 px-3 py-2 text-xs font-bold text-orange-700">Hide</button>}<button type="button" onClick={() => onDelete(comment)} className="rounded-lg border border-red-100 px-3 py-2 text-xs font-bold text-red-600">Delete</button></div></article>)}</div></section>;
 }
 
 function OperationalSection({ label, type, records, onEdit, onDelete, onStatus, onAdd }) {

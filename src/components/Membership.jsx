@@ -50,7 +50,7 @@ export default function Membership() {
   const [photoPreview, setPhotoPreview] = useState('');
 
   const watchedName = watch('name', 'YOUR NAME');
-  const watchedId = watch('cnic', 'ID / PASSPORT');
+  const watchedId = watch('omanId', 'OMAN ID');
 
   const handlePhotoChange = async (event) => {
     const file = event.target.files?.[0];
@@ -123,9 +123,9 @@ export default function Membership() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">CNIC / Passport Number</label>
-                <input {...register('cnic', { required: true })} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 font-mono outline-none transition-all focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold/20" placeholder="00000-0000000-0" />
-                {errors.cnic && <span className="mt-1 text-xs text-red-500">Required</span>}
+                <label className="mb-1 block text-sm font-medium text-gray-700">Oman ID Card Number</label>
+                <input {...register('omanId', { required: true })} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 font-mono outline-none transition-all focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold/20" placeholder="Enter Oman civil ID number" />
+                {errors.omanId && <span className="mt-1 text-xs text-red-500">Required</span>}
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -135,10 +135,16 @@ export default function Membership() {
                   {errors.phone && <span className="mt-1 text-xs text-red-500">Required</span>}
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">District (Pakistan)</label>
-                  <input {...register('district', { required: true })} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 outline-none transition-all focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold/20" placeholder="e.g. Swat, Peshawar" />
-                  {errors.district && <span className="mt-1 text-xs text-red-500">Required</span>}
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Oman location</label>
+                  <input {...register('omanLocation', { required: true })} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 outline-none transition-all focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold/20" placeholder="e.g. Muscat, Sohar, Salalah" />
+                  {errors.omanLocation && <span className="mt-1 text-xs text-red-500">Required</span>}
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">District of origin (Pakistan)</label>
+                <input {...register('district', { required: true })} className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 outline-none transition-all focus:border-gold focus:bg-white focus:ring-2 focus:ring-gold/20" placeholder="e.g. Swat, Peshawar" />
+                {errors.district && <span className="mt-1 text-xs text-red-500">Required</span>}
               </div>
 
               <div>
@@ -180,7 +186,7 @@ export default function Membership() {
                   <div className="flex h-32 w-24 shrink-0 items-center justify-center overflow-hidden rounded border border-white/20 bg-white/10">
                     {photoPreview ? <img src={photoPreview} alt="Membership card preview" className="h-full w-full object-cover" /> : <span className="text-xs opacity-50">PHOTO</span>}
                   </div>
-                  <div className="min-w-0 flex-1 pb-2"><h3 className="truncate text-2xl font-bold uppercase">{watchedName || 'YOUR NAME'}</h3><p className="mt-1 truncate font-mono text-sm opacity-80">{watchedId || 'ID / PASSPORT'}</p><p className="mt-3 font-mono text-sm font-bold text-gold">ISSUED AFTER APPROVAL</p></div>
+                  <div className="min-w-0 flex-1 pb-2"><h3 className="truncate text-2xl font-bold uppercase">{watchedName || 'YOUR NAME'}</h3><p className="mt-1 truncate font-mono text-sm opacity-80">{watchedId || 'OMAN ID'}</p><p className="mt-3 font-mono text-sm font-bold text-gold">ISSUED AFTER APPROVAL</p></div>
                 </div>
               </div>
             </motion.div>

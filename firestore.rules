@@ -29,7 +29,8 @@ service cloud.firestore {
     function validPendingMember(data) {
       return validString(data.name, 1, 100)
         && validString(data.father, 1, 100)
-        && validString(data.cnic, 1, 50)
+        && validString(data.omanId, 1, 50)
+        && validString(data.omanLocation, 1, 100)
         && validString(data.phone, 1, 30)
         && validString(data.district, 1, 100)
         && validString(data.address, 1, 500)
@@ -69,9 +70,9 @@ service cloud.firestore {
     // This is a non-enumerable card index. A member can get only the document whose
     // stored phone matches the verified Firebase Phone Auth token. Listing is blocked.
     match /memberCards/{cardId} {
-      allow get: if isApprovedMemberCardOwner();
-      allow list: if false;
-      allow write: if isAdmin();
+    allow get: if isApprovedMemberCardOwner();
+    allow list: if signedIn() && request.auth.token.phone_number != null && resource.data.status == 'approved' && resource.data.phone == request.auth.token.phone_number;
+    allow write: if isAdmin();
     }
 
     // All operational and financial records remain administrator-only.
@@ -87,8 +88,21 @@ service cloud.firestore {
     match /ads/{documentId} {
       allow read, write: if isAdmin();
     }
+    match /settings/publicStats {
+      allow get: if true;
+      allow write: if isAdmin();
+    }
     match /settings/{documentId} {
       allow read, write: if isAdmin();
+    }
+    match /comments/{commentId} {
+      allow create: if validString(request.resource.data.eventId, 1, 120)
+        && validString(request.resource.data.name, 1, 80)
+        && validString(request.resource.data.text, 1, 500)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt != null;
+      allow get, list: if isAdmin() || resource.data.status == 'approved';
+      allow update, delete: if isAdmin();
     }
     match /admin_logs/{documentId} {
       allow read, write: if isAdmin();
