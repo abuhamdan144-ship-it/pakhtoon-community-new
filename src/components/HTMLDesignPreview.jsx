@@ -766,13 +766,19 @@ export default function HTMLDesignPreview() {
           width: 44px;
           height: 44px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--gold), var(--gold-d));
+          background: #fff;
+          border: 1px solid var(--gold);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
-          font-weight: 900;
-          color: var(--g-900);
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        .opc-card-emblem img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
         }
         .opc-card-org {
           text-align: right;
@@ -1868,7 +1874,9 @@ export default function HTMLDesignPreview() {
                 onMouseLeave={handleCardMouseLeave}
               >
                 <div className="opc-card-top">
-                  <div className="opc-card-emblem">ع</div>
+                  <div className="opc-card-emblem">
+                    <img src={opcLogo} alt="Oman Pakhtoon Community logo" />
+                  </div>
                   <div className="opc-card-org">
                     <div className="org-name">OPC · OMAN</div>
                     <div className="org-sub">MEMBER CARD</div>
