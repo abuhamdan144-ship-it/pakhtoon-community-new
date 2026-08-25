@@ -1,10 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, FileText, Database, Settings, LogOut } from 'lucide-react';
+import {
+  AlertTriangle,
+  Database,
+  FileText,
+  LoaderCircle,
+  LogIn,
+  LogOut,
+  Settings,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { onSnapshot, orderBy, query } from 'firebase/firestore';
+import { auth } from '../firebase/config';
 import { collections } from '../firebase/collections';
-import { onSnapshot, query, orderBy } from 'firebase/firestore';
 
 const tabs = ['Overview', 'Members', 'Donations', 'Settings'];
+const AUTHORISED_ADMIN_EMAILS = new Set([
+  'abuhamdan144@gmail.com',
+  'admin@opc.org',
+  'admin@opc.com',
+  'malakabbas47@gmail.com',
+]);
 
 function TabIcon({ tab, size = 17 }) {
   if (tab === 'Overview') return <Database size={size} />;
@@ -13,25 +31,142 @@ function TabIcon({ tab, size = 17 }) {
   return <Settings size={size} />;
 }
 
+function isAuthorisedAdmin(user) {
+  const email = user?.email?.trim().toLowerCase();
+  return Boolean(email && AUTHORISED_ADMIN_EMAILS.has(email));
+}
+
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('Overview');
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [dataError, setDataError] = useState('');
   const [members, setMembers] = useState([]);
 
+  const authorised = useMemo(() => isAuthorisedAdmin(user), [user]);
+
   useEffect(() => {
-    const q = query(collections.members, orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      setMembers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+      setAuthReady(true);
+      setAuthError('');
     });
-    return () => unsub();
+
+    return () => unsubscribe();
   }, []);
 
-  if (!isAuthenticated) {
-    return <div className="min-h-screen pt-20 flex items-center justify-center">Login required.</div>;
+  useEffect(() => {
+    if (!authorised) {
+      setMembers([]);
+      setDataError('');
+      return undefined;
+    }
+
+    setDataError('');
+    const memberQuery = query(collections.members, orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(
+      memberQuery,
+      (snapshot) => {
+        setMembers(snapshot.docs.map((memberDoc) => ({ id: memberDoc.id, ...memberDoc.data() })));
+      },
+      () => {
+        setDataError('Your signed-in account is not permitted to read membership records.');
+        setMembers([]);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [authorised]);
+
+  const handleSignIn = async () => {
+    setSigningIn(true);
+    setAuthError('');
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const credential = await signInWithPopup(auth, provider);
+
+      if (!isAuthorisedAdmin(credential.user)) {
+        await signOut(auth);
+        setAuthError('This Google account is not authorised to access the OPC administrator portal.');
+      }
+    } catch (error) {
+      setAuthError(error?.code === 'auth/popup-closed-by-user'
+        ? 'Sign-in was cancelled. Please try again when you are ready.'
+        : 'Secure sign-in could not be completed. Please try again or confirm Google sign-in is enabled.');
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setMembers([]);
+    setActiveTab('Overview');
+  };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-[#f4f7f6] pt-20">
+        <div className="mx-auto flex max-w-xl items-center justify-center px-4 py-24">
+          <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-6 py-5 text-gray-700 shadow-sm">
+            <LoaderCircle className="animate-spin text-gold" size={22} />
+            <span className="font-semibold">Checking secure administrator access…</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const approvedMembers = members.filter(member => member.status === 'approved');
-  const pendingMembers = members.filter(member => member.status === 'pending');
+  if (!authorised) {
+    return (
+      <div className="min-h-screen bg-[#f4f7f6] pt-20">
+        <main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center px-4 py-12 sm:px-6">
+          <section className="w-full overflow-hidden rounded-3xl border border-white/10 bg-forest-dark text-white shadow-2xl shadow-forest-dark/20">
+            <div className="border-b border-white/10 bg-gradient-to-r from-forest-dark to-[#0c5042] px-7 py-8 sm:px-9">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gold text-forest-dark shadow-lg shadow-black/20">
+                <ShieldCheck size={26} strokeWidth={2.2} />
+              </div>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gold">Protected workspace</p>
+              <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight">OPC Administrator Portal</h1>
+              <p className="mt-3 max-w-md text-sm leading-6 text-white/70">
+                Membership data is protected. Sign in with an authorised Google account to continue.
+              </p>
+            </div>
+
+            <div className="px-7 py-7 sm:px-9">
+              {authError && (
+                <div className="mb-5 flex gap-3 rounded-xl border border-red-300/25 bg-red-500/10 px-4 py-3 text-sm leading-5 text-red-100">
+                  <AlertTriangle className="mt-0.5 shrink-0 text-red-300" size={17} />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSignIn}
+                disabled={signingIn}
+                className="inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gold px-5 py-3.5 font-bold text-forest-dark transition hover:bg-[#ecd477] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {signingIn ? <LoaderCircle className="animate-spin" size={19} /> : <LogIn size={19} />}
+                {signingIn ? 'Signing in securely…' : 'Sign in with Google'}
+              </button>
+
+              <p className="mt-5 text-center text-xs leading-5 text-white/45">
+                Access is restricted to authorised OPC administrators. Member records are not made public.
+              </p>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  const approvedMembers = members.filter((member) => member.status === 'approved');
+  const pendingMembers = members.filter((member) => member.status === 'pending');
 
   return (
     <div className="min-h-screen bg-[#f4f7f6] pt-20">
@@ -48,9 +183,10 @@ export default function Admin() {
 
             <div className="order-3 -mx-5 overflow-x-auto border-t border-white/10 px-5 pt-4 lg:order-2 lg:mx-0 lg:flex-1 lg:border-0 lg:px-6 lg:pt-0">
               <nav className="flex min-w-max items-center gap-2" aria-label="Administrator dashboard sections">
-                {tabs.map(tab => (
+                {tabs.map((tab) => (
                   <button
                     key={tab}
+                    type="button"
                     onClick={() => setActiveTab(tab)}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
                       activeTab === tab
@@ -65,17 +201,28 @@ export default function Admin() {
               </nav>
             </div>
 
-            <button
-              onClick={() => setIsAuthenticated(false)}
-              className="order-2 inline-flex items-center gap-2 self-start rounded-lg border border-red-300/20 px-3 py-2 text-sm font-semibold text-red-300 transition-colors hover:bg-red-400/10 hover:text-red-200 lg:order-3 lg:self-auto"
-            >
-              <LogOut size={16} />
-              Logout
-            </button>
+            <div className="order-2 flex items-center gap-3 self-start lg:order-3 lg:self-auto">
+              <span className="hidden max-w-48 truncate text-xs text-white/55 sm:inline">{user.email}</span>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-300/20 px-3 py-2 text-sm font-semibold text-red-300 transition-colors hover:bg-red-400/10 hover:text-red-200"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 
         <main className="mt-7 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7 lg:p-9">
+          {dataError && (
+            <div className="mb-7 flex gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              <AlertTriangle className="mt-0.5 shrink-0" size={17} />
+              <span>{dataError}</span>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -124,7 +271,7 @@ export default function Admin() {
                         </tr>
                       </thead>
                       <tbody>
-                        {members.map(member => (
+                        {members.map((member) => (
                           <tr key={member.id} className="border-b last:border-0 hover:bg-gray-50/70">
                             <td className="px-5 py-4 font-mono text-sm text-gray-600">{member.membershipId || 'PENDING'}</td>
                             <td className="px-5 py-4 font-bold text-gray-800">{member.name}</td>
