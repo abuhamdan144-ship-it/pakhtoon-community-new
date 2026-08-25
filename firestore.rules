@@ -47,13 +47,13 @@ service cloud.firestore {
 
     // Public event feed is restricted to documents explicitly published by an admin.
     match /events/{eventId} {
-      allow get, list: if resource.data.status == 'published';
+      allow get, list: if isAdmin() || resource.data.status == 'published';
       allow write: if isAdmin();
     }
 
     // Public news feed follows the same published-only rule.
     match /news/{newsId} {
-      allow get, list: if resource.data.status == 'published';
+      allow get, list: if isAdmin() || resource.data.status == 'published';
       allow write: if isAdmin();
     }
 
