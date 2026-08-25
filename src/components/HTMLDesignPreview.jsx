@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import jahngirJansherImage from '../assets/images/legends/jahangir-jansher-khan.jpg';
+import younisImage from '../assets/images/legends/younis-khan.jpg';
+import shahidImage from '../assets/images/legends/shahid-afridi.jpg';
+import hamzaImage from '../assets/images/legends/hamza-baba.webp';
+import ghaniImage from '../assets/images/legends/ghani-khan.png';
+import bakhtiarImage from '../assets/images/legends/bakhtiar-khattak.jpg';
+import khushalImage from '../assets/images/legends/khushal-khan-khattak.png';
+import rahmanImage from '../assets/images/legends/rahman-baba.jpg';
 
 export default function HTMLDesignPreview() {
   const [scrolled, setScrolled] = useState(false);
@@ -21,6 +29,72 @@ export default function HTMLDesignPreview() {
     { name: 'Noor Rahman Khattak', honor: 'General Secretary', photo: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=900&auto=format&fit=crop&q=85' },
   ];
   const heroHonoureesLoop = [...heroHonourees, ...heroHonourees];
+  const legends = [
+    {
+      category: 'Legends of Sports',
+      name: 'Jahangir Khan & Jansher Khan',
+      image: jahngirJansherImage,
+      visualCredit: 'Historic squash image',
+      summary: 'Two Pakhtoon squash champions whose era of dominance made Pakistan a global powerhouse in the sport.',
+      legacy: 'Jahangir’s 555-match winning streak and Jansher’s record eight World Open titles remain defining milestones in squash history.',
+    },
+    {
+      category: 'Legends of Sports',
+      name: 'Younis Khan',
+      image: younisImage,
+      visualCredit: 'Cricket portrait',
+      summary: 'The former Pakistan captain and world-class batsman from Mardan who led with grit and composure.',
+      legacy: 'Pakistan’s first Test batter to pass 10,000 runs, he also captained the side to the 2009 ICC World Twenty20 title.',
+    },
+    {
+      category: 'Legends of Sports',
+      name: 'Shahid Afridi',
+      image: shahidImage,
+      visualCredit: 'Cricket photograph',
+      summary: '“Boom Boom” Afridi is an iconic Pakhtoon all-rounder celebrated for his fearless batting and quick leg-spin.',
+      legacy: 'His charisma and aggressive limited-overs style made him one of Pakistan cricket’s most recognisable global figures.',
+    },
+    {
+      category: 'Cultural & Literary Icons',
+      name: 'Hamza Baba',
+      image: hamzaImage,
+      visualCredit: 'Literary feature image',
+      summary: 'Amir Hamza Shinwari, revered as Baba-e-Ghazal, expanded the expressive range of modern Pashto poetry.',
+      legacy: 'His work fused Sufi thought with romantic expression and helped bridge classical and modern Pashto literature.',
+    },
+    {
+      category: 'Cultural & Literary Icons',
+      name: 'Ghani Khan',
+      image: ghaniImage,
+      visualCredit: 'Archival art visual',
+      summary: 'A poet, artist, and thinker whose distinctive voice shaped twentieth-century Pashto literature.',
+      legacy: 'His poetry brought philosophical reflection, wit, and artistic independence to a new generation of readers.',
+    },
+    {
+      category: 'Cultural & Literary Icons',
+      name: 'Bakhtiar Khattak',
+      image: bakhtiarImage,
+      visualCredit: 'Artist portrait',
+      summary: 'A Pashto singer and host whose work has carried Pakhtoon culture to contemporary audiences.',
+      legacy: 'He received the Tamgha-i-Imtiaz in 2025 in recognition of his cultural contribution.',
+    },
+    {
+      category: 'Revolutionary Resistance Leaders',
+      name: 'Khushal Khan Khattak',
+      image: khushalImage,
+      visualCredit: 'Historic illustration',
+      summary: 'A seventeenth-century warrior, tribal chief, and defining poet of the Pashtuns.',
+      legacy: 'His poetry called for unity, leadership, dignity, and resistance in defence of Pakhtoon autonomy.',
+    },
+    {
+      category: 'Revolutionary Resistance Leaders',
+      name: 'Rahman Baba',
+      image: rahmanImage,
+      visualCredit: 'Historic portrait and shrine visual',
+      summary: 'An iconic seventeenth-century Sufi poet whose spiritual verse remains central to Pashto culture.',
+      legacy: 'His poetry of divine love, introspection, and humanism continues to resonate across generations.',
+    },
+  ];
 
   // Scroll listener for header
   useEffect(() => {
@@ -718,6 +792,89 @@ export default function HTMLDesignPreview() {
           line-height: 1.7;
         }
 
+        /* PAKHTOON LEGENDS */
+        .opc-legends-section {
+          padding: 104px 0;
+          background: linear-gradient(180deg, #0d3326 0%, var(--g-900) 100%);
+        }
+        .opc-legends-intro {
+          display: flex;
+          align-items: end;
+          justify-content: space-between;
+          gap: 28px;
+          margin-bottom: 48px;
+        }
+        .opc-legends-intro p { max-width: 560px; }
+        .opc-legends-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+        }
+        .opc-legend-card {
+          position: relative;
+          min-height: 442px;
+          overflow: hidden;
+          border: 1px solid rgba(212,175,55,.2);
+          border-radius: var(--radius-md);
+          background: rgba(0,0,0,.18);
+          transition: transform .35s var(--ease), border-color .35s, box-shadow .35s;
+        }
+        .opc-legend-card:hover {
+          transform: translateY(-7px);
+          border-color: rgba(212,175,55,.6);
+          box-shadow: 0 20px 45px rgba(0,0,0,.28);
+        }
+        .opc-legend-card img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          filter: saturate(.78) contrast(1.04);
+          transition: transform .65s ease, filter .35s ease;
+        }
+        .opc-legend-card:hover img { transform: scale(1.06); filter: saturate(1) contrast(1.06); }
+        .opc-legend-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(5,24,17,.12) 0%, rgba(5,24,17,.34) 30%, rgba(5,24,17,.97) 100%);
+        }
+        .opc-legend-content {
+          position: relative;
+          z-index: 1;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 24px;
+        }
+        .opc-legend-category {
+          display: inline-flex;
+          align-self: flex-start;
+          margin-bottom: auto;
+          padding: 7px 10px;
+          border: 1px solid rgba(212,175,55,.45);
+          border-radius: 999px;
+          color: var(--gold-l);
+          background: rgba(5,24,17,.55);
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 1px;
+          line-height: 1.2;
+          text-transform: uppercase;
+        }
+        .opc-legend-content h3 {
+          margin: 18px 0 8px;
+          color: var(--white);
+          font-size: 23px;
+          line-height: 1.08;
+          letter-spacing: -.6px;
+        }
+        .opc-legend-summary, .opc-legend-legacy { color: rgba(255,255,255,.77); font-size: 12px; line-height: 1.56; }
+        .opc-legend-legacy { margin-top: 10px; color: rgba(255,255,255,.58); }
+        .opc-legend-credit { margin-top: 14px; color: rgba(255,255,255,.42); font-size: 9px; letter-spacing: .7px; text-transform: uppercase; }
+
         /* CABINET */
         .opc-cabinet-section {
           padding: 100px 0;
@@ -1393,6 +1550,8 @@ export default function HTMLDesignPreview() {
           .opc-hero-copy .opc-hero-sub { margin-left: auto; }
           .opc-hero-copy .opc-hero-ctas, .opc-hero-copy .opc-hero-stats { justify-content: center; }
           .opc-card-layout { grid-template-columns: 1fr; }
+          .opc-legends-grid { grid-template-columns: repeat(2, 1fr); }
+          .opc-legends-intro { align-items: flex-start; flex-direction: column; }
           .opc-cabinet-president { grid-template-columns: 1fr; }
           .opc-president-stats { flex-direction: row; flex-wrap: wrap; }
           .opc-pres-stat { flex: 1; min-width: 120px; }
@@ -1404,6 +1563,8 @@ export default function HTMLDesignPreview() {
           .opc-nav-actions { display: none; }
           .opc-mobile-menu-btn { display: block; }
           .opc-pillars-grid { grid-template-columns: 1fr; }
+          .opc-legends-grid { grid-template-columns: 1fr; }
+          .opc-legend-card { min-height: 400px; }
           .opc-cabinet-grid { grid-template-columns: repeat(2, 1fr); }
           .opc-news-grid { grid-template-columns: 1fr; }
           .opc-election-card { grid-template-columns: 1fr; }
@@ -1596,6 +1757,33 @@ export default function HTMLDesignPreview() {
               <h3>Culture</h3>
               <p>Celebrating Pakhtoon heritage — language, music, and traditions — keeping our roots alive while living abroad.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ PAKHTOON LEGENDS ═══ */}
+      <section className="opc-legends-section" id="legends">
+        <div className="opc-wrap">
+          <div className="opc-legends-intro">
+            <div className="opc-section-head">
+              <div className="opc-section-label">Pakhtoon Legends</div>
+              <h2>Icons who carried<br/>our story forward.</h2>
+            </div>
+            <p>From world sport to poetry, music, and resistance, these figures have left an enduring mark on Pakhtoon identity and the wider world.</p>
+          </div>
+          <div className="opc-legends-grid">
+            {legends.map((legend) => (
+              <article className="opc-legend-card" key={legend.name}>
+                <img src={legend.image} alt={legend.name} loading="lazy" />
+                <div className="opc-legend-content">
+                  <div className="opc-legend-category">{legend.category}</div>
+                  <h3>{legend.name}</h3>
+                  <p className="opc-legend-summary">{legend.summary}</p>
+                  <p className="opc-legend-legacy">{legend.legacy}</p>
+                  <div className="opc-legend-credit">Visual source: {legend.visualCredit}</div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
