@@ -1,8 +1,102 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.email in [
+        'abuhamdan144@gmail.com',
+        'admin@opc.org',
+        'admin@opc.com',
+        'malakabbas47@gmail.com'
+      ];
+    }
+
+    function isApprovedMemberCardOwner() {
+      return signedIn()
+        && request.auth.token.phone_number != null
+        && resource.data.status == 'approved'
+        && resource.data.phone == request.auth.token.phone_number;
+    }
+
+    function validString(value, minimum, maximum) {
+      return value is string && value.size() >= minimum && value.size() <= maximum;
+    }
+
+    function validPendingMember(data) {
+      return validString(data.name, 1, 100)
+        && validString(data.father, 1, 100)
+        && validString(data.cnic, 1, 50)
+        && validString(data.phone, 1, 30)
+        && validString(data.district, 1, 100)
+        && validString(data.address, 1, 500)
+        && data.status == 'pending'
+        && data.createdAt != null
+        && data.photo is string
+        && data.photo.size() <= 800000;
+    }
+
+    // Publicly display only cabinet profiles; administrators control all writes.
+    match /cabinet/{cabinetId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Public event feed is restricted to documents explicitly published by an admin.
+    match /events/{eventId} {
+      allow get, list: if resource.data.status == 'published';
+      allow write: if isAdmin();
+    }
+
+    // Public news feed follows the same published-only rule.
+    match /news/{newsId} {
+      allow get, list: if resource.data.status == 'published';
+      allow write: if isAdmin();
+    }
+
+    // New applications may be submitted anonymously as pending records; all reads and
+    // later changes require an authorised administrator.
+    match /members/{memberId} {
+      allow create: if validPendingMember(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // This is a non-enumerable card index. A member can get only the document whose
+    // stored phone matches the verified Firebase Phone Auth token. Listing is blocked.
+    match /memberCards/{cardId} {
+      allow get: if isApprovedMemberCardOwner();
+      allow list: if false;
+      allow write: if isAdmin();
+    }
+
+    // All operational and financial records remain administrator-only.
+    match /donations/{documentId} {
+      allow read, write: if isAdmin();
+    }
+    match /incidents/{documentId} {
+      allow read, write: if isAdmin();
+    }
+    match /elections/{documentId} {
+      allow read, write: if isAdmin();
+    }
+    match /ads/{documentId} {
+      allow read, write: if isAdmin();
+    }
+    match /settings/{documentId} {
+      allow read, write: if isAdmin();
+    }
+    match /admin_logs/{documentId} {
+      allow read, write: if isAdmin();
+    }
+    match /cabinet_meetings/{documentId} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

@@ -9,5 +9,7 @@ export const collections = {
   news: collection(db, 'news'),
   elections: collection(db, 'elections'),
   ads: collection(db, 'ads'),
+  events: collection(db, 'events'),
+  memberCards: collection(db, 'memberCards'),
   settings: collection(db, 'settings')
 };

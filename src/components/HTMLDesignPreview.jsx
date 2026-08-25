@@ -9,7 +9,7 @@ import bakhtiarImage from '../assets/images/legends/bakhtiar-khattak.jpg';
 import khushalImage from '../assets/images/legends/khushal-khan-khattak.png';
 import rahmanImage from '../assets/images/legends/rahman-baba.jpg';
 import { collections } from '../firebase/collections';
-import { onSnapshot, query } from 'firebase/firestore';
+import { onSnapshot, query, where } from 'firebase/firestore';
 
 export default function HTMLDesignPreview() {
   const [scrolled, setScrolled] = useState(false);
@@ -21,6 +21,7 @@ export default function HTMLDesignPreview() {
   const [cardTransform, setCardTransform] = useState('rotate(-3deg)');
   const [cabinetMembers, setCabinetMembers] = useState([]);
   const [cabinetLoaded, setCabinetLoaded] = useState(false);
+  const [publicEvents, setPublicEvents] = useState([]);
 
   const opcCardRef = useRef(null);
   const progressFillRef = useRef(null);
@@ -133,6 +134,22 @@ export default function HTMLDesignPreview() {
         setCabinetMembers([]);
         setCabinetLoaded(true);
       },
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Published events are maintained by authorised administrators in the dashboard.
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(collections.events, where('status', '==', 'published')),
+      (snapshot) => {
+        const publishedEvents = snapshot.docs
+          .map((eventDoc) => ({ id: eventDoc.id, ...eventDoc.data() }))
+          .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+        setPublicEvents(publishedEvents);
+      },
+      () => setPublicEvents([]),
     );
 
     return () => unsubscribe();
@@ -1556,7 +1573,7 @@ export default function HTMLDesignPreview() {
             <li><a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo('contact'); }}>Contact</a></li>
           </ul>
           <div className="opc-nav-actions">
-            <Link to="/admin" className="opc-btn opc-btn-ghost">Member Login</Link>
+            <Link to="/card" className="opc-btn opc-btn-ghost">Member Card</Link>
             <Link to="/membership" className="opc-btn opc-btn-gold">Join OPC</Link>
           </div>
           <button className="opc-mobile-menu-btn" onClick={() => setMobileNavOpen(true)}>☰</button>
@@ -1575,7 +1592,7 @@ export default function HTMLDesignPreview() {
         <a href="#elections" onClick={(e) => { e.preventDefault(); scrollTo('elections'); }}>Elections</a>
         <a href="#welfare" onClick={(e) => { e.preventDefault(); scrollTo('welfare'); }}>Welfare</a>
         <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Link to="/admin" className="opc-btn opc-btn-ghost" style={{ textAlign: 'center' }}>Member Login</Link>
+          <Link to="/card" className="opc-btn opc-btn-ghost" style={{ textAlign: 'center' }}>Member Card</Link>
           <Link to="/membership" className="opc-btn opc-btn-gold" style={{ textAlign: 'center' }}>Join OPC</Link>
         </div>
       </div>
@@ -1787,35 +1804,34 @@ export default function HTMLDesignPreview() {
             </div>
             <button onClick={() => triggerToast('Viewing all news archives.')} className="opc-btn opc-btn-ghost">View All →</button>
           </div>
-          <div className="opc-news-grid">
-            <div className="opc-news-featured" onClick={() => triggerToast('Opening article: Annual OPC Gathering 2026')} style={{ cursor: 'pointer' }}>
-              <div className="opc-news-img">🏔️</div>
-              <div className="opc-news-body">
-                <div className="opc-news-tag">Community Event</div>
-                <h3>Annual OPC Gathering 2026 — Muscat</h3>
-                <p>Over 300 members attended the annual dinner at Al Hail Community Hall. The evening featured cultural performances, election announcements and a welfare fund review.</p>
-                <div className="opc-news-meta">📅 15 July 2026 · Muscat, Oman</div>
+          {publicEvents.length > 0 ? (
+            <div className="opc-news-grid">
+              <div className="opc-news-featured" style={{ cursor: 'default' }}>
+                <div className="opc-news-img">
+                  {publicEvents[0].image ? <img src={publicEvents[0].image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📅'}
+                </div>
+                <div className="opc-news-body">
+                  <div className="opc-news-tag">Community Event</div>
+                  <h3>{publicEvents[0].title}</h3>
+                  <p>{publicEvents[0].description || 'Event information will be shared by OPC.'}</p>
+                  <div className="opc-news-meta">📅 {publicEvents[0].date || 'Date to be announced'}{publicEvents[0].venue ? ` · ${publicEvents[0].venue}` : ''}</div>
+                </div>
+              </div>
+              <div className="opc-news-list">
+                {publicEvents.slice(1, 5).map((event) => (
+                  <div className="opc-news-item" key={event.id} style={{ cursor: 'default' }}>
+                    <div className="opc-news-item-img">{event.image ? <img src={event.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📅'}</div>
+                    <div><h4>{event.title}</h4><p>📅 {event.date || 'Date to be announced'}{event.venue ? ` · ${event.venue}` : ''}</p></div>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="opc-news-list">
-              <div className="opc-news-item" onClick={() => triggerToast('Opening: Embassy Meeting')} style={{ cursor: 'pointer' }}>
-                <div className="opc-news-item-img">🇵🇰</div>
-                <div><h4>Embassy Meeting: Visa & Labour Issues Discussed</h4><p>📅 02 Jul 2026</p></div>
-              </div>
-              <div className="opc-news-item" onClick={() => triggerToast('Opening: Welfare Fund Report')} style={{ cursor: 'pointer' }}>
-                <div className="opc-news-item-img">🛡️</div>
-                <div><h4>Welfare Fund Distributes OMR 2,400 in June</h4><p>📅 28 Jun 2026</p></div>
-              </div>
-              <div className="opc-news-item" onClick={() => triggerToast('Opening: Election 2026 Nominations')} style={{ cursor: 'pointer' }}>
-                <div className="opc-news-item-img">🗳️</div>
-                <div><h4>Election 2026 Nominations Now Open</h4><p>📅 20 Jun 2026</p></div>
-              </div>
-              <div className="opc-news-item" onClick={() => triggerToast('Opening: Labour Rights Workshop')} style={{ cursor: 'pointer' }}>
-                <div className="opc-news-item-img">🎓</div>
-                <div><h4>Free Labour Rights Workshop — Sohar</h4><p>📅 10 Jun 2026</p></div>
-              </div>
+          ) : (
+            <div className="opc-news-featured" style={{ cursor: 'default' }}>
+              <div className="opc-news-img">📅</div>
+              <div className="opc-news-body"><div className="opc-news-tag">Community Events</div><h3>Upcoming OPC events</h3><p>Upcoming community events will appear here after they are published by the OPC administration team.</p></div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -1849,64 +1865,6 @@ export default function HTMLDesignPreview() {
                   Voting opens<br/>15 Sep 2026
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ DONATIONS ═══ */}
-      <section className="opc-donations-section" id="donate">
-        <div className="opc-wrap">
-          <div className="opc-section-head">
-            <div className="opc-section-label">Welfare Fund</div>
-            <h2>Support your brothers.</h2>
-          </div>
-          <div className="opc-donate-layout">
-            <div>
-              <p style={{ color: 'rgba(255,255,255,.65)', fontSize: '15px', lineHeight: 1.7, marginBottom: '28px' }}>
-                Every contribution to the OPC Welfare Fund goes directly to members in emergency — repatriation costs, medical needs, legal aid, and family support. No admin fees.
-              </p>
-              <div className="opc-donate-progress">
-                <div className="opc-progress-label">
-                  <span>Welfare Fund — July 2026</span>
-                  <span style={{ color: 'var(--gold)' }}>OMR 3,200 / OMR 5,000</span>
-                </div>
-                <div className="opc-progress-bar">
-                  <div className="opc-progress-fill" ref={progressFillRef}></div>
-                </div>
-                <div className="opc-donate-goal">64% of monthly target reached · 12 members supported</div>
-              </div>
-              <div className="opc-donate-amounts">
-                {['OMR 5', 'OMR 10', 'OMR 25', 'OMR 50'].map(amount => (
-                  <button
-                    key={amount}
-                    className={`opc-amount-btn ${selectedAmount === amount ? 'active' : ''}`}
-                    onClick={() => setSelectedAmount(amount)}
-                  >
-                    {amount}
-                  </button>
-                ))}
-              </div>
-              <button
-                className="opc-btn opc-btn-gold"
-                style={{ padding: '14px 30px' }}
-                onClick={() => triggerToast(`Thank you! Processing donation of ${selectedAmount} for Welfare Fund.`)}
-              >
-                Donate Now ({selectedAmount})
-              </button>
-            </div>
-            <div className="opc-donate-card">
-              <h3>Bank Transfer</h3>
-              <p>Transfer directly to OPC's welfare account at Bank Dhofar:</p>
-              <div className="opc-bank-info">
-                <strong>Account Holder</strong> Ikram Bacha
-                <strong>Bank</strong> Bank Dhofar
-                <strong>IBAN</strong> OM29 0061 0012 XXXX XXXX XXXX
-                <strong>Reference</strong> OPC Welfare + Your Name
-              </div>
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,.4)' }}>
-                Send proof of transfer to our WhatsApp after payment. All donations are recorded and reported monthly.
-              </p>
             </div>
           </div>
         </div>

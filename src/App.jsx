@@ -14,6 +14,7 @@ import Incidents from './components/Incidents';
 import Elections from './components/Elections';
 import Membership from './components/Membership';
 import Admin from './components/Admin';
+import MemberCard from './components/MemberCard';
 import ScrollProgress from './components/ScrollProgress';
 import CursorTrail from './components/CursorTrail';
 import WhatsAppFloat from './components/WhatsAppFloat';
@@ -65,6 +66,7 @@ function App() {
             <Route path="/" element={<HTMLDesignPreview />} />
             <Route path="/portal" element={<FullPortalView />} />
             <Route path="/membership" element={<Membership />} />
+            <Route path="/card" element={<MemberCard />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
           <Toaster position="top-right" />
