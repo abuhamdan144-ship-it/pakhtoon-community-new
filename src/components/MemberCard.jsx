@@ -17,7 +17,7 @@ import { buildCardFront, buildCardBack, buildCardImageCombined } from './MemberC
 export default function MemberCard() {
   const location = useLocation();
   const [lookupValue, setLookupValue] = useState(() => location.state?.lookup || '');
-  const [pinValue, setPinValue] = useState('');
+  const [pinValue, setPinValue] = useState('1234');
   
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(false);

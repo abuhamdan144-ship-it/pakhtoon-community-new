@@ -43,21 +43,21 @@ service cloud.firestore {
     // Publicly display only cabinet profiles; administrators control all writes.
     match /cabinet/{cabinetId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // Public event feed is restricted to documents explicitly published by an admin.
     match /events/{eventId} {
       allow get, list: if isAdmin();
       allow get, list: if resource.data.status == 'published';
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // Public news feed follows the same published-only rule.
     match /news/{newsId} {
       allow get, list: if isAdmin();
       allow get, list: if resource.data.status == 'published';
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // New applications may be submitted anonymously as pending records; all reads and
@@ -72,7 +72,7 @@ service cloud.firestore {
     match /memberCards/{cardId} {
     allow get: if isApprovedMemberCardOwner();
     allow list: if signedIn() && request.auth.token.phone_number != null && resource.data.status == 'approved' && resource.data.phone == request.auth.token.phone_number;
-    allow write: if isAdmin();
+    allow read, write: if isAdmin();
     }
 
     // All operational and financial records remain administrator-only.
@@ -90,7 +90,7 @@ service cloud.firestore {
     }
     match /settings/publicStats {
       allow get: if true;
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
     match /settings/{documentId} {
       allow read, write: if isAdmin();
