@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -64,7 +64,7 @@ function App() {
         <div className="min-h-screen w-full">
           <Routes>
             <Route path="/" element={<HTMLDesignPreview />} />
-            <Route path="/portal" element={<FullPortalView />} />
+            <Route path="/portal" element={<Navigate to="/" replace />} />
             <Route path="/membership" element={<Membership />} />
             <Route path="/card" element={<MemberCard />} />
             <Route path="/admin" element={<Admin />} />
