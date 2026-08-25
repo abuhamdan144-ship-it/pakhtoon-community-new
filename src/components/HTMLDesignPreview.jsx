@@ -11,6 +11,23 @@ import rahmanImage from '../assets/images/legends/rahman-baba.jpg';
 import { collections } from '../firebase/collections';
 import { onSnapshot, query, where } from 'firebase/firestore';
 
+const cabinetPositionRank = (position = '') => {
+  const value = String(position).toLowerCase();
+  const ranks = [
+    ['president', 1],
+    ['vice president', 2],
+    ['general secretary', 3],
+    ['secretary', 4],
+    ['joint secretary', 5],
+    ['treasurer', 6],
+    ['finance', 7],
+    ['media', 8],
+    ['organizing', 9],
+    ['member', 50],
+  ];
+  return ranks.find(([label]) => value.includes(label))?.[1] ?? 25;
+};
+
 export default function HTMLDesignPreview() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -21,6 +38,7 @@ export default function HTMLDesignPreview() {
   const [cardTransform, setCardTransform] = useState('rotate(-3deg)');
   const [cabinetMembers, setCabinetMembers] = useState([]);
   const [cabinetLoaded, setCabinetLoaded] = useState(false);
+  const cabinetSliderRef = useRef(null);
   const [publicEvents, setPublicEvents] = useState([]);
 
   const opcCardRef = useRef(null);
@@ -127,6 +145,7 @@ export default function HTMLDesignPreview() {
           })
           .filter((profile) => profile.name);
 
+        profiles.sort((a, b) => cabinetPositionRank(a.position) - cabinetPositionRank(b.position) || a.position.localeCompare(b.position) || a.name.localeCompare(b.name));
         setCabinetMembers(profiles);
         setCabinetLoaded(true);
       },
@@ -194,6 +213,10 @@ export default function HTMLDesignPreview() {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const scrollCabinet = (direction) => {
+    cabinetSliderRef.current?.scrollBy({ left: direction * 330, behavior: 'smooth' });
   };
 
   return (
@@ -912,12 +935,58 @@ export default function HTMLDesignPreview() {
           color: rgba(255,255,255,.5);
           margin-top: 4px;
         }
+        .opc-cabinet-slider-wrap {
+          position: relative;
+        }
         .opc-cabinet-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          display: flex;
           gap: 18px;
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+          scroll-behavior: smooth;
+          scroll-snap-type: x mandatory;
+          padding: 4px 4px 16px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(212,175,55,.6) transparent;
+        }
+        .opc-cabinet-grid::-webkit-scrollbar {
+          height: 6px;
+        }
+        .opc-cabinet-grid::-webkit-scrollbar-thumb {
+          background: rgba(212,175,55,.6);
+          border-radius: 999px;
+        }
+        .opc-cabinet-slider-button {
+          position: absolute;
+          top: 50%;
+          z-index: 2;
+          width: 42px;
+          height: 42px;
+          border: 1px solid rgba(212,175,55,.5);
+          border-radius: 50%;
+          background: rgba(10,42,31,.9);
+          color: var(--gold);
+          font-size: 28px;
+          line-height: 1;
+          cursor: pointer;
+          transform: translateY(-50%);
+          transition: background .2s, transform .2s;
+        }
+        .opc-cabinet-slider-button:hover {
+          background: var(--g-700);
+          transform: translateY(-50%) scale(1.05);
+        }
+        .opc-cabinet-slider-button.prev { left: -18px; }
+        .opc-cabinet-slider-button.next { right: -18px; }
+        .opc-cabinet-slider-hint {
+          margin: 2px 0 0;
+          color: rgba(255,255,255,.5);
+          font-size: 12px;
+          text-align: center;
         }
         .opc-cabinet-card {
+          flex: 0 0 clamp(230px, 27vw, 292px);
+          scroll-snap-align: start;
           background: rgba(255,255,255,.03);
           border: 1px solid rgba(255,255,255,.07);
           border-radius: var(--radius-md);
@@ -962,6 +1031,13 @@ export default function HTMLDesignPreview() {
           font-size: 14px;
           font-weight: 700;
           color: var(--white);
+        }
+        .opc-cabinet-order {
+          margin-top: 10px;
+          color: rgba(255,255,255,.4);
+          font-size: 10px;
+          letter-spacing: .8px;
+          text-transform: uppercase;
         }
         .opc-cabinet-card .origin {
           font-size: 12px;
@@ -1537,7 +1613,9 @@ export default function HTMLDesignPreview() {
           .opc-nav-actions { display: none; }
           .opc-mobile-menu-btn { display: block; }
           .opc-pillars-grid { grid-template-columns: 1fr; }
-          .opc-cabinet-grid { grid-template-columns: repeat(2, 1fr); }
+          .opc-cabinet-card { flex-basis: min(78vw, 292px); }
+          .opc-cabinet-slider-button.prev { left: -8px; }
+          .opc-cabinet-slider-button.next { right: -8px; }
           .opc-news-grid { grid-template-columns: 1fr; }
           .opc-election-card { grid-template-columns: 1fr; }
           .opc-services-grid { grid-template-columns: 1fr; }
@@ -1548,7 +1626,8 @@ export default function HTMLDesignPreview() {
           .opc-footer-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
-          .opc-cabinet-grid { grid-template-columns: 1fr 1fr; }
+          .opc-cabinet-card { flex-basis: 78vw; }
+          .opc-cabinet-slider-button { width: 36px; height: 36px; font-size: 23px; }
           .opc-card-item { transform: rotate(-2deg); }
         }
       `}</style>
@@ -1755,8 +1834,13 @@ export default function HTMLDesignPreview() {
             </div>
           </div>
 
-          <div className="opc-cabinet-grid">
-            {cabinetMembers.map((member) => {
+          <div className="opc-cabinet-slider-wrap">
+            {cabinetMembers.length > 1 && <>
+              <button type="button" className="opc-cabinet-slider-button prev" aria-label="Show previous cabinet members" onClick={() => scrollCabinet(-1)}>‹</button>
+              <button type="button" className="opc-cabinet-slider-button next" aria-label="Show more cabinet members" onClick={() => scrollCabinet(1)}>›</button>
+            </>}
+            <div className="opc-cabinet-grid" ref={cabinetSliderRef}>
+            {cabinetMembers.map((member, index) => {
               const initials = member.name
                 .split(' ')
                 .filter(Boolean)
@@ -1781,9 +1865,12 @@ export default function HTMLDesignPreview() {
                   </div>
                   <div className="role">{member.position}</div>
                   <div className="name">{member.name}</div>
+                  <div className="opc-cabinet-order">{index + 1} of {cabinetMembers.length}</div>
                 </div>
               );
             })}
+            </div>
+            {cabinetMembers.length > 1 && <p className="opc-cabinet-slider-hint">Swipe left or right to view the full cabinet · ordered by position</p>}
           </div>
 
           {cabinetLoaded && cabinetMembers.length === 0 && (
