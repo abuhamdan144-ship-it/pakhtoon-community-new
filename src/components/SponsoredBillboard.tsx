@@ -179,7 +179,7 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
           {/* DUAL LAYER IMAGE FIT ENGINE */}
           {currentAd.video ? (
             <video 
-              src={currentAd.video} 
+              src={currentAd.video || undefined} 
               className="w-full h-full object-contain bg-black z-0"
               autoPlay
               muted
@@ -190,7 +190,7 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
               {/* Layer 1: Ambient Blurred Backdrop to fill screen borders smoothly */}
               <img 
-                src={currentAd.image} 
+                src={currentAd.image || undefined} 
                 alt="" 
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover blur-2xl scale-125 opacity-30 brightness-75 transition-all duration-700 pointer-events-none"
@@ -198,7 +198,7 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
 
               {/* Layer 2: Main Crisp High-Res Image */}
               <img 
-                src={currentAd.image} 
+                src={currentAd.image || undefined} 
                 alt={currentAd.name} 
                 className={`relative z-0 max-w-full max-h-full transition-all duration-500 drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)] cursor-pointer ${
                   fitMode === 'contain' 
@@ -353,10 +353,10 @@ export default function SponsoredBillboard({ ads }: SponsoredBillboardProps) {
             {/* Modal Full Image Canvas */}
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-950 relative min-h-[300px]">
               {currentAd.video ? (
-                <video src={currentAd.video} controls autoPlay className="max-w-full max-h-[70vh] rounded-lg shadow-2xl" />
+                <video src={currentAd.video || undefined} controls autoPlay className="max-w-full max-h-[70vh] rounded-lg shadow-2xl" />
               ) : (
                 <img 
-                  src={currentAd.image} 
+                  src={currentAd.image || undefined} 
                   alt={currentAd.name} 
                   className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-slate-800"
                 />

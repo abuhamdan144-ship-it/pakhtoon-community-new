@@ -70,7 +70,7 @@ export default function Billboard3D() {
                 transition={{ duration: 0.8, ease: "easeInOut" }}
               >
                 <img 
-                  src={ads[currentIndex]?.image} 
+                  src={ads[currentIndex]?.image || undefined} 
                   alt={ads[currentIndex]?.name}
                   className="w-full h-full object-cover opacity-80"
                 />

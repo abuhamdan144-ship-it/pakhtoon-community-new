@@ -64,7 +64,7 @@ export default function FounderProfileModal({ isOpen, onClose, profile }: Founde
                 {/* Image frame */}
                 <div className="relative mx-auto w-40 h-40 sm:w-48 sm:h-48 rounded-full border-4 border-amber-400 p-1.5 shadow-xl bg-emerald-990/50 flex items-center justify-center overflow-hidden shrink-0">
                   <img
-                    src={photo}
+                    src={photo || undefined}
                     alt={name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full rounded-full object-cover shadow-inner"
