@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import opcLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import jahngirJansherImage from '../assets/images/legends/jahangir-jansher-khan.jpg';
 import younisImage from '../assets/images/legends/younis-khan.jpg';
 import shahidImage from '../assets/images/legends/shahid-afridi.jpg';
@@ -345,15 +346,20 @@ export default function HTMLDesignPreview() {
           width: 42px;
           height: 42px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--gold), var(--gold-d));
+          background: #fff;
+          border: 2px solid var(--gold);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
-          font-weight: 900;
-          color: var(--g-900);
+          overflow: hidden;
           box-shadow: 0 0 20px rgba(212,175,55,.4);
           flex-shrink: 0;
+        }
+        .opc-emblem img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
         }
         .opc-brand-text .name {
           font-size: 16px;
@@ -1546,17 +1552,22 @@ export default function HTMLDesignPreview() {
           margin-bottom: 48px;
         }
         .opc-footer-brand .emblem {
-          width: 48px;
-          height: 48px;
+          width: 58px;
+          height: 58px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--gold), var(--gold-d));
+          background: #fff;
+          border: 2px solid var(--gold);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
-          font-weight: 900;
-          color: var(--g-900);
+          overflow: hidden;
           margin-bottom: 14px;
+        }
+        .opc-footer-brand .emblem img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
         }
         .opc-footer-brand p {
           font-size: 13px;
@@ -1743,7 +1754,9 @@ export default function HTMLDesignPreview() {
       <header className={`opc-header ${scrolled ? 'scrolled' : ''}`}>
         <nav className="opc-nav">
           <div className="opc-nav-logo" onClick={() => scrollTo('home')}>
-            <div className="opc-emblem">ع</div>
+            <div className="opc-emblem">
+              <img src={opcLogo} alt="Oman Pakhtoon Community logo" />
+            </div>
             <div className="opc-brand-text">
               <div className="name">Oman Pakhtoon Community</div>
               <div className="sub">OPC · Official Portal</div>
@@ -2140,7 +2153,9 @@ export default function HTMLDesignPreview() {
         <div className="opc-wrap">
           <div className="opc-footer-grid">
             <div className="opc-footer-brand">
-              <div className="emblem">ع</div>
+              <div className="emblem">
+                <img src={opcLogo} alt="Oman Pakhtoon Community logo" />
+              </div>
               <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--white)', marginBottom: '8px' }}>Oman Pakhtoon Community</p>
               <p>Connecting Pakhtoons across Oman with pride, service, and brotherhood since 2018.</p>
               <div className="opc-social-row">
