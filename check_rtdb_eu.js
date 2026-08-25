@@ -3,7 +3,7 @@ import { getDatabase, ref, get } from 'firebase/database';
 const config = {
   apiKey: "AIzaSyAWmYNZbjpijp6NGO-Lw743kogqtJimBCo",
   projectId: "opc-new-48a8d",
-  databaseURL: "https://opc-new-48a8d.firebaseio.com"
+  databaseURL: "https://opc-new-48a8d-default-rtdb.europe-west1.firebasedatabase.app"
 };
 const app = initializeApp(config);
 const db = getDatabase(app);

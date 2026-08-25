@@ -1,28 +1,25 @@
-import fs from 'fs';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, get } from 'firebase/database';
-
-const configStr = fs.readFileSync('firebase-applet-config.json', 'utf8');
-const config = JSON.parse(configStr);
-
-// Add databaseURL if missing, assuming standard format
-if (!config.databaseURL) {
-  config.databaseURL = `https://${config.projectId}-default-rtdb.firebaseio.com`;
-}
-
+const config = {
+  apiKey: "AIzaSyAWmYNZbjpijp6NGO-Lw743kogqtJimBCo",
+  authDomain: "opc-new-48a8d.firebaseapp.com",
+  projectId: "opc-new-48a8d",
+  databaseURL: "https://opc-new-48a8d-default-rtdb.europe-west1.firebasedatabase.app"
+};
 const app = initializeApp(config);
 const db = getDatabase(app);
-
 async function check() {
   try {
-    const snap = await get(ref(db, 'members'));
+    const snap = await get(ref(db, '/'));
     if (snap.exists()) {
-      console.log(`RTDB 'members': ${Object.keys(snap.val()).length} items`);
+      console.log(`RTDB ROOT: ${Object.keys(snap.val())}`);
+      const mSnap = await get(ref(db, 'members'));
+      console.log(`Members: ${mSnap.exists() ? Object.keys(mSnap.val()).length : 0}`);
     } else {
-      console.log(`RTDB 'members': does not exist`);
+      console.log(`RTDB: does not exist`);
     }
   } catch(e) {
-    console.log(`RTDB error:`, e.message);
+    console.log(`RTDB error:`, e);
   }
   process.exit(0);
 }

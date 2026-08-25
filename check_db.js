@@ -1,23 +1,25 @@
-import fs from 'fs';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
-const configStr = fs.readFileSync('firebase-applet-config.json', 'utf8');
-const config = JSON.parse(configStr);
-
-const app = initializeApp(config);
-const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyAWmYNZbjpijp6NGO-Lw743kogqtJimBCo",
+  authDomain: "opc-new-48a8d.firebaseapp.com",
+  projectId: "opc-new-48a8d"
+};
+const app = initializeApp(firebaseConfig);
+const db_default = getFirestore(app);
+const db_custom = getFirestore(app, "ai-studio-omanpakhtooncomm-7f5d5a28-ea42-42fa-9865-8df2286be432");
 
 async function check() {
-  const collections = ['members', 'Members', 'cabinet', 'Cabinet', 'donations', 'incidents'];
-  for (const c of collections) {
-    try {
-      const snap = await getDocs(collection(db, c));
-      console.log(`Collection '${c}': ${snap.size} documents`);
-    } catch(e) {
-      console.log(`Collection '${c}': error or permission denied`);
-    }
-  }
+  try {
+    const snap1 = await getDocs(collection(db_default, 'members'));
+    console.log(`default: ${snap1.size} members`);
+  } catch(e) { console.log(e.message); }
+  
+  try {
+    const snap2 = await getDocs(collection(db_custom, 'members'));
+    console.log(`custom: ${snap2.size} members`);
+  } catch(e) { console.log(e.message); }
   process.exit(0);
 }
 check();
