@@ -2,13 +2,24 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Download, Image as ImageIcon, LockKeyhole, Mail, Phone, Search, Send, ShieldCheck } from 'lucide-react';
 import { RecaptchaVerifier, onAuthStateChanged, signInWithPhoneNumber, signOut } from 'firebase/auth';
-import { doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { getDocs, query, where } from 'firebase/firestore';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase/config';
 import { collections } from '../firebase/collections';
 
 const normalizePhone = (value = '') => value.replace(/[\s()-]/g, '');
+
+const friendlyAuthError = (error) => {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '');
+  if (code.includes('invalid-app-credential') || message.includes('error-code:-39')) {
+    return 'Phone verification could not start. Please allow the reCAPTCHA check, disable content blockers for this site, and try again. If it continues, the OPC administrator must authorize this website domain in Firebase Authentication.';
+  }
+  if (code.includes('too-many-requests')) return 'Too many attempts. Please wait a few minutes before requesting another code.';
+  if (code.includes('invalid-phone-number')) return 'Enter the registered Oman mobile number in international format, for example +968XXXXXXXX.';
+  return message || 'Unable to send the verification code. Please try again.';
+};
 
 const imageFromDataUrl = (source) => new Promise((resolve, reject) => {
   const image = new Image();
@@ -140,22 +151,22 @@ export default function MemberCard() {
       toast.error('Enter the registered mobile number in international format, for example +968XXXXXXXX.');
       return;
     }
-            if (!lookupValue.trim()) {
-      toast.error('Enter your Oman ID card number or exact registered name.');
+    if (!lookupValue.trim()) {
+      toast.error('Enter the approved member name or mobile number used for your card.');
       return;
     }
 
     setLoading(true);
     try {
       verifierRef.current?.clear?.();
-      verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current, { size: 'invisible' });
+      verifierRef.current = new RecaptchaVerifier(auth, recaptchaRef.current, { size: 'normal' });
       const result = await signInWithPhoneNumber(auth, normalizedPhone, verifierRef.current);
       setConfirmation(result);
       toast.success('A verification code was sent to your registered phone.');
     } catch (error) {
       verifierRef.current?.clear?.();
       verifierRef.current = null;
-      toast.error(error?.message || 'Unable to send verification code. Please try again.');
+      toast.error(friendlyAuthError(error));
     } finally {
       setLoading(false);
     }
@@ -172,30 +183,23 @@ export default function MemberCard() {
       const lookup = lookupValue.trim();
       const normalizedLookup = normalizePhone(lookup);
       let record = null;
-      const possibleCardId = lookup.toUpperCase();
-      if (possibleCardId.startsWith('OPC-')) {
-        const cardSnapshot = await getDoc(doc(collections.memberCards, possibleCardId));
-        record = cardSnapshot.exists() ? cardSnapshot.data() : null;
-      } else {
-        const phoneSnapshot = await getDocs(query(collections.memberCards, where('phone', '==', verifiedPhone)));
-        const candidateRecords = phoneSnapshot.docs.map((entry) => entry.data());
-        record = candidateRecords.find((candidate) => String(candidate.omanId || '') === lookup)
-          || candidateRecords.find((candidate) => String(candidate.name || '').trim().toLowerCase() === lookup.toLowerCase())
-          || candidateRecords.find((candidate) => normalizePhone(candidate.phone || '') === normalizedLookup)
-          || null;
-      }
+      const phoneSnapshot = await getDocs(query(collections.memberCards, where('phone', '==', verifiedPhone)));
+      const candidateRecords = phoneSnapshot.docs.map((entry) => entry.data());
+      record = candidateRecords.find((candidate) => String(candidate.name || '').trim().toLowerCase() === lookup.toLowerCase())
+        || candidateRecords.find((candidate) => normalizePhone(candidate.phone || '') === normalizedLookup)
+        || null;
       if (!record || record.status !== 'approved' || normalizePhone(record.phone) !== verifiedPhone) {
-        throw new Error('No approved card matched this verified phone number and Oman ID or name.');
+        throw new Error('No approved card matched this verified phone number and member name or mobile number.');
       }
       setMember({
         name: record.name || '',
-        membershipId: record.membershipId || possibleCardId,
+        membershipId: record.membershipId || 'OPC-MEMBER',
         photo: record.photo || '',
         status: record.status,
       });
       toast.success('Your approved membership card is ready.');
     } catch (error) {
-      toast.error(error?.message || 'The verification code or membership details were not accepted.');
+      toast.error(error?.code?.includes('invalid-verification-code') ? 'The SMS code is incorrect or expired. Request a new code and try again.' : (error?.message || 'The verification code or membership details were not accepted.'));
       await signOut(auth);
       setAuthPhone('');
     } finally {
@@ -309,17 +313,17 @@ export default function MemberCard() {
         <div className="mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-forest-dark text-gold"><ShieldCheck size={25} /></div>
         <p className="mt-4 text-xs font-bold uppercase tracking-[.2em] text-gold">Secure card access</p>
         <h1 className="mt-2 font-serif text-3xl font-bold text-forest-dark">Download your membership card</h1>
-          <p className="mt-3 text-sm leading-6 text-gray-600">Verify the phone number registered with OPC and search with your Oman ID card number or your exact registered name. The details must match an approved membership record.</p>
+          <p className="mt-3 text-sm leading-6 text-gray-600">Verify the phone number registered with OPC, then search with your exact approved member name or registered mobile number. Only approved records can open a card.</p>
 
         {!confirmation && !member && (
           <form className="mt-7 space-y-5" onSubmit={requestCode}>
-            <label className="block text-sm font-semibold text-gray-700">Registered mobile number for verification
+            <label className="block text-sm font-semibold text-gray-700">Registered mobile number for SMS verification
               <input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" autoComplete="tel" placeholder="+968XXXXXXXX" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
             </label>
-            <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><Search size={16} /> Search by Oman ID, full name, or mobile number</span>
-              <input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} placeholder="Full name or +968 mobile number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
+            <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><Search size={16} /> Search by approved member name or mobile number</span>
+              <input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} inputMode="text" placeholder="Exact full name or +968 mobile number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
             </label>
-            <p className="text-xs leading-5 text-gray-500">For privacy, the search runs only after you verify the registered mobile number by SMS. Enter the exact full name or mobile number saved on your approved OPC record.</p>
+            <p className="text-xs leading-5 text-gray-500">For privacy, the lookup runs only after SMS verification. Enter the exact full name or mobile number saved on the approved OPC record. Oman ID and membership-ID search are not used here.</p>
             <div ref={recaptchaRef} />
             <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-5 py-3.5 font-bold text-gold disabled:opacity-70"><Phone size={18} /> {loading ? 'Sending code…' : 'Send verification code'}</button>
           </form>
