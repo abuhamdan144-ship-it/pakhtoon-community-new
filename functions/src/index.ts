@@ -16,21 +16,48 @@ const db = getFirestore(app, FIRESTORE_DATABASE_ID);
 const storageBucket = getStorage(app).bucket();
 
 function normalisePhone(value: string): string {
-  return String(value || "").replace(/[\s()-]/g, "");
+  return String(value || "").replace(/\D/g, "");
+}
+
+function phoneMatches(left: string, right: string): boolean {
+  const a = normalisePhone(left);
+  const b = normalisePhone(right);
+  if (!a || !b) return false;
+  // The member form has historically stored Oman numbers as 8 digits, +968XXXXXXXX,
+  // or 00968XXXXXXXX. Comparing the final eight digits supports all three formats.
+  return a === b || a.slice(-8) === b.slice(-8);
+}
+
+function nameKey(value: string): string {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 export const lookupMemberCardByPin = onCall({ region: "us-central1" }, async (request) => {
   const lookup = String(request.data?.lookup || "").trim();
   const pin = String(request.data?.pin || "").replace(/\D/g, "");
-  if (!lookup || !/^\d{6}$/.test(pin)) {
-    throw new HttpsError("invalid-argument", "Enter the approved member name or mobile number and six-digit PIN.");
+  if (!lookup || !/^\d{4}$/.test(pin)) {
+    throw new HttpsError("invalid-argument", "Enter the approved member name or mobile number and the last four phone digits.");
   }
 
   const looksLikePhone = /^\+?\d[\d\s()-]{7,}$/.test(lookup);
-  const searchValue = looksLikePhone ? normalisePhone(lookup) : lookup.toLowerCase();
-  const field = looksLikePhone ? "phone" : "nameKey";
-  const snapshot = await db.collection("memberCards").where(field, "==", searchValue).limit(5).get();
-  const card = snapshot.docs.map((entry) => entry.data()).find((candidate) => candidate.status === "approved" && String(candidate.cardPin || "") === pin);
+  // Read-only server-side fallback: older deployments did not create memberCards for
+  // every approved member, so the authoritative members collection must also be checked.
+  const [cardSnapshot, memberSnapshot] = await Promise.all([
+    db.collection("memberCards").where("status", "==", "approved").get(),
+    db.collection("members").where("status", "==", "approved").get(),
+  ]);
+  const candidates: Array<Record<string, unknown>> = [
+    ...cardSnapshot.docs.map((entry) => ({ ...entry.data(), source: "card" })),
+    ...memberSnapshot.docs.map((entry) => ({ ...entry.data(), source: "member" })),
+  ];
+  const card = candidates.find((candidate) => {
+    if (candidate.status !== "approved") return false;
+    const lookupMatches = looksLikePhone
+      ? phoneMatches(lookup, String(candidate.phone || ""))
+      : nameKey(lookup) === nameKey(String(candidate.nameKey || candidate.name || ""));
+    const expectedPin = String(candidate.cardPin || normalisePhone(String(candidate.phone || "")).slice(-4));
+    return lookupMatches && expectedPin === pin;
+  });
   if (!card) {
     throw new HttpsError("not-found", "No approved membership card matched these details.");
   }
