@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Camera, Download, ShieldCheck } from 'lucide-react';
+import { Camera, Download, Search, ShieldCheck } from 'lucide-react';
 import { collections } from '../firebase/collections';
 import { addDoc } from 'firebase/firestore';
 
@@ -44,8 +44,10 @@ const readProfilePhoto = (file) => new Promise((resolve, reject) => {
 });
 
 export default function Membership() {
+  const navigate = useNavigate();
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cardLookup, setCardLookup] = useState('');
   const [photo, setPhoto] = useState('');
   const [photoPreview, setPhotoPreview] = useState('');
 
@@ -64,6 +66,16 @@ export default function Membership() {
       event.target.value = '';
       toast.error(error.message || 'The photo could not be uploaded.');
     }
+  };
+
+  const openCardSearch = (event) => {
+    event.preventDefault();
+    const lookup = cardLookup.trim();
+    if (!lookup) {
+      toast.error('Enter your registered name or mobile number to search for your card.');
+      return;
+    }
+    navigate('/card', { state: { lookup } });
   };
 
   const onSubmit = async (data) => {
@@ -100,6 +112,18 @@ export default function Membership() {
           <div className="mx-auto h-1 w-24 rounded-full bg-gold" />
           <p className="mt-5 text-sm leading-6 text-gray-600">Your photo is used only on your OPC membership card and is visible to authorised OPC administrators.</p>
         </div>
+
+        <section className="mx-auto mb-10 max-w-3xl rounded-2xl border border-gold/30 bg-forest-dark p-5 text-white shadow-lg sm:p-6" aria-labelledby="member-card-search-title">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-xs font-bold uppercase tracking-[.18em] text-gold">Already approved?</p><h2 id="member-card-search-title" className="mt-1 font-serif text-xl font-bold">Search your membership card</h2><p className="mt-1 text-sm leading-5 text-white/70">Start with your registered name or mobile number. We will verify your phone by SMS before showing the card.</p></div>
+            <Search className="hidden shrink-0 text-gold sm:block" size={30} />
+          </div>
+          <form onSubmit={openCardSearch} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <label className="sr-only" htmlFor="registration-card-search">Search by name or mobile number</label>
+            <input id="registration-card-search" value={cardLookup} onChange={(event) => setCardLookup(event.target.value)} placeholder="Full name or +968 mobile number" className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:border-gold focus:ring-2 focus:ring-gold/30" />
+            <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-5 py-3 font-bold text-forest-dark transition hover:bg-[#e4c45a]"><Search size={17} /> Find my card</button>
+          </form>
+        </section>
 
         <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-2">
           <motion.div
