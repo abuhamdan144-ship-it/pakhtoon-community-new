@@ -6,112 +6,12 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
+import { buildCardFront, buildCardBack, buildCardImageCombined } from './MemberCardBuilder';
 
 
 
 
 
-const imageFromDataUrl = (source) => new Promise((resolve, reject) => {
-  const image = new Image();
-  image.onload = () => resolve(image);
-  image.onerror = reject;
-  image.src = source;
-});
-
-function buildCardImage(member) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1200;
-      canvas.height = 756;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Card canvas is unavailable.');
-
-      const background = context.createLinearGradient(0, 0, 1200, 756);
-      background.addColorStop(0, '#062d24');
-      background.addColorStop(1, '#0f5a45');
-      context.fillStyle = background;
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = '#d4af37';
-      context.fillRect(0, 0, canvas.width, 22);
-      context.fillStyle = 'rgba(255,255,255,.10)';
-      context.beginPath();
-      context.arc(1090, 120, 210, 0, Math.PI * 2);
-      context.fill();
-
-      context.fillStyle = '#f8efd0';
-      context.font = '700 44px Georgia, serif';
-      context.fillText('PAKHTOON COMMUNITY OMAN', 72, 105);
-      context.fillStyle = '#d4af37';
-      context.font = '600 20px Arial, sans-serif';
-      context.fillText('OFFICIAL MEMBERSHIP IDENTITY CARD', 75, 142);
-
-      const photoX = 75;
-      const photoY = 205;
-      const photoWidth = 245;
-      const photoHeight = 315;
-      context.fillStyle = 'rgba(255,255,255,.12)';
-      context.fillRect(photoX, photoY, photoWidth, photoHeight);
-      if (member.photo) {
-        try {
-          const image = await imageFromDataUrl(member.photo);
-          const imageRatio = image.width / image.height;
-          const frameRatio = photoWidth / photoHeight;
-          let sourceWidth = image.width;
-          let sourceHeight = image.height;
-          let sourceX = 0;
-          let sourceY = 0;
-          if (imageRatio > frameRatio) {
-            sourceWidth = image.height * frameRatio;
-            sourceX = (image.width - sourceWidth) / 2;
-          } else {
-            sourceHeight = image.width / frameRatio;
-            sourceY = (image.height - sourceHeight) / 2;
-          }
-          context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, photoX, photoY, photoWidth, photoHeight);
-        } catch (_) {
-          context.fillStyle = '#d4af37';
-          context.font = '700 72px Arial, sans-serif';
-          context.fillText('OPC', 132, 385);
-        }
-      }
-
-      const textX = 390;
-      context.fillStyle = 'rgba(255,255,255,.65)';
-      context.font = '600 18px Arial, sans-serif';
-      context.fillText('MEMBER NAME', textX, 238);
-      context.fillStyle = '#ffffff';
-      context.font = '700 45px Arial, sans-serif';
-      context.fillText(String(member.name || 'OPC MEMBER').toUpperCase().slice(0, 32), textX, 290);
-      context.fillStyle = 'rgba(255,255,255,.65)';
-      context.font = '600 18px Arial, sans-serif';
-      context.fillText('MEMBERSHIP ID', textX, 365);
-      context.fillStyle = '#d4af37';
-      context.font = '700 38px monospace';
-      context.fillText(member.membershipId || 'OPC-MEMBER', textX, 415);
-      context.fillStyle = 'rgba(255,255,255,.65)';
-      context.font = '600 18px Arial, sans-serif';
-      context.fillText('STATUS', textX, 485);
-      context.fillStyle = '#ffffff';
-      context.font = '700 28px Arial, sans-serif';
-      context.fillText('APPROVED MEMBER', textX, 525);
-      context.fillStyle = 'rgba(255,255,255,.48)';
-      context.font = '500 16px Arial, sans-serif';
-      context.fillText('Digital card issued by Oman Pakhtoon Community', 75, 674);
-      context.fillText(`Generated ${new Date().toLocaleDateString()}`, 75, 707);
-
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error('The card image could not be generated.'));
-          return;
-        }
-        resolve(blob);
-      }, 'image/png');
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
 
 export default function MemberCard() {
   const location = useLocation();
@@ -168,15 +68,13 @@ export default function MemberCard() {
   };
 
   const buildCardPdf = async () => {
-    const imageBlob = await buildCardImage(member);
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(imageBlob);
-    });
+    const frontCanvas = await buildCardFront(member);
+    const backCanvas = await buildCardBack(member);
+    
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1200, 756], compress: true });
-    pdf.addImage(dataUrl, 'PNG', 0, 0, 1200, 756);
+    pdf.addImage(frontCanvas.toDataURL('image/png', 0.9), 'PNG', 0, 0, 1200, 756);
+    pdf.addPage([1200, 756], 'landscape');
+    pdf.addImage(backCanvas.toDataURL('image/png', 0.9), 'PNG', 0, 0, 1200, 756);
     return pdf.output('blob');
   };
 
@@ -200,7 +98,7 @@ export default function MemberCard() {
   const downloadCardImage = async () => {
     if (!member) return;
     setLoading(true);
-    try { downloadBlob(await buildCardImage(member), 'png'); toast.success('Image membership card downloaded.'); }
+    try { downloadBlob(await buildCardImageCombined(member), 'png'); toast.success('Image membership card downloaded.'); }
     catch (error) { toast.error(error?.message || 'Unable to download the card image.'); }
     finally { setLoading(false); }
   };
