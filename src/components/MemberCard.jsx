@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Download, Image as ImageIcon, KeyRound, Mail, Search, Send, ShieldCheck } from 'lucide-react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
-import { app } from '../firebase/config';
 
-const functions = getFunctions(app, 'us-central1');
-const lookupApprovedMemberCard = httpsCallable(functions, 'lookupMemberCardByPin');
+
+
+
 
 const imageFromDataUrl = (source) => new Promise((resolve, reject) => {
   const image = new Image();
@@ -114,28 +116,47 @@ function buildCardImage(member) {
 export default function MemberCard() {
   const location = useLocation();
   const [lookupValue, setLookupValue] = useState(() => location.state?.lookup || '');
-  const [pin, setPin] = useState('');
+  
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const lookupCard = async (event) => {
     event.preventDefault();
     const lookup = lookupValue.trim();
-    const accessPin = pin.trim();
     if (!lookup) {
       toast.error('Enter the approved member name or registered mobile number.');
       return;
     }
-    if (!/^\d{4}$/.test(accessPin)) {
-      toast.error('Enter the last four digits of your registered mobile number.');
-      return;
-    }
-
+    
     setLoading(true);
     try {
-      const response = await lookupApprovedMemberCard({ lookup, pin: accessPin });
-      const record = response.data;
-      if (!record?.approved || !record.name) throw new Error('No approved membership card matched these details.');
+      const lookupLower = lookup.toLowerCase().replace(/\s+/g, ' ');
+      const looksLikePhone = /^\+?\d[\d\s()-]{7,}$/.test(lookup);
+      
+      const cardsSnap = await getDocs(query(collection(db, 'memberCards'), where('status', '==', 'approved')));
+      const membersSnap = await getDocs(query(collection(db, 'members'), where('status', '==', 'approved')));
+      
+      const candidates = [
+        ...cardsSnap.docs.map(d => ({...d.data(), source: 'card'})),
+        ...membersSnap.docs.map(d => ({...d.data(), source: 'member'}))
+      ];
+      
+      const record = candidates.find(c => {
+        if (looksLikePhone) {
+          const cPhone = String(c.phone || '').replace(/\D/g, '');
+          const lPhone = lookup.replace(/\D/g, '');
+          return cPhone && cPhone.includes(lPhone);
+        } else {
+          const cName = String(c.nameKey || c.name || '').toLowerCase().replace(/\s+/g, ' ');
+          return cName === lookupLower;
+        }
+      });
+      
+      if (!record || !record.name) throw new Error('No approved membership card matched these details.');
+      
+      // Keep compatibility with the card object format expected
+      record.approved = true; 
+      
       setMember(record);
       toast.success('Your approved membership card is ready.');
     } catch (error) {
@@ -212,20 +233,18 @@ export default function MemberCard() {
         <div className="mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-forest-dark text-gold"><ShieldCheck size={25} /></div>
         <p className="mt-4 text-xs font-bold uppercase tracking-[.2em] text-gold">Approved member access</p>
         <h1 className="mt-2 font-serif text-3xl font-bold text-forest-dark">Download your membership card</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-600">Enter your approved member name or registered mobile number and the private four-digit PIN made from the last four digits of your registered mobile number.</p>
+        <p className="mt-3 text-sm leading-6 text-gray-600">Enter your approved member name or registered mobile number </p>
 
         {!member && <form className="mt-7 space-y-5" onSubmit={lookupCard}>
           <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><Search size={16} /> Approved member name or mobile number</span>
             <input value={lookupValue} onChange={(event) => setLookupValue(event.target.value)} autoComplete="name tel" placeholder="Full name or +968 mobile number" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
           </label>
-          <label className="block text-sm font-semibold text-gray-700"><span className="inline-flex items-center gap-2"><KeyRound size={16} /> Card access PIN (last 4 mobile digits)</span>
-            <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" autoComplete="one-time-code" maxLength={4} placeholder="Last 4 digits" className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 tracking-[.35em] outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" />
-          </label>
-          <p className="text-xs leading-5 text-gray-500">Only approved OPC records can unlock a card. Your PIN is checked securely by the OPC server and is never displayed on the card.</p>
+          
+          
           <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-5 py-3.5 font-bold text-gold disabled:opacity-70"><ShieldCheck size={18} /> {loading ? 'Checking approved record…' : 'Open my card'}</button>
         </form>}
 
-        {member && <section className="mt-7 rounded-2xl bg-forest-dark p-4 text-white"><p className="text-sm text-white/80">Approved card for <strong className="text-gold">{member.name}</strong></p><div className="mt-4 overflow-hidden rounded-xl border border-gold/30 bg-white/5"><img src={member.previewUrl || ''} alt="OPC membership card preview" className="hidden" /><p className="p-4 text-sm text-white/70">Your card is ready. Choose a download or sharing option below.</p></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="button" onClick={downloadCard} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-4 py-3 font-bold text-forest-dark disabled:opacity-70"><Download size={17} /> Download PDF</button><button type="button" onClick={downloadCardImage} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 px-4 py-3 font-bold text-white disabled:opacity-70"><ImageIcon size={17} /> Download image</button><button type="button" onClick={() => shareCard('whatsapp')} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gold/60 px-4 py-3 font-bold text-gold disabled:opacity-70"><Send size={17} /> Send by WhatsApp</button><button type="button" onClick={() => shareCard('email')} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 px-4 py-3 font-bold text-white disabled:opacity-70"><Mail size={17} /> Send by email</button></div><button type="button" onClick={() => { setMember(null); setPin(''); }} className="mt-5 text-xs font-bold uppercase tracking-[.14em] text-white/70 underline underline-offset-4">Search another approved card</button></section>}
+        {member && <section className="mt-7 rounded-2xl bg-forest-dark p-4 text-white"><p className="text-sm text-white/80">Approved card for <strong className="text-gold">{member.name}</strong></p><div className="mt-4 overflow-hidden rounded-xl border border-gold/30 bg-white/5"><img src={member.previewUrl || ''} alt="OPC membership card preview" className="hidden" /><p className="p-4 text-sm text-white/70">Your card is ready. Choose a download or sharing option below.</p></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="button" onClick={downloadCard} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-4 py-3 font-bold text-forest-dark disabled:opacity-70"><Download size={17} /> Download PDF</button><button type="button" onClick={downloadCardImage} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 px-4 py-3 font-bold text-white disabled:opacity-70"><ImageIcon size={17} /> Download image</button><button type="button" onClick={() => shareCard('whatsapp')} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gold/60 px-4 py-3 font-bold text-gold disabled:opacity-70"><Send size={17} /> Send by WhatsApp</button><button type="button" onClick={() => shareCard('email')} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 px-4 py-3 font-bold text-white disabled:opacity-70"><Mail size={17} /> Send by email</button></div><button type="button" onClick={() => { setMember(null);  }} className="mt-5 text-xs font-bold uppercase tracking-[.14em] text-white/70 underline underline-offset-4">Search another approved card</button></section>}
       </main>
     </div>
   );
