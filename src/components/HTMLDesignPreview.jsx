@@ -12,6 +12,15 @@ export default function HTMLDesignPreview() {
 
   const opcCardRef = useRef(null);
   const progressFillRef = useRef(null);
+  const heroHonourees = [
+    { name: 'Engr. Gul Zada Pukhtoon', honor: 'Chairman', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900&auto=format&fit=crop&q=85' },
+    { name: 'Haji Fazal Mohammad Pukhtoon', honor: 'Patron-in-Chief & Founder', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&auto=format&fit=crop&q=85' },
+    { name: 'Sahibzada Khan Yousafzai', honor: 'Chairman Executive Council', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=900&auto=format&fit=crop&q=85' },
+    { name: 'Khan Mohammad Swati', honor: 'President', photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=900&auto=format&fit=crop&q=85' },
+    { name: 'Engineer Bilal Afridi', honor: 'President, Salalah & Dhofar Chapter', photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=900&auto=format&fit=crop&q=85' },
+    { name: 'Noor Rahman Khattak', honor: 'General Secretary', photo: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=900&auto=format&fit=crop&q=85' },
+  ];
+  const heroHonoureesLoop = [...heroHonourees, ...heroHonourees];
 
   // Scroll listener for header
   useEffect(() => {
@@ -273,10 +282,87 @@ export default function HTMLDesignPreview() {
         .opc-hero-content {
           position: relative;
           z-index: 2;
-          text-align: center;
-          padding: 0 28px;
-          max-width: 780px;
+          width: min(1180px, 100%);
+          display: grid;
+          grid-template-columns: minmax(360px, 1.08fr) minmax(320px, .92fr);
+          gap: clamp(34px, 6vw, 86px);
+          align-items: center;
+          padding: 36px 28px;
         }
+        .opc-hero-copy { text-align: left; }
+        .opc-hero-copy .opc-hero-sub { margin-left: 0; }
+        .opc-hero-copy .opc-hero-ctas, .opc-hero-copy .opc-hero-stats { justify-content: flex-start; }
+        .opc-honourees {
+          position: relative;
+          overflow: hidden;
+          padding: 18px 0 18px 18px;
+          border: 1px solid rgba(212,175,55,.28);
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(5,31,22,.3));
+          box-shadow: 0 22px 70px rgba(0,0,0,.28);
+        }
+        .opc-honourees::before, .opc-honourees::after {
+          content: '';
+          position: absolute;
+          z-index: 2;
+          top: 0;
+          bottom: 0;
+          width: 56px;
+          pointer-events: none;
+        }
+        .opc-honourees::before { left: 0; background: linear-gradient(90deg, #0a2a1f, transparent); }
+        .opc-honourees::after { right: 0; background: linear-gradient(270deg, #0a2a1f, transparent); }
+        .opc-honourees-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 14px 4px;
+          color: var(--gold);
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+        .opc-honourees-track {
+          display: flex;
+          gap: 14px;
+          width: max-content;
+          animation: opc-slide-left 34s linear infinite;
+        }
+        .opc-honourees:hover .opc-honourees-track { animation-play-state: paused; }
+        .opc-honouree-card {
+          position: relative;
+          width: 200px;
+          height: 276px;
+          flex: 0 0 auto;
+          overflow: hidden;
+          border: 1px solid rgba(212,175,55,.4);
+          border-radius: 14px;
+          background: var(--g-900);
+        }
+        .opc-honouree-card img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform .5s ease;
+        }
+        .opc-honouree-card:hover img { transform: scale(1.06); }
+        .opc-honouree-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, rgba(4,20,15,.96) 0%, rgba(4,20,15,.28) 52%, transparent 78%);
+        }
+        .opc-honouree-caption {
+          position: absolute;
+          z-index: 1;
+          left: 15px;
+          right: 15px;
+          bottom: 14px;
+        }
+        .opc-honouree-name { color: var(--white); font-size: 17px; font-weight: 800; line-height: 1.14; }
+        .opc-honouree-honor { color: var(--gold); margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: .8px; line-height: 1.35; text-transform: uppercase; }
+        @keyframes opc-slide-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .opc-hero-eyebrow {
           display: inline-flex;
           align-items: center;
@@ -1300,6 +1386,12 @@ export default function HTMLDesignPreview() {
 
         /* RESPONSIVE */
         @media (max-width: 1000px) {
+          .opc-hero { min-height: auto; padding: 112px 0 92px; }
+          .opc-hero-content { grid-template-columns: 1fr; gap: 32px; max-width: 760px; }
+          .opc-honourees { order: 1; }
+          .opc-hero-copy { order: 2; text-align: center; }
+          .opc-hero-copy .opc-hero-sub { margin-left: auto; }
+          .opc-hero-copy .opc-hero-ctas, .opc-hero-copy .opc-hero-stats { justify-content: center; }
           .opc-card-layout { grid-template-columns: 1fr; }
           .opc-cabinet-president { grid-template-columns: 1fr; }
           .opc-president-stats { flex-direction: row; flex-wrap: wrap; }
@@ -1317,6 +1409,9 @@ export default function HTMLDesignPreview() {
           .opc-election-card { grid-template-columns: 1fr; }
           .opc-services-grid { grid-template-columns: 1fr; }
           .opc-hero-stats { gap: 24px; }
+          .opc-honouree-card { width: 178px; height: 240px; }
+          .opc-honouree-name { font-size: 15px; }
+          .opc-honouree-honor { font-size: 9px; }
           .opc-footer-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
@@ -1381,18 +1476,34 @@ export default function HTMLDesignPreview() {
           </svg>
         </div>
         <div className="opc-hero-content">
-          <div className="opc-hero-eyebrow"><span></span> Established 2018 · Muscat, Oman <span></span></div>
-          <h1>United by Roots,<em>Strengthened by Community</em></h1>
-          <p className="opc-hero-sub">The official platform for over 1,000 Pakhtoons across Oman — member services, elections, welfare support, and community connection.</p>
-          <div className="opc-hero-ctas">
-            <Link to="/membership" className="opc-btn opc-btn-gold" style={{ padding: '14px 30px', fontSize: '15px' }}>Become a Member</Link>
-            <a href="#about" onClick={(e) => { e.preventDefault(); scrollTo('about'); }} className="opc-btn opc-btn-ghost" style={{ padding: '14px 30px', fontSize: '15px' }}>Explore OPC</a>
+          <div className="opc-honourees" aria-label="Pakhtoon community honourees">
+            <div className="opc-honourees-label">✦ Pakhtoon Honourees</div>
+            <div className="opc-honourees-track">
+              {heroHonoureesLoop.map((person, index) => (
+                <article className="opc-honouree-card" key={`${person.name}-${index}`}>
+                  <img src={person.photo} alt={person.name} loading={index > 3 ? 'lazy' : 'eager'} />
+                  <div className="opc-honouree-caption">
+                    <div className="opc-honouree-name">{person.name}</div>
+                    <div className="opc-honouree-honor">{person.honor}</div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
-          <div className="opc-hero-stats">
-            <div className="opc-hero-stat"><div className="num">1,000+</div><div className="lbl">Active Members</div></div>
-            <div className="opc-hero-stat"><div className="num">7+</div><div className="lbl">Years in Oman</div></div>
-            <div className="opc-hero-stat"><div className="num">24/7</div><div className="lbl">Welfare Support</div></div>
-            <div className="opc-hero-stat"><div className="num">12</div><div className="lbl">Cabinet Members</div></div>
+          <div className="opc-hero-copy">
+            <div className="opc-hero-eyebrow"><span></span> Established 2018 · Muscat, Oman <span></span></div>
+            <h1>United by Roots,<em>Strengthened by Community</em></h1>
+            <p className="opc-hero-sub">The official platform for over 1,000 Pakhtoons across Oman — member services, elections, welfare support, and community connection.</p>
+            <div className="opc-hero-ctas">
+              <Link to="/membership" className="opc-btn opc-btn-gold" style={{ padding: '14px 30px', fontSize: '15px' }}>Become a Member</Link>
+              <a href="#about" onClick={(e) => { e.preventDefault(); scrollTo('about'); }} className="opc-btn opc-btn-ghost" style={{ padding: '14px 30px', fontSize: '15px' }}>Explore OPC</a>
+            </div>
+            <div className="opc-hero-stats">
+              <div className="opc-hero-stat"><div className="num">1,000+</div><div className="lbl">Active Members</div></div>
+              <div className="opc-hero-stat"><div className="num">7+</div><div className="lbl">Years in Oman</div></div>
+              <div className="opc-hero-stat"><div className="num">24/7</div><div className="lbl">Welfare Support</div></div>
+              <div className="opc-hero-stat"><div className="num">12</div><div className="lbl">Cabinet Members</div></div>
+            </div>
           </div>
         </div>
         <div className="opc-scroll-indicator" onClick={() => scrollTo('join')} style={{ cursor: 'pointer' }}>
