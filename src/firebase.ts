@@ -10,7 +10,7 @@ const historicalDatabaseId =
 
 // Reuse the existing default Firebase app when this module and the collection helper
 // are both imported, then target the same verified historical Firestore database.
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const db = getFirestore(app, historicalDatabaseId);
 export const auth = getAuth(app);

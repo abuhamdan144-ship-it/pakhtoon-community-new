@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Download, Image as ImageIcon, KeyRound, Mail, Search, Send, ShieldCheck } from 'lucide-react';
 
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db, app } from '../firebase/config';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import { buildCardFront, buildCardBack, buildCardImageCombined } from './MemberCardBuilder';
@@ -16,47 +17,31 @@ import { buildCardFront, buildCardBack, buildCardImageCombined } from './MemberC
 export default function MemberCard() {
   const location = useLocation();
   const [lookupValue, setLookupValue] = useState(() => location.state?.lookup || '');
+  const [pinValue, setPinValue] = useState('');
   
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const lookupCard = async (event) => {
+    const lookupCard = async (event) => {
     event.preventDefault();
     const lookup = lookupValue.trim();
-    if (!lookup) {
-      toast.error('Enter the approved member name or registered mobile number.');
+    const pin = pinValue.replace(/\D/g, '');
+    
+    if (!lookup || pin.length !== 4) {
+      toast.error('Enter your name or mobile, and the last 4 digits of your phone.');
       return;
     }
     
     setLoading(true);
     try {
-      const lookupLower = lookup.toLowerCase().replace(/\s+/g, ' ');
-      const looksLikePhone = /^\+?\d[\d\s()-]{7,}$/.test(lookup);
-      
-      const cardsSnap = await getDocs(query(collection(db, 'memberCards'), where('status', '==', 'approved')));
-      const membersSnap = await getDocs(query(collection(db, 'members'), where('status', '==', 'approved')));
-      
-      const candidates = [
-        ...cardsSnap.docs.map(d => ({...d.data(), source: 'card'})),
-        ...membersSnap.docs.map(d => ({...d.data(), source: 'member'}))
-      ];
-      
-      const record = candidates.find(c => {
-        if (looksLikePhone) {
-          const cPhone = String(c.phone || '').replace(/\D/g, '');
-          const lPhone = lookup.replace(/\D/g, '');
-          return cPhone && cPhone.includes(lPhone);
-        } else {
-          const cName = String(c.nameKey || c.name || '').toLowerCase().replace(/\s+/g, ' ');
-          return cName === lookupLower;
-        }
-      });
+      const functions = getFunctions(app, 'us-central1');
+      const lookupMemberCardByPin = httpsCallable(functions, 'lookupMemberCardByPin');
+      const result = await lookupMemberCardByPin({ lookup, pin });
+      const record = result.data;
       
       if (!record || !record.name) throw new Error('No approved membership card matched these details.');
       
-      // Keep compatibility with the card object format expected
       record.approved = true; 
-      
       setMember(record);
       toast.success('Your approved membership card is ready.');
     } catch (error) {
