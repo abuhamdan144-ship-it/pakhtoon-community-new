@@ -1,23 +1,22 @@
-import { initializeApp } from 'firebase/app';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, initializeFirestore, memoryLocalCache } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { OperationType, FirestoreErrorInfo } from './types';
 import firebaseConfig from '../firebase-applet-config.json';
 
-// Initialize the App
-const app = initializeApp(firebaseConfig);
+const historicalDatabaseId =
+  (firebaseConfig as any).firestoreDatabaseId ||
+  'ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432';
 
-// Initialize Firestore targeting the specific applet Database ID instance
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  localCache: memoryLocalCache()
-}, (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-7f5d5a28-ea42-42fa-9865-8df2286be432');
+// Reuse the existing default Firebase app when this module and the collection helper
+// are both imported, then target the same verified historical Firestore database.
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Auth
+export const db = getFirestore(app, historicalDatabaseId);
 export const auth = getAuth(app);
 
 /**
- * Handle Firestore operational errors and format specific JSON diagnostic reporting
+ * Handle Firestore operational errors and format specific JSON diagnostic reporting.
  */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
@@ -31,17 +30,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
       providerInfo: auth.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
         email: provider.email,
-      })) || []
+      })) || [],
     },
     operationType,
-    path
+    path,
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   return errInfo;
 }
 
 /**
- * Test standard connection as mandated by skill guidelines
+ * Test standard connection against the shared named Firestore database.
  */
 export async function testConnection() {
   try {
