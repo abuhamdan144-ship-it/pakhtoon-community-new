@@ -8,6 +8,8 @@ import ghaniImage from '../assets/images/legends/ghani-khan.png';
 import bakhtiarImage from '../assets/images/legends/bakhtiar-khattak.jpg';
 import khushalImage from '../assets/images/legends/khushal-khan-khattak.png';
 import rahmanImage from '../assets/images/legends/rahman-baba.jpg';
+import { collections } from '../firebase/collections';
+import { onSnapshot, query } from 'firebase/firestore';
 
 export default function HTMLDesignPreview() {
   const [scrolled, setScrolled] = useState(false);
@@ -17,6 +19,8 @@ export default function HTMLDesignPreview() {
   const [selectedAmount, setSelectedAmount] = useState('OMR 10');
   const [daysRemaining, setDaysRemaining] = useState(41);
   const [cardTransform, setCardTransform] = useState('rotate(-3deg)');
+  const [cabinetMembers, setCabinetMembers] = useState([]);
+  const [cabinetLoaded, setCabinetLoaded] = useState(false);
 
   const opcCardRef = useRef(null);
   const progressFillRef = useRef(null);
@@ -103,6 +107,35 @@ export default function HTMLDesignPreview() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Load only the public-safe cabinet profile fields. Phone numbers and email addresses are never rendered on this page.
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(collections.cabinet),
+      (snapshot) => {
+        const profiles = snapshot.docs
+          .map((cabinetDoc) => {
+            const data = cabinetDoc.data();
+            return {
+              id: cabinetDoc.id,
+              name: typeof data.name === 'string' ? data.name : '',
+              position: typeof data.position === 'string' ? data.position : 'OPC Cabinet Member',
+              photo: typeof data.photo === 'string' ? data.photo : '',
+            };
+          })
+          .filter((profile) => profile.name);
+
+        setCabinetMembers(profiles);
+        setCabinetLoaded(true);
+      },
+      () => {
+        setCabinetMembers([]);
+        setCabinetLoaded(true);
+      },
+    );
+
+    return () => unsubscribe();
   }, []);
 
   // Calculate election countdown
@@ -881,16 +914,25 @@ export default function HTMLDesignPreview() {
           transform: translateY(-4px);
         }
         .opc-cabinet-avatar {
-          width: 64px;
-          height: 64px;
+          width: 76px;
+          height: 76px;
+          overflow: hidden;
           border-radius: 50%;
           background: linear-gradient(135deg, var(--g-700), var(--g-600));
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 22px;
           margin: 0 auto 14px;
-          border: 2px solid rgba(212,175,55,.3);
+          border: 2px solid rgba(212,175,55,.45);
+          color: var(--gold);
+          font-weight: 800;
+        }
+        .opc-cabinet-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
         }
         .opc-cabinet-card .role {
           font-size: 10px;
@@ -1684,30 +1726,54 @@ export default function HTMLDesignPreview() {
 
           <div className="opc-cabinet-president">
             <div>
-              <div className="opc-president-avatar">👤</div>
               <div className="opc-president-info">
-                <div className="role">President — OPC</div>
-                <div className="name">Ikram Bacha</div>
-                <p>Leading OPC since 2022, Ikram has grown the community from 400 to over 1,000 registered members, established the welfare fund, and built direct relations with the Pakistani Embassy in Muscat.</p>
+                <div className="role">OPC Leadership</div>
+                <div className="name">Meet the Executive Cabinet</div>
+                <p>Our cabinet profiles are displayed directly from the verified OPC leadership records. Only public name, position, and profile image information is shown.</p>
               </div>
             </div>
             <div className="opc-president-stats">
-              <div className="opc-pres-stat"><div className="num">+600</div><div className="lbl">Members added</div></div>
-              <div className="opc-pres-stat"><div className="num">3</div><div className="lbl">Elections led</div></div>
-              <div className="opc-pres-stat"><div className="num">24</div><div className="lbl">Welfare cases resolved</div></div>
+              <div className="opc-pres-stat"><div className="num">{cabinetMembers.length || '—'}</div><div className="lbl">Cabinet members</div></div>
+              <div className="opc-pres-stat"><div className="num">OPC</div><div className="lbl">Community leadership</div></div>
             </div>
           </div>
 
           <div className="opc-cabinet-grid">
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Vice President</div><div className="name">Noman Ali</div><div className="origin">Swat, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Secretary</div><div className="name">Said Ullah Khan</div><div className="origin">Buner, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Treasurer</div><div className="name">Khalid Rahman</div><div className="origin">Mardan, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Welfare Head</div><div className="name">Zahir Shah</div><div className="origin">Dir, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Media Officer</div><div className="name">Faisal Khan</div><div className="origin">Peshawar, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Cultural Head</div><div className="name">Gul Nawaz</div><div className="origin">Charsadda, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Legal Advisor</div><div className="name">Imran Wazir</div><div className="origin">Bannu, KPK</div></div>
-            <div className="opc-cabinet-card"><div className="opc-cabinet-avatar">👤</div><div className="role">Youth Head</div><div className="name">Asad Khattak</div><div className="origin">Karak, KPK</div></div>
+            {cabinetMembers.map((member) => {
+              const initials = member.name
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join('')
+                .toUpperCase();
+
+              return (
+                <div className="opc-cabinet-card" key={member.id}>
+                  <div className="opc-cabinet-avatar">
+                    {member.photo ? (
+                      <img
+                        src={member.photo}
+                        alt={`${member.name}, ${member.position}`}
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : initials}
+                  </div>
+                  <div className="role">{member.position}</div>
+                  <div className="name">{member.name}</div>
+                </div>
+              );
+            })}
           </div>
+
+          {cabinetLoaded && cabinetMembers.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,.6)', marginTop: '22px' }}>
+              Cabinet profiles are being prepared for publication.
+            </p>
+          )}
         </div>
       </section>
 
