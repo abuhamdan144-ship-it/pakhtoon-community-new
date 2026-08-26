@@ -104,6 +104,11 @@ service cloud.firestore {
       allow get, list: if isAdmin() || resource.data.status == 'approved';
       allow update, delete: if isAdmin();
     }
+    // Hero legends are public only when published; all management actions stay admin-only.
+    match /legends/{legendId} {
+      allow get, list: if resource.data.status == 'published';
+      allow read, write: if isAdmin();
+    }
     match /admin_logs/{documentId} {
       allow read, write: if isAdmin();
     }

@@ -7,6 +7,7 @@ import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from
 import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { collections } from '../firebase/collections';
+import { defaultHeroLegends } from '../data/heroLegends';
 
 const TABS = [
   { label: 'Overview', icon: FileText },
@@ -19,6 +20,7 @@ const TABS = [
   { label: 'Elections', icon: CheckCircle2 },
   { label: 'Ads', icon: ImagePlus },
   { label: 'Comments', icon: MessageCircle },
+  { label: 'Legends', icon: ShieldCheck },
 ];
 
 const AUTHORISED_ADMIN_EMAILS = new Set([
@@ -115,6 +117,9 @@ export default function Admin() {
   const [elections, setElections] = useState([]);
   const [ads, setAds] = useState([]);
   const [comments, setComments] = useState([]);
+  const [legendsRecords, setLegendsRecords] = useState([]);
+  const [editingLegend, setEditingLegend] = useState(null);
+  const [legendDraft, setLegendDraft] = useState({ name: '', category: 'Legends of Sports', honor: '', legacy: '', image: '', status: 'published', sortOrder: 1 });
   const [editingRecord, setEditingRecord] = useState(null);
   const [recordDraft, setRecordDraft] = useState({});
   const [creatingMember, setCreatingMember] = useState(false);
@@ -146,7 +151,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (!authorised) {
-      setMembers([]); setEvents([]); setCabinet([]); setNews([]); setDonations([]); setIncidents([]); setElections([]); setAds([]); setComments([]); setDataError('');
+      setMembers([]); setEvents([]); setCabinet([]); setNews([]); setDonations([]); setIncidents([]); setElections([]); setAds([]); setComments([]); setLegendsRecords([]); setDataError('');
       return undefined;
     }
     setDataError('');
@@ -160,6 +165,7 @@ export default function Admin() {
       onSnapshot(collections.elections, (snapshot) => setElections(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read election records.')),
       onSnapshot(collections.ads, (snapshot) => setAds(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read advertising records.')),
       onSnapshot(collections.comments, (snapshot) => setComments(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read comments.')),
+      onSnapshot(collections.legends, (snapshot) => setLegendsRecords(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })).sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))), () => setDataError('Your administrator account cannot read Pakhtoon Legends records.')),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [authorised]);
@@ -297,6 +303,58 @@ export default function Admin() {
       if (member.membershipId) await deleteDoc(doc(collections.memberCards, String(member.membershipId).trim().toUpperCase()));
     }
     catch (error) { setDataError(error?.message || 'Unable to delete the member record.'); }
+    finally { setBusy(false); }
+  };
+
+  const startNewLegend = () => {
+    setEditingLegend({ id: null });
+    setLegendDraft({ name: '', category: 'Legends of Sports', honor: '', legacy: '', image: '', status: 'published', sortOrder: legendsRecords.length + 1 });
+  };
+
+  const startLegendEdit = (legend) => {
+    setEditingLegend(legend);
+    setLegendDraft({ name: legend.name || '', category: legend.category || 'Legends of Sports', honor: legend.honor || '', legacy: legend.legacy || '', image: legend.image || '', status: legend.status || 'published', sortOrder: Number(legend.sortOrder || 1) });
+  };
+
+  const seedDefaultLegends = async () => {
+    if (legendsRecords.length && !window.confirm('Add the eight default Pakhtoon legends to the current list?')) return;
+    setBusy(true);
+    try {
+      const batch = writeBatch(db);
+      defaultHeroLegends.forEach((legend) => {
+        const ref = doc(collections.legends);
+        batch.set(ref, { ...legend, createdAt: serverTimestamp(), createdBy: user?.email || '', updatedAt: serverTimestamp(), updatedBy: user?.email || '' });
+      });
+      await batch.commit();
+    } catch (error) { setDataError(error?.message || 'Unable to initialize Pakhtoon Legends.'); }
+    finally { setBusy(false); }
+  };
+
+  const saveLegend = async (event) => {
+    event.preventDefault();
+    if (!editingLegend || !legendDraft.name.trim() || !legendDraft.honor.trim()) return;
+    setBusy(true);
+    try {
+      const payload = { ...legendDraft, name: legendDraft.name.trim(), category: legendDraft.category.trim(), honor: legendDraft.honor.trim(), legacy: legendDraft.legacy.trim(), sortOrder: Number(legendDraft.sortOrder) || 1, updatedAt: serverTimestamp(), updatedBy: user?.email || '' };
+      if (editingLegend.id) await updateDoc(doc(collections.legends, editingLegend.id), payload);
+      else await addDoc(collections.legends, { ...payload, createdAt: serverTimestamp(), createdBy: user?.email || '' });
+      setEditingLegend(null);
+    } catch (error) { setDataError(error?.message || 'Unable to save this legend.'); }
+    finally { setBusy(false); }
+  };
+
+  const updateLegendStatus = async (legend, status) => {
+    setBusy(true);
+    try { await updateDoc(doc(collections.legends, legend.id), { status, updatedAt: serverTimestamp(), updatedBy: user?.email || '' }); }
+    catch (error) { setDataError(error?.message || 'Unable to update this legend.'); }
+    finally { setBusy(false); }
+  };
+
+  const deleteLegend = async (legend) => {
+    if (!window.confirm(`Permanently delete ${legend.name || 'this legend'} from the hero category?`)) return;
+    setBusy(true);
+    try { await deleteDoc(doc(collections.legends, legend.id)); }
+    catch (error) { setDataError(error?.message || 'Unable to delete this legend.'); }
     finally { setBusy(false); }
   };
 
@@ -470,6 +528,14 @@ export default function Admin() {
             {activeTab === 'Overview' && <div className="grid grid-cols-1 gap-5 md:grid-cols-3"><Metric label="Approved Members" value={approvedMembers.length} help="Active and card-ready members" /><Metric label="Pending Approval" value={pendingMembers.length} help="Applications awaiting review" accent="orange" /><Metric label="Published Events" value={events.filter((event) => event.status === 'published').length} help="Visible community events" accent="green" /></div>}
 
             {activeTab === 'Members' && <section><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><input value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder="Search name, membership ID, phone or ID number" className="w-full max-w-xl rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/20" /><div className="flex flex-wrap items-center gap-3"><p className="text-sm text-gray-500">{filteredMembers.length} records</p><button type="button" onClick={startNewMember} className="inline-flex items-center gap-1 rounded-lg bg-forest-dark px-3 py-2 text-xs font-bold text-gold"><Plus size={14} />New member</button><button type="button" disabled={busy || approvedMembers.length === 0} onClick={syncApprovedMemberCards} className="rounded-lg border border-gold/50 px-3 py-2 text-xs font-bold text-forest-dark hover:bg-gold/10 disabled:opacity-50">Sync approved cards</button></div></div><div className="overflow-hidden rounded-xl border border-gray-200"><div className="overflow-x-auto"><table className="w-full min-w-[890px] text-left"><thead className="bg-gray-50 text-sm text-gray-600"><tr><th className="px-5 py-4">Photo</th><th className="px-5 py-4">Member</th><th className="px-5 py-4">Membership ID</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-right">Actions</th></tr></thead><tbody>{filteredMembers.map((member) => <tr key={member.id} className="border-t hover:bg-gray-50"><td className="px-5 py-3"><div className="h-10 w-10 overflow-hidden rounded-full bg-gray-100">{member.photo && <img src={member.photo} alt="" className="h-full w-full object-cover" />}</div></td><td className="px-5 py-3"><p className="font-bold text-gray-800">{member.name}</p><p className="text-xs text-gray-500">{member.phone || 'No phone saved'}</p>{member.status === 'approved' && <p className="text-xs font-mono text-forest-dark">PIN: {member.cardPin || deriveCardPin(member.phone) || 'Unavailable'}</p>}</td><td className="px-5 py-3 font-mono text-sm text-gray-600">{member.membershipId || 'PENDING'}</td><td className="px-5 py-3"><StatusPill value={member.status} /></td><td className="px-5 py-3"><div className="flex justify-end gap-2">{member.status === 'pending' && <><button type="button" disabled={busy} onClick={() => updateMemberStatus(member, 'approved')} className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-2.5 py-2 text-xs font-bold text-white"><CheckCircle2 size={14} />Approve</button><button type="button" disabled={busy} onClick={() => updateMemberStatus(member, 'rejected')} className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-2 text-xs font-bold text-white"><XCircle size={14} />Reject</button></>}<button type="button" onClick={() => startMemberEdit(member)} className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:border-gold hover:text-forest-dark"><Edit3 size={15} /></button><button type="button" onClick={() => deleteMember(member)} className="rounded-lg border border-red-100 p-2 text-red-600 hover:bg-red-50"><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div></div></section>}
+
+            {activeTab === 'Legends' && <section>
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-bold text-gray-800">Pakhtoon Legends</h2><p className="mt-1 text-xs text-gray-500">Manage only the legends shown in the homepage hero carousel.</p></div><div className="flex flex-wrap items-center gap-3"><span className="text-sm text-gray-500">{legendsRecords.length} records</span><button type="button" disabled={busy} onClick={seedDefaultLegends} className="rounded-lg border border-gold/50 px-3 py-2 text-xs font-bold text-forest-dark hover:bg-gold/10 disabled:opacity-50">Initialize current legends</button><button type="button" disabled={busy} onClick={startNewLegend} className="inline-flex items-center gap-1 rounded-lg bg-forest-dark px-3 py-2 text-xs font-bold text-gold disabled:opacity-50"><Plus size={14} />Add legend</button></div></div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{legendsRecords.map((legend) => <article key={legend.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"><div className="h-44 bg-forest-dark/5">{legend.image && <img src={legend.image} alt={legend.name || ''} className="h-full w-full object-cover" />}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="font-bold text-gray-800">{legend.name || 'Untitled legend'}</p><p className="mt-1 text-xs uppercase tracking-wide text-gold">{legend.category || 'Uncategorized'}</p></div><StatusPill value={legend.status || 'hidden'} /></div><p className="mt-3 text-sm font-semibold text-gray-700">{legend.honor || 'No honor line'}</p><p className="mt-2 line-clamp-3 text-sm text-gray-600">{legend.legacy || 'No legacy summary'}</p><div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={() => updateLegendStatus(legend, legend.status === 'published' ? 'hidden' : 'published')} className="rounded-lg border border-green-200 px-2.5 py-2 text-xs font-bold text-green-700 disabled:opacity-50">{legend.status === 'published' ? 'Hide from hero' : 'Publish to hero'}</button><button type="button" disabled={busy} onClick={() => startLegendEdit(legend)} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-2 text-xs font-bold text-gray-700 disabled:opacity-50"><Edit3 size={14} />Edit</button><button type="button" disabled={busy} onClick={() => deleteLegend(legend)} className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-2 text-xs font-bold text-red-600 disabled:opacity-50"><Trash2 size={14} />Delete</button></div></div></article>)}</div>
+              {legendsRecords.length === 0 && <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">No database legends yet. The public hero is using the current built-in legends. Select “Initialize current legends” to make them editable here.</div>}
+            </section>}
+
+            {editingLegend && <Modal title={editingLegend.id ? 'Edit Pakhtoon legend' : 'Add Pakhtoon legend'} onClose={() => setEditingLegend(null)}><form onSubmit={saveLegend} className="grid gap-4 md:grid-cols-2"><Field label="Legend name" value={legendDraft.name} onChange={(value) => setLegendDraft({ ...legendDraft, name: value })} required /><Field label="Category" value={legendDraft.category} onChange={(value) => setLegendDraft({ ...legendDraft, category: value })} required /><Field label="Honor line" value={legendDraft.honor} onChange={(value) => setLegendDraft({ ...legendDraft, honor: value })} required /><Field label="Display order" type="number" value={legendDraft.sortOrder} onChange={(value) => setLegendDraft({ ...legendDraft, sortOrder: value })} /><TextAreaField label="Legacy summary" value={legendDraft.legacy} onChange={(value) => setLegendDraft({ ...legendDraft, legacy: value })} /><StatusField value={legendDraft.status} options={['published', 'hidden']} onChange={(value) => setLegendDraft({ ...legendDraft, status: value })} /><ImageField label="Legend image" value={legendDraft.image} onChange={(event) => handleImageUpload(event, setLegendDraft, legendDraft)} onClear={() => setLegendDraft({ ...legendDraft, image: '' })} /><button disabled={busy} className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{editingLegend.id ? 'Save legend' : 'Add legend'}</button></form></Modal>}
 
             {activeTab === 'Events' && <section className="grid gap-8 xl:grid-cols-[360px_1fr]"><form onSubmit={saveEvent} className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-5"><div className="flex items-center justify-between"><h2 className="font-bold text-gray-800">{editingEvent ? 'Edit event' : 'Create event'}</h2>{editingEvent && <button type="button" onClick={() => { setEditingEvent(null); setEventDraft({ title: '', date: '', venue: '', description: '', image: '', status: 'published', successful: false }); }} className="text-sm font-bold text-gray-500">Cancel</button>}</div><Field label="Event title" value={eventDraft.title} onChange={(value) => setEventDraft({ ...eventDraft, title: value })} required /><Field label="Event date" type="date" value={eventDraft.date} onChange={(value) => setEventDraft({ ...eventDraft, date: value })} /><Field label="Venue" value={eventDraft.venue} onChange={(value) => setEventDraft({ ...eventDraft, venue: value })} /><div><div className="flex items-center justify-between gap-3"><label className="block text-sm font-semibold text-gray-700">Event summary</label>{eventDraft.description && <button type="button" onClick={() => setEventDraft({ ...eventDraft, description: '' })} className="text-xs font-bold text-red-600 hover:underline">Clear summary</button>}</div><textarea value={eventDraft.description} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows="4" placeholder="Write the public event summary" className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-2 outline-none focus:border-gold" /></div><ImageField label="Event image" value={eventDraft.image} onClear={() => setEventDraft({ ...eventDraft, image: '' })} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { setEventDraft({ ...eventDraft, image: await readImage(file) }); } catch (error) { setDataError(error.message); } }} /><label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={eventDraft.status === 'published'} onChange={(event) => setEventDraft({ ...eventDraft, status: event.target.checked ? 'published' : 'draft' })} /> Publish to public event section</label><label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" checked={Boolean(eventDraft.successful)} onChange={(event) => setEventDraft({ ...eventDraft, successful: event.target.checked })} /> Show in Successful Events</label><button disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-dark px-4 py-3 font-bold text-gold disabled:opacity-70"><Save size={17} />{editingEvent ? 'Save event' : 'Create event'}</button></form><div className="grid gap-4 md:grid-cols-2">{events.map((record) => <article key={record.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white"><div className="h-36 bg-forest-dark/5">{record.image && <img src={record.image} alt="" className="h-full w-full object-cover" />}</div><div className="p-5"><div className="flex items-start justify-between gap-3"><h3 className="font-bold text-gray-800">{record.title}</h3><StatusPill value={record.status} /></div><p className="mt-2 text-xs font-medium text-gray-500">{record.date || 'Date to be announced'} · {record.venue || 'Venue to be announced'}</p><p className="mt-3 line-clamp-3 text-sm text-gray-600">{record.description}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => { setEditingEvent(record); setEventDraft({ title: record.title || '', date: asDate(record.date), venue: record.venue || '', description: record.description || '', image: record.image || '', status: record.status || 'draft', successful: Boolean(record.successful) }); }} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700"><Edit3 size={14} />Edit</button><button type="button" onClick={() => deleteEvent(record)} className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-3 py-2 text-xs font-bold text-red-600"><Trash2 size={14} />Remove</button></div></div></article>)}</div></section>}
 

@@ -1,14 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import opcLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
-import jahngirJansherImage from '../assets/images/legends/jahangir-jansher-khan.jpg';
-import younisImage from '../assets/images/legends/younis-khan.jpg';
-import shahidImage from '../assets/images/legends/shahid-afridi.jpg';
-import hamzaImage from '../assets/images/legends/hamza-baba.webp';
-import ghaniImage from '../assets/images/legends/ghani-khan.png';
-import bakhtiarImage from '../assets/images/legends/bakhtiar-khattak.jpg';
-import khushalImage from '../assets/images/legends/khushal-khan-khattak.png';
-import rahmanImage from '../assets/images/legends/rahman-baba.jpg';
+import HeroLegendsCoverflow from './HeroLegendsCoverflow';
+import { defaultHeroLegends } from '../data/heroLegends';
 import { collections } from '../firebase/collections';
 import { addDoc, doc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
 
@@ -44,85 +38,10 @@ export default function HTMLDesignPreview() {
   const [publicComments, setPublicComments] = useState([]);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [publicStats, setPublicStats] = useState({ totalMembers: 0, approvedMembers: 0 });
+  const [heroLegends, setHeroLegends] = useState(defaultHeroLegends);
 
   const opcCardRef = useRef(null);
   const progressFillRef = useRef(null);
-  const legends = [
-    {
-      category: 'Legends of Sports',
-      name: 'Jahangir Khan & Jansher Khan',
-      image: jahngirJansherImage,
-      visualCredit: 'Historic squash image',
-      honor: 'Squash Champions · World Record Holders',
-      summary: 'Two Pakhtoon squash champions whose era of dominance made Pakistan a global powerhouse in the sport.',
-      legacy: 'Jahangir’s 555-match winning streak and Jansher’s record eight World Open titles remain defining milestones in squash history.',
-    },
-    {
-      category: 'Legends of Sports',
-      name: 'Younis Khan',
-      image: younisImage,
-      visualCredit: 'Cricket portrait',
-      honor: 'Pakistan Captain · Test Cricket Great',
-      summary: 'The former Pakistan captain and world-class batsman from Mardan who led with grit and composure.',
-      legacy: 'Pakistan’s first Test batter to pass 10,000 runs, he also captained the side to the 2009 ICC World Twenty20 title.',
-    },
-    {
-      category: 'Legends of Sports',
-      name: 'Shahid Afridi',
-      image: shahidImage,
-      visualCredit: 'Cricket photograph',
-      honor: '“Boom Boom” · Pakistan All-Rounder',
-      summary: '“Boom Boom” Afridi is an iconic Pakhtoon all-rounder celebrated for his fearless batting and quick leg-spin.',
-      legacy: 'His charisma and aggressive limited-overs style made him one of Pakistan cricket’s most recognisable global figures.',
-    },
-    {
-      category: 'Cultural & Literary Icons',
-      name: 'Hamza Baba',
-      image: hamzaImage,
-      visualCredit: 'Literary feature image',
-      honor: 'Baba-e-Ghazal · Pashto Poet',
-      summary: 'Amir Hamza Shinwari, revered as Baba-e-Ghazal, expanded the expressive range of modern Pashto poetry.',
-      legacy: 'His work fused Sufi thought with romantic expression and helped bridge classical and modern Pashto literature.',
-    },
-    {
-      category: 'Cultural & Literary Icons',
-      name: 'Ghani Khan',
-      image: ghaniImage,
-      visualCredit: 'Archival art visual',
-      honor: 'Poet · Artist · Philosopher',
-      summary: 'A poet, artist, and thinker whose distinctive voice shaped twentieth-century Pashto literature.',
-      legacy: 'His poetry brought philosophical reflection, wit, and artistic independence to a new generation of readers.',
-    },
-    {
-      category: 'Cultural & Literary Icons',
-      name: 'Bakhtiar Khattak',
-      image: bakhtiarImage,
-      visualCredit: 'Artist portrait',
-      honor: 'Pashto Singer · Tamgha-i-Imtiaz',
-      summary: 'A Pashto singer and host whose work has carried Pakhtoon culture to contemporary audiences.',
-      legacy: 'He received the Tamgha-i-Imtiaz in 2025 in recognition of his cultural contribution.',
-    },
-    {
-      category: 'Revolutionary Resistance Leaders',
-      name: 'Khushal Khan Khattak',
-      image: khushalImage,
-      visualCredit: 'Historic illustration',
-      honor: 'Warrior Poet · Voice of Pashtuns',
-      summary: 'A seventeenth-century warrior, tribal chief, and defining poet of the Pashtuns.',
-      legacy: 'His poetry called for unity, leadership, dignity, and resistance in defence of Pakhtoon autonomy.',
-    },
-    {
-      category: 'Revolutionary Resistance Leaders',
-      name: 'Rahman Baba',
-      image: rahmanImage,
-      visualCredit: 'Historic portrait and shrine visual',
-      honor: 'Sufi Poet · Prince of Pashto Poets',
-      summary: 'An iconic seventeenth-century Sufi poet whose spiritual verse remains central to Pashto culture.',
-      legacy: 'His poetry of divine love, introspection, and humanism continues to resonate across generations.',
-    },
-  ];
-  const heroLegendsLoop = [...legends, ...legends];
-
   // Scroll listener for header
   useEffect(() => {
     const handleScroll = () => {
@@ -195,6 +114,20 @@ export default function HTMLDesignPreview() {
     const unsubscribe = onSnapshot(doc(collections.settings, 'publicStats'), (snapshot) => {
       if (snapshot.exists()) setPublicStats(snapshot.data());
     }, () => setPublicStats({ totalMembers: 0, approvedMembers: 0 }));
+    return () => unsubscribe();
+  }, []);
+
+  // Published legends are managed by administrators; local defaults keep the hero visible before initialization.
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(collections.legends, where('status', '==', 'published')),
+      (snapshot) => {
+        const records = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })).sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+        if (records.length) setHeroLegends(records);
+        else setHeroLegends(defaultHeroLegends);
+      },
+      () => setHeroLegends(defaultHeroLegends),
+    );
     return () => unsubscribe();
   }, []);
 
@@ -569,6 +502,64 @@ export default function HTMLDesignPreview() {
         .opc-honouree-name { color: var(--white); font-size: 17px; font-weight: 800; line-height: 1.14; }
         .opc-honouree-honor { color: var(--gold); margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: .8px; line-height: 1.35; text-transform: uppercase; }
         @keyframes opc-slide-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        /* HERO ONLY: editable Pakhtoon Legends coverflow */
+        .opc-legends-coverflow {
+          position: relative;
+          min-width: 0;
+          padding: 18px 12px 20px;
+          border: 1px solid rgba(212,175,55,.28);
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(5,31,22,.3));
+          box-shadow: 0 22px 70px rgba(0,0,0,.28);
+        }
+        .opc-legends-coverflow-frame {
+          position: relative;
+          height: 330px;
+          outline: none;
+          cursor: grab;
+          touch-action: pan-y;
+          perspective: 860px;
+        }
+        .opc-legends-coverflow-frame:active { cursor: grabbing; }
+        .opc-legends-coverflow-frame:focus-visible { box-shadow: 0 0 0 2px var(--gold); border-radius: 16px; }
+        .opc-legends-coverflow-track { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+        .opc-legends-coverflow-card {
+          position: absolute;
+          top: 10px;
+          left: 50%;
+          width: clamp(165px, 17vw, 222px);
+          aspect-ratio: .72;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,.22);
+          border-radius: 18px;
+          background: var(--g-800);
+          box-shadow: 0 22px 48px rgba(0,0,0,.38);
+          transform-style: preserve-3d;
+          will-change: transform, opacity;
+          transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .opc-legends-coverflow-card.is-active { border-color: rgba(212,175,55,.95); box-shadow: 0 25px 58px rgba(0,0,0,.5), 0 0 0 1px rgba(212,175,55,.2); }
+        .opc-legends-coverflow-card img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; }
+        .opc-legends-coverflow-card-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(5,31,22,.72), transparent 48%); pointer-events: none; }
+        .opc-legends-coverflow-card-index { position: absolute; top: 12px; left: 12px; z-index: 2; padding: 5px 8px; border: 1px solid rgba(255,255,255,.35); border-radius: 99px; background: rgba(5,31,22,.58); color: var(--cream); font-size: 9px; font-weight: 800; letter-spacing: 1.2px; backdrop-filter: blur(8px); }
+        .opc-legends-coverflow-nav { position: absolute; top: 50%; z-index: 200; display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(212,175,55,.6); border-radius: 50%; background: rgba(5,31,22,.78); color: var(--gold); transform: translateY(-50%); transition: background .2s ease, transform .2s ease; }
+        .opc-legends-coverflow-nav:hover { background: rgba(212,175,55,.2); transform: translateY(-50%) scale(1.06); }
+        .opc-legends-coverflow-prev { left: 4px; }
+        .opc-legends-coverflow-next { right: 4px; }
+        .opc-legends-coverflow-caption { min-height: 122px; padding: 3px 12px 0; text-align: center; }
+        .opc-legends-coverflow-category { color: var(--gold); font-size: 9px; font-weight: 800; letter-spacing: 1.7px; text-transform: uppercase; }
+        .opc-legends-coverflow-caption h2 { margin: 7px 0 0; color: var(--white); font-family: Georgia, serif; font-size: clamp(22px, 2.7vw, 31px); line-height: 1.04; }
+        .opc-legends-coverflow-honor { margin: 6px 0 0; color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: .8px; line-height: 1.35; text-transform: uppercase; }
+        .opc-legends-coverflow-legacy { max-width: 360px; margin: 8px auto 0; color: rgba(255,255,255,.58); font-size: 11px; line-height: 1.45; }
+        .opc-legends-coverflow-dots { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 7px; }
+        .opc-legends-coverflow-dots button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.34); transition: width .2s ease, background .2s ease; }
+        .opc-legends-coverflow-dots button.is-active { width: 22px; border-radius: 99px; background: var(--gold); }
+        @media (max-width: 768px) {
+          .opc-legends-coverflow { padding-inline: 4px; }
+          .opc-legends-coverflow-frame { height: 285px; }
+          .opc-legends-coverflow-card { width: clamp(150px, 44vw, 198px); }
+          .opc-legends-coverflow-legacy { font-size: 10px; }
+        }
         .opc-hero-eyebrow {
           display: inline-flex;
           align-items: center;
@@ -1813,20 +1804,7 @@ export default function HTMLDesignPreview() {
           </svg>
         </div>
         <div className="opc-hero-content">
-          <div className="opc-honourees" aria-label="Pakhtoon Legends sliding gallery">
-            <div className="opc-honourees-label">✦ Pakhtoon Legends</div>
-            <div className="opc-honourees-track">
-              {heroLegendsLoop.map((legend, index) => (
-                <article className="opc-honouree-card" key={`${legend.name}-${index}`}>
-                  <img src={legend.image} alt={legend.name} loading={index > 3 ? 'lazy' : 'eager'} />
-                  <div className="opc-honouree-caption">
-                    <div className="opc-honouree-name">{legend.name}</div>
-                    <div className="opc-honouree-honor">{legend.honor}</div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
+          <HeroLegendsCoverflow slides={heroLegends} />
           <div className="opc-hero-copy">
             <div className="opc-hero-eyebrow"><span></span> Established 2018 · Muscat, Oman <span></span></div>
             <h1>United by Roots,<em>Strengthened by Community</em></h1>
