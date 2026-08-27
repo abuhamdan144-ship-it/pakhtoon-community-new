@@ -422,7 +422,7 @@ export default function Admin() {
     if (!file) return;
     try {
       const image = await readImage(file);
-      setter({ ...draft, photo: draft.position !== undefined ? image : draft.image !== undefined ? image : image });
+      setter({ ...draft, image });
     } catch (error) { setDataError(error?.message || 'Unable to read the selected image.'); }
   };
 
