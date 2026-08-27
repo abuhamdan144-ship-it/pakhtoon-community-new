@@ -4,7 +4,7 @@ import opcLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg'
 import HeroLegendsCoverflow from './HeroLegendsCoverflow';
 import { defaultHeroLegends } from '../data/heroLegends';
 import { collections } from '../firebase/collections';
-import { doc, onSnapshot, query, where } from 'firebase/firestore';
+import { onSnapshot, query, where } from 'firebase/firestore';
 
 const cabinetPositionRank = (position = '') => {
   const value = String(position).toLowerCase();
@@ -34,7 +34,6 @@ export default function HTMLDesignPreview() {
   const [cabinetMembers, setCabinetMembers] = useState([]);
   const [cabinetLoaded, setCabinetLoaded] = useState(false);
   const [publicEvents, setPublicEvents] = useState([]);
-  const [publicStats, setPublicStats] = useState({ totalMembers: 0, approvedMembers: 0 });
   const [heroLegends, setHeroLegends] = useState(defaultHeroLegends);
 
   const opcCardRef = useRef(null);
@@ -91,14 +90,6 @@ export default function HTMLDesignPreview() {
       () => setPublicEvents([]),
     );
 
-    return () => unsubscribe();
-  }, []);
-
-  // Keep the public count limited to aggregate statistics; no member records are exposed here.
-  useEffect(() => {
-    const unsubscribe = onSnapshot(doc(collections.settings, 'publicStats'), (snapshot) => {
-      if (snapshot.exists()) setPublicStats(snapshot.data());
-    }, () => setPublicStats({ totalMembers: 0, approvedMembers: 0 }));
     return () => unsubscribe();
   }, []);
 
@@ -381,7 +372,7 @@ export default function HTMLDesignPreview() {
         }
         .opc-hero-copy { text-align: left; }
         .opc-hero-copy .opc-hero-sub { margin-left: 0; }
-        .opc-hero-copy .opc-hero-ctas, .opc-hero-copy .opc-hero-stats { justify-content: flex-start; }
+        .opc-hero-copy .opc-hero-ctas { justify-content: flex-start; }
         .opc-honourees {
           position: relative;
           overflow: hidden;
@@ -559,25 +550,6 @@ export default function HTMLDesignPreview() {
           justify-content: center;
           flex-wrap: wrap;
           margin-bottom: 60px;
-        }
-        .opc-hero-stats {
-          display: flex;
-          gap: 48px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .opc-hero-stat .num {
-          font-size: 32px;
-          font-weight: 900;
-          color: var(--gold);
-          letter-spacing: -1px;
-        }
-        .opc-hero-stat .lbl {
-          font-size: 11px;
-          color: rgba(255,255,255,.5);
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-          margin-top: 4px;
         }
         .opc-scroll-indicator {
           position: absolute;
@@ -1658,7 +1630,7 @@ export default function HTMLDesignPreview() {
           .opc-honourees { order: 1; }
           .opc-hero-copy { order: 2; text-align: center; }
           .opc-hero-copy .opc-hero-sub { margin-left: auto; }
-          .opc-hero-copy .opc-hero-ctas, .opc-hero-copy .opc-hero-stats { justify-content: center; }
+          .opc-hero-copy .opc-hero-ctas { justify-content: center; }
           .opc-card-layout { grid-template-columns: 1fr; }
           .opc-cabinet-president { grid-template-columns: 1fr; }
           .opc-president-stats { flex-direction: row; flex-wrap: wrap; }
@@ -1677,7 +1649,6 @@ export default function HTMLDesignPreview() {
           .opc-news-grid { grid-template-columns: 1fr; }
           .opc-election-card { grid-template-columns: 1fr; }
           .opc-services-grid { grid-template-columns: 1fr; }
-          .opc-hero-stats { gap: 24px; }
           .opc-honouree-card { width: 178px; height: 240px; }
           .opc-honouree-name { font-size: 15px; }
           .opc-honouree-honor { font-size: 9px; }
@@ -1756,12 +1727,6 @@ export default function HTMLDesignPreview() {
             <div className="opc-hero-ctas">
               <Link to="/membership" className="opc-btn opc-btn-gold" style={{ padding: '14px 30px', fontSize: '15px' }}>Become a Member</Link>
               <a href="#about" onClick={(e) => { e.preventDefault(); scrollTo('about'); }} className="opc-btn opc-btn-ghost" style={{ padding: '14px 30px', fontSize: '15px' }}>Explore OPC</a>
-            </div>
-            <div className="opc-hero-stats">
-              <div className="opc-hero-stat"><div className="num">{publicStats.totalMembers || '—'}</div><div className="lbl">Registered Members</div></div>
-              <div className="opc-hero-stat"><div className="num">7+</div><div className="lbl">Years in Oman</div></div>
-              <div className="opc-hero-stat"><div className="num">24/7</div><div className="lbl">Welfare Support</div></div>
-              <div className="opc-hero-stat"><div className="num">12</div><div className="lbl">Cabinet Members</div></div>
             </div>
           </div>
         </div>
