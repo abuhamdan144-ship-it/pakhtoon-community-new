@@ -515,30 +515,45 @@ export default function HTMLDesignPreview() {
         .opc-legends-coverflow-frame {
           position: relative;
           height: 330px;
+          overflow: hidden;
           outline: none;
           cursor: grab;
           touch-action: pan-y;
-          perspective: 860px;
+          border-radius: 16px;
         }
         .opc-legends-coverflow-frame:active { cursor: grabbing; }
-        .opc-legends-coverflow-frame:focus-visible { box-shadow: 0 0 0 2px var(--gold); border-radius: 16px; }
-        .opc-legends-coverflow-track { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
-        .opc-legends-coverflow-card {
+        .opc-legends-coverflow-frame:focus-visible { box-shadow: 0 0 0 2px var(--gold); }
+        .opc-legends-coverflow-mask {
           position: absolute;
-          top: 10px;
-          left: 50%;
+          inset: 0;
+          overflow: hidden;
+          mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
+        }
+        .opc-legends-coverflow-track {
+          display: flex;
+          width: max-content;
+          height: 100%;
+          animation: opc-legends-ticker var(--ticker-duration, 32s) linear infinite;
+          will-change: transform;
+        }
+        .opc-legends-coverflow-track.is-paused { animation-play-state: paused; }
+        .opc-legends-coverflow-group { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 16px; height: 100%; padding: 10px 8px; }
+        .opc-legends-coverflow-card {
+          position: relative;
+          flex: 0 0 clamp(165px, 17vw, 222px);
           width: clamp(165px, 17vw, 222px);
+          height: 100%;
           aspect-ratio: .72;
           overflow: hidden;
           border: 1px solid rgba(255,255,255,.22);
           border-radius: 18px;
           background: var(--g-800);
           box-shadow: 0 22px 48px rgba(0,0,0,.38);
-          transform-style: preserve-3d;
-          will-change: transform, opacity;
           transition: border-color .2s ease, box-shadow .2s ease;
         }
         .opc-legends-coverflow-card.is-active { border-color: rgba(212,175,55,.95); box-shadow: 0 25px 58px rgba(0,0,0,.5), 0 0 0 1px rgba(212,175,55,.2); }
+        @keyframes opc-legends-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .opc-legends-coverflow-card img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; }
         .opc-legends-coverflow-card-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(5,31,22,.72), transparent 48%); pointer-events: none; }
         .opc-legends-coverflow-card-index { position: absolute; top: 12px; left: 12px; z-index: 2; padding: 5px 8px; border: 1px solid rgba(255,255,255,.35); border-radius: 99px; background: rgba(5,31,22,.58); color: var(--cream); font-size: 9px; font-weight: 800; letter-spacing: 1.2px; backdrop-filter: blur(8px); }
@@ -546,6 +561,7 @@ export default function HTMLDesignPreview() {
         .opc-legends-coverflow-nav:hover { background: rgba(212,175,55,.2); transform: translateY(-50%) scale(1.06); }
         .opc-legends-coverflow-prev { left: 4px; }
         .opc-legends-coverflow-next { right: 4px; }
+        .opc-legends-coverflow-pause { position: absolute; right: 14px; bottom: 12px; z-index: 210; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(212,175,55,.55); border-radius: 999px; background: rgba(5,31,22,.8); padding: 6px 9px; color: var(--cream); font-size: 10px; font-weight: 800; letter-spacing: .5px; }
         .opc-legends-coverflow-caption { min-height: 122px; padding: 3px 12px 0; text-align: center; }
         .opc-legends-coverflow-category { color: var(--gold); font-size: 9px; font-weight: 800; letter-spacing: 1.7px; text-transform: uppercase; }
         .opc-legends-coverflow-caption h2 { margin: 7px 0 0; color: var(--white); font-family: Georgia, serif; font-size: clamp(22px, 2.7vw, 31px); line-height: 1.04; }
@@ -557,7 +573,9 @@ export default function HTMLDesignPreview() {
         @media (max-width: 768px) {
           .opc-legends-coverflow { padding-inline: 4px; }
           .opc-legends-coverflow-frame { height: 285px; }
-          .opc-legends-coverflow-card { width: clamp(150px, 44vw, 198px); }
+          .opc-legends-coverflow-card { flex-basis: clamp(150px, 44vw, 198px); width: clamp(150px, 44vw, 198px); }
+          .opc-legends-coverflow-group { gap: 12px; padding-inline: 6px; }
+          .opc-legends-coverflow-pause { right: 10px; bottom: 10px; }
           .opc-legends-coverflow-legacy { font-size: 10px; }
         }
         .opc-hero-eyebrow {
