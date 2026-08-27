@@ -4,7 +4,7 @@ import opcLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg'
 import HeroLegendsCoverflow from './HeroLegendsCoverflow';
 import { defaultHeroLegends } from '../data/heroLegends';
 import { collections } from '../firebase/collections';
-import { addDoc, doc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
+import { doc, onSnapshot, query, where } from 'firebase/firestore';
 
 const cabinetPositionRank = (position = '') => {
   const value = String(position).toLowerCase();
@@ -34,8 +34,6 @@ export default function HTMLDesignPreview() {
   const [cabinetMembers, setCabinetMembers] = useState([]);
   const [cabinetLoaded, setCabinetLoaded] = useState(false);
   const [publicEvents, setPublicEvents] = useState([]);
-  const [publicComments, setPublicComments] = useState([]);
-  const [commentDrafts, setCommentDrafts] = useState({});
   const [publicStats, setPublicStats] = useState({ totalMembers: 0, approvedMembers: 0 });
   const [heroLegends, setHeroLegends] = useState(defaultHeroLegends);
 
@@ -117,36 +115,6 @@ export default function HTMLDesignPreview() {
     );
     return () => unsubscribe();
   }, []);
-
-  // Only approved comments are displayed publicly; new comments wait for admin review.
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(collections.comments, where('status', '==', 'approved')),
-      (snapshot) => setPublicComments(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))),
-      () => setPublicComments([]),
-    );
-    return () => unsubscribe();
-  }, []);
-
-  const updateCommentDraft = (eventId, field, value) => {
-    setCommentDrafts((current) => ({ ...current, [eventId]: { ...(current[eventId] || {}), [field]: value } }));
-  };
-
-  const submitEventComment = async (event, eventId) => {
-    event.preventDefault();
-    const draft = commentDrafts[eventId] || {};
-    if (!String(draft.name || '').trim() || !String(draft.text || '').trim()) {
-      triggerToast('Please enter your name and comment.');
-      return;
-    }
-    try {
-      await addDoc(collections.comments, { eventId, name: draft.name.trim().slice(0, 80), text: draft.text.trim().slice(0, 500), status: 'pending', createdAt: serverTimestamp() });
-      setCommentDrafts((current) => ({ ...current, [eventId]: { name: '', text: '' } }));
-      triggerToast('Thank you. Your comment is waiting for OPC admin approval.');
-    } catch (error) {
-      triggerToast(error?.message || 'Unable to submit your comment.');
-    }
-  };
 
   // Calculate election countdown
   useEffect(() => {
@@ -1126,20 +1094,12 @@ export default function HTMLDesignPreview() {
           font-size: 16px;
           margin: 0 0 8px;
         }
-        .opc-successful-event p, .opc-comments-intro, .opc-approved-comments p {
+        .opc-successful-event p {
           color: rgba(255,255,255,.62);
           font-size: 13px;
           line-height: 1.6;
           margin: 0;
         }
-        .opc-comments-intro { margin-top: 8px; }
-        .opc-event-comments { display: grid; gap: 14px; }
-        .opc-event-comment-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-        .opc-event-comment-heading span { color: var(--gold); font-size: 11px; }
-        .opc-approved-comments { display: grid; gap: 8px; margin: 12px 0; }
-        .opc-comment-form { display: grid; gap: 8px; margin-top: 14px; }
-        .opc-comment-form input, .opc-comment-form textarea { width: 100%; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(255,255,255,.06); color: var(--white); padding: 10px 12px; font: inherit; }
-        .opc-comment-form input::placeholder, .opc-comment-form textarea::placeholder { color: rgba(255,255,255,.42); }
         @media (max-width: 768px) {
           .opc-successful-events-grid { grid-template-columns: 1fr; }
         }
@@ -1999,7 +1959,6 @@ export default function HTMLDesignPreview() {
 
           {publicEvents.some((event) => event.successful) && <div className="opc-successful-events"><div className="opc-section-label">Successful events</div><div className="opc-successful-events-grid">{publicEvents.filter((event) => event.successful).map((event) => <article key={`successful-${event.id}`} className="opc-successful-event"><div className="opc-successful-event-image">{event.image ? <img src={event.image} alt={event.title} /> : '📸'}</div><div><h3>{event.title}</h3><p>{event.summary || event.description || 'A successful OPC community event.'}</p></div></article>)}</div></div>}
 
-          {publicEvents.length > 0 && <div className="opc-event-comments"><div className="opc-section-label">Member comments</div><p className="opc-comments-intro">Share your experience. Comments appear after administrator approval.</p>{publicEvents.slice(0, 3).map((event) => { const draft = commentDrafts[event.id] || {}; const commentsForEvent = publicComments.filter((comment) => comment.eventId === event.id); return <article className="opc-event-comment-card" key={`comments-${event.id}`}><div className="opc-event-comment-heading"><h3>{event.title}</h3><span>{commentsForEvent.length} approved</span></div>{commentsForEvent.length > 0 && <div className="opc-approved-comments">{commentsForEvent.slice(0, 4).map((comment) => <p key={comment.id}><strong>{comment.name}:</strong> {comment.text}</p>)}</div>}<form onSubmit={(formEvent) => submitEventComment(formEvent, event.id)} className="opc-comment-form"><input value={draft.name || ''} onChange={(inputEvent) => updateCommentDraft(event.id, 'name', inputEvent.target.value)} placeholder="Your name" maxLength="80" /><textarea value={draft.text || ''} onChange={(inputEvent) => updateCommentDraft(event.id, 'text', inputEvent.target.value)} placeholder="Write a respectful comment" maxLength="500" rows="2" /><button type="submit" className="opc-btn opc-btn-ghost">Submit comment</button></form></article>; })}</div>}
         </div>
       </section>
 
