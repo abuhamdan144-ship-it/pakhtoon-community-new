@@ -33,7 +33,6 @@ export default function HTMLDesignPreview() {
   const [cardTransform, setCardTransform] = useState('rotate(-3deg)');
   const [cabinetMembers, setCabinetMembers] = useState([]);
   const [cabinetLoaded, setCabinetLoaded] = useState(false);
-  const cabinetSliderRef = useRef(null);
   const [publicEvents, setPublicEvents] = useState([]);
   const [publicComments, setPublicComments] = useState([]);
   const [commentDrafts, setCommentDrafts] = useState({});
@@ -80,18 +79,6 @@ export default function HTMLDesignPreview() {
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (cabinetMembers.length < 2) return undefined;
-    const interval = window.setInterval(() => {
-      const slider = cabinetSliderRef.current;
-      if (!slider) return;
-      const maxScroll = slider.scrollWidth - slider.clientWidth;
-      if (slider.scrollLeft >= maxScroll - 12) slider.scrollTo({ left: 0, behavior: 'smooth' });
-      else slider.scrollBy({ left: 330, behavior: 'smooth' });
-    }, 4500);
-    return () => window.clearInterval(interval);
-  }, [cabinetMembers.length]);
 
   // Published events are maintained by authorised administrators in the dashboard.
   useEffect(() => {
@@ -200,10 +187,6 @@ export default function HTMLDesignPreview() {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
-  };
-
-  const scrollCabinet = (direction) => {
-    cabinetSliderRef.current?.scrollBy({ left: direction * 330, behavior: 'smooth' });
   };
 
   return (
@@ -540,6 +523,7 @@ export default function HTMLDesignPreview() {
         }
         .opc-legends-coverflow-card.is-active { border-color: rgba(212,175,55,.95); box-shadow: 0 25px 58px rgba(0,0,0,.5), 0 0 0 1px rgba(212,175,55,.2); }
         .opc-legends-coverflow-card img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; }
+        .opc-legends-coverflow-card-placeholder { display: grid; width: 100%; height: 100%; place-items: center; background: radial-gradient(circle at 30% 20%, rgba(212,175,55,.28), transparent 38%), linear-gradient(145deg, var(--g-600), var(--g-900)); color: var(--gold); font-size: clamp(34px, 5vw, 62px); font-weight: 900; letter-spacing: 3px; }
         .opc-legends-coverflow-card-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(5,31,22,.72), transparent 48%); pointer-events: none; }
         .opc-legends-coverflow-card-index { position: absolute; top: 12px; left: 12px; z-index: 2; padding: 5px 8px; border: 1px solid rgba(255,255,255,.35); border-radius: 99px; background: rgba(5,31,22,.58); color: var(--cream); font-size: 9px; font-weight: 800; letter-spacing: 1.2px; backdrop-filter: blur(8px); }
         .opc-legends-coverflow-nav { position: absolute; top: 50%; z-index: 200; display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(212,175,55,.6); border-radius: 50%; background: rgba(5,31,22,.78); color: var(--gold); transform: translateY(-50%); transition: background .2s ease, transform .2s ease; }
@@ -1940,42 +1924,30 @@ export default function HTMLDesignPreview() {
           </div>
 
           <div className="opc-cabinet-slider-wrap">
-            {cabinetMembers.length > 1 && <>
-              <button type="button" className="opc-cabinet-slider-button prev" aria-label="Show previous cabinet members" onClick={() => scrollCabinet(-1)}>‹</button>
-              <button type="button" className="opc-cabinet-slider-button next" aria-label="Show more cabinet members" onClick={() => scrollCabinet(1)}>›</button>
-            </>}
-            <div className="opc-cabinet-grid" ref={cabinetSliderRef}>
-            {cabinetMembers.map((member, index) => {
-              const initials = member.name
-                .split(' ')
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((part) => part[0])
-                .join('')
-                .toUpperCase();
-
-              return (
-                <div className="opc-cabinet-card" key={member.id}>
-                  <div className="opc-cabinet-avatar">
-                    {member.photo ? (
-                      <img
-                        src={member.photo}
-                        alt={`${member.name}, ${member.position}`}
-                        loading="lazy"
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : initials}
-                  </div>
-                  <div className="role">{member.position}</div>
-                  <div className="name">{member.name}</div>
-                  <div className="opc-cabinet-order">{index + 1} of {cabinetMembers.length}</div>
-                </div>
-              );
-            })}
-            </div>
-            {cabinetMembers.length > 1 && <p className="opc-cabinet-slider-hint">Swipe left or right to view the full cabinet · ordered by position</p>}
+            {cabinetMembers.length > 0 && (
+              <HeroLegendsCoverflow
+                label="OPC Cabinet Members"
+                ariaLabel="Cabinet members continuously moving coverflow"
+                slides={cabinetMembers.map((member) => {
+                  const initials = member.name
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join('')
+                    .toUpperCase();
+                  return {
+                    id: member.id,
+                    name: member.name,
+                    category: member.position || 'OPC Cabinet Member',
+                    honor: member.position || 'OPC Cabinet Member',
+                    legacy: 'Verified OPC elected leadership profile.',
+                    image: member.photo || '',
+                    initials,
+                  };
+                })}
+              />
+            )}
           </div>
 
           {cabinetLoaded && cabinetMembers.length === 0 && (

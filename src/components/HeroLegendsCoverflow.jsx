@@ -5,7 +5,7 @@ import { defaultHeroLegends } from '../data/heroLegends';
 const mod = (value, total) => ((value % total) + total) % total;
 const TICKER_DURATION = 5200;
 
-export default function HeroLegendsCoverflow({ slides = defaultHeroLegends }) {
+export default function HeroLegendsCoverflow({ slides = defaultHeroLegends, label = 'Pakhtoon Legends', ariaLabel = 'Pakhtoon legends continuously moving coverflow' }) {
   const safeSlides = slides.length ? slides : defaultHeroLegends;
   const frameRef = useRef(null);
   const cardRefs = useRef([]);
@@ -136,14 +136,14 @@ export default function HeroLegendsCoverflow({ slides = defaultHeroLegends }) {
 
   return (
     <div className="opc-legends-coverflow" aria-label="Pakhtoon legends gallery">
-      <div className="opc-honourees-label">✦ Pakhtoon Legends</div>
+      <div className="opc-honourees-label">✦ {label}</div>
       <div
         ref={frameRef}
         className="opc-legends-coverflow-frame"
         tabIndex={0}
         role="region"
         aria-roledescription="carousel"
-        aria-label="Pakhtoon legends continuously moving coverflow"
+        aria-label={ariaLabel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -156,7 +156,7 @@ export default function HeroLegendsCoverflow({ slides = defaultHeroLegends }) {
         <div className="opc-legends-coverflow-track">
           {safeSlides.map((legend, index) => (
             <article className="opc-legends-coverflow-card" key={legend.id || `${legend.name}-${index}`} ref={(node) => { cardRefs.current[index] = node; }}>
-              <img src={legend.image} alt={legend.name} loading={index < 3 ? 'eager' : 'lazy'} draggable="false" />
+              {legend.image ? <img src={legend.image} alt={legend.name} loading={index < 3 ? 'eager' : 'lazy'} draggable="false" /> : <div className="opc-legends-coverflow-card-placeholder" aria-hidden="true">{legend.initials || '?'}</div>}
               <div className="opc-legends-coverflow-card-index">OPC / {String(index + 1).padStart(2, '0')}</div>
               <div className="opc-legends-coverflow-card-shade" />
             </article>
