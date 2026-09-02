@@ -18,6 +18,7 @@ import Admin from './components/Admin';
 import ScrollProgress from './components/ScrollProgress';
 import CursorTrail from './components/CursorTrail';
 import WhatsAppFloat from './components/WhatsAppFloat';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import Loader from './components/Loader';
 
 function FullPortalView() {
@@ -68,6 +69,7 @@ function App() {
             <Route path="/membership" element={<Membership />} />
             <Route path="/card" element={<MemberCard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
           <Toaster position="top-right" />
         </div>
