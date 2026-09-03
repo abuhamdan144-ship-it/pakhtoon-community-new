@@ -3,7 +3,7 @@ import opcLogoUrl from '../assets/images/pukhtoon_community_logo_1785867933974.j
 function imageFromDataUrl(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (!String(url).startsWith('data:')) { img.crossOrigin = 'anonymous'; }
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Failed to load image'));
     img.src = url;
@@ -366,7 +366,7 @@ export async function buildCardImageCombined(member) {
   drawRoundedImage(front, 0, 0);
   drawRoundedImage(back, 1200 + 50, 0);
   
-  return new Promise((resolve) => {
-    canvas.toBlob(resolve, 'image/png', 0.9);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Canvas export failed')), 'image/png', 0.9);
   });
 }

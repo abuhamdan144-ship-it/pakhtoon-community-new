@@ -64,7 +64,7 @@ export default function MemberCard() {
   };
 
   const downloadBlob = (blob, extension) => {
-    const url = URL.createObjectURL(blob);
+    if (!blob) throw new Error('Failed to generate file'); const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${member.membershipId || 'opc-membership-card'}.${extension}`;
@@ -76,7 +76,7 @@ export default function MemberCard() {
     if (!member) return;
     setLoading(true);
     try { downloadBlob(await buildCardPdf(), 'pdf'); toast.success('PDF membership card downloaded.'); }
-    catch (error) { toast.error(error?.message || 'Unable to download the card.'); }
+    catch (error) { toast.error(error?.stack || error?.message || 'Unable to download the card.'); console.error(error); }
     finally { setLoading(false); }
   };
 
@@ -84,7 +84,7 @@ export default function MemberCard() {
     if (!member) return;
     setLoading(true);
     try { downloadBlob(await buildCardImageCombined(member), 'png'); toast.success('Image membership card downloaded.'); }
-    catch (error) { toast.error(error?.message || 'Unable to download the card image.'); }
+    catch (error) { toast.error(error?.stack || error?.message || 'Unable to download the card image.'); console.error(error); }
     finally { setLoading(false); }
   };
 
