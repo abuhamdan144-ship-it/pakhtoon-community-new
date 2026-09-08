@@ -92,7 +92,7 @@ export default function Membership() {
         status: 'pending',
         createdAt: new Date().toISOString(),
       });
-      toast.success('Application saved and sent for administrator approval. Your card will be available after approval.');
+      toast.success('Application submitted. Your card is available after administrator approval.');
       reset();
       setPhoto('');
       setPhotoPreview('');
