@@ -53,7 +53,9 @@ export default function Navbar() {
               key={link.name} 
               to={link.path}
               className={`relative font-medium transition-colors ${
-                location.pathname === link.path ? 'text-gold' : 'text-cream hover:text-gold'
+                link.name === 'Admin'
+                  ? 'rounded-full border border-gold/70 px-4 py-2 text-gold hover:bg-gold hover:text-forest-dark'
+                  : location.pathname === link.path ? 'text-gold' : 'text-cream hover:text-gold'
               }`}
             >
               {link.name}
@@ -91,7 +93,9 @@ export default function Navbar() {
               to={link.path}
               onClick={() => setIsOpen(false)}
               className={`font-medium py-2 border-b border-white/5 ${
-                location.pathname === link.path ? 'text-gold' : 'text-cream'
+                link.name === 'Admin'
+                  ? 'rounded-lg border border-gold/60 px-4 text-center text-gold'
+                  : location.pathname === link.path ? 'text-gold' : 'text-cream'
               }`}
             >
               {link.name}
