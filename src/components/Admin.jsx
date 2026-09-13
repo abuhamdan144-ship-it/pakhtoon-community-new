@@ -155,20 +155,29 @@ export default function Admin() {
       return undefined;
     }
     setDataError('');
-    const unsubscribers = [
-      onSnapshot(query(collections.members, orderBy('createdAt', 'desc')), (snapshot) => { const records = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })); setMembers(records); setDoc(doc(collections.settings, 'publicStats'), { totalMembers: records.length, approvedMembers: records.filter((member) => member.status === 'approved').length, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {}); }, () => setDataError('Your administrator account cannot read membership records.')),
-      onSnapshot(collections.events, (snapshot) => setEvents(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read event records.')),
-      onSnapshot(collections.cabinet, (snapshot) => setCabinet(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read cabinet records.')),
-      onSnapshot(collections.news, (snapshot) => { setNews(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))); setDataError((current) => current.includes('news records') ? '' : current); }, () => setDataError('Your administrator account cannot read news records.')),
-      onSnapshot(collections.donations, (snapshot) => setDonations(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read donation records.')),
-      onSnapshot(collections.incidents, (snapshot) => setIncidents(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read incident records.')),
-      onSnapshot(collections.elections, (snapshot) => setElections(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read election records.')),
-      onSnapshot(collections.ads, (snapshot) => setAds(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read advertising records.')),
-      onSnapshot(collections.comments, (snapshot) => setComments(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))), () => setDataError('Your administrator account cannot read comments.')),
-      onSnapshot(collections.legends, (snapshot) => setLegendsRecords(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })).sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))), () => setDataError('Your administrator account cannot read Pakhtoon Legends records.')),
-    ];
+    const subscribe = (collection, setter, message, source = collection) => onSnapshot(collection, (snapshot) => {
+      const records = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+      setter(source === 'legends' ? records.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)) : records);
+    }, () => setDataError(message));
+    const unsubscribers = [];
+    const needsMembers = activeTab === 'Overview' || activeTab === 'Members';
+    const needsEvents = activeTab === 'Overview' || activeTab === 'Events';
+    if (needsMembers) unsubscribers.push(onSnapshot(query(collections.members, orderBy('createdAt', 'desc')), (snapshot) => {
+      const records = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+      setMembers(records);
+      if (activeTab === 'Members') setDoc(doc(collections.settings, 'publicStats'), { totalMembers: records.length, approvedMembers: records.filter((member) => member.status === 'approved').length, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
+    }, () => setDataError('Your administrator account cannot read membership records.')));
+    if (needsEvents) unsubscribers.push(subscribe(collections.events, setEvents, 'Your administrator account cannot read event records.'));
+    if (activeTab === 'Cabinet') unsubscribers.push(subscribe(collections.cabinet, setCabinet, 'Your administrator account cannot read cabinet records.'));
+    if (activeTab === 'News') unsubscribers.push(subscribe(collections.news, setNews, 'Your administrator account cannot read news records.'));
+    if (activeTab === 'Donations') unsubscribers.push(subscribe(collections.donations, setDonations, 'Your administrator account cannot read donation records.'));
+    if (activeTab === 'Incidents') unsubscribers.push(subscribe(collections.incidents, setIncidents, 'Your administrator account cannot read incident records.'));
+    if (activeTab === 'Elections') unsubscribers.push(subscribe(collections.elections, setElections, 'Your administrator account cannot read election records.'));
+    if (activeTab === 'Ads') unsubscribers.push(subscribe(collections.ads, setAds, 'Your administrator account cannot read advertising records.'));
+    if (activeTab === 'Comments') unsubscribers.push(subscribe(collections.comments, setComments, 'Your administrator account cannot read comment records.'));
+    if (activeTab === 'Legends') unsubscribers.push(subscribe(collections.legends, setLegendsRecords, 'Your administrator account cannot read Pakhtoon Legends records.', 'legends'));
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [authorised]);
+  }, [authorised, activeTab]);
 
   const handleSignIn = async () => {
     setSigningIn(true); setAuthError('');
