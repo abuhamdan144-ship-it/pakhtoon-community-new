@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, CalendarDays, CheckCircle2, Edit3, FileText, ImagePlus, LoaderCircle, LogIn, LogOut, MessageCircle, Newspaper, Plus, Save, ShieldCheck, Trash2, Users, XCircle,
 } from 'lucide-react';
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { collections } from '../firebase/collections';
 import { defaultHeroLegends } from '../data/heroLegends';
+import ErrorBoundary from './ErrorBoundary';
 
 const TABS = [
   { label: 'Overview', icon: FileText },
@@ -27,6 +28,7 @@ const AUTHORISED_ADMIN_EMAILS = new Set([
   'abuhamdan144@gmail.com',
   'admin@opc.org',
   'admin@opc.com',
+  'adminopc@opc.com',
   'malakabbas47@gmail.com',
 ]);
 
@@ -105,6 +107,8 @@ export default function Admin() {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [dataError, setDataError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -193,6 +197,20 @@ export default function Admin() {
       setAuthError(error?.code === 'auth/popup-closed-by-user' ? 'Sign-in was cancelled. Please try again.' : 'Secure sign-in could not be completed. Confirm that Google sign-in is enabled and try again.');
     } finally { setSigningIn(false); }
   };
+  const handleEmailSignIn = async (e) => {
+    e.preventDefault();
+    setSigningIn(true); setAuthError('');
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      if (!isAuthorisedAdmin(credential.user)) {
+        await signOut(auth);
+        setAuthError('This account is not authorised to access the OPC administrator portal.');
+      }
+    } catch (error) {
+      setAuthError('Invalid email or password. Please try again.');
+    } finally { setSigningIn(false); }
+  };
+  
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -206,10 +224,12 @@ export default function Admin() {
   };
 
   const startMemberEdit = (member) => {
-    setCreatingMember(false);
-    setEditingMember(member);
-    setMemberDraft({
-      name: member.name || '', father: member.father || '', phone: member.phone || '', omanId: member.omanId || '', omanLocation: member.omanLocation || '', district: member.district || '', address: member.address || '', membershipId: member.membershipId || '', cardPin: member.cardPin || '', status: member.status || 'pending', photo: member.photo || '',
+    startTransition(() => {
+      setCreatingMember(false);
+      setEditingMember(member);
+      setMemberDraft({
+        name: member.name || '', father: member.father || '', phone: member.phone || '', omanId: member.omanId || '', omanLocation: member.omanLocation || '', district: member.district || '', address: member.address || '', membershipId: member.membershipId || '', cardPin: member.cardPin || '', status: member.status || 'pending', photo: member.photo || '',
+      });
     });
   };
 
@@ -320,14 +340,16 @@ export default function Admin() {
   };
 
   const startNewLegend = () => {
+    startTransition(() => {
     setEditingLegend({ id: null });
     setLegendDraft({ name: '', category: 'Legends of Sports', honor: '', legacy: '', image: '', status: 'published', sortOrder: legendsRecords.length + 1 });
-  };
+    });  };
 
   const startLegendEdit = (legend) => {
+    startTransition(() => {
     setEditingLegend(legend);
     setLegendDraft({ name: legend.name || '', category: legend.category || 'Legends of Sports', honor: legend.honor || '', legacy: legend.legacy || '', image: legend.image || '', status: legend.status || 'published', sortOrder: Number(legend.sortOrder || 1) });
-  };
+    });  };
 
   const seedDefaultLegends = async () => {
     if (legendsRecords.length && !window.confirm('Add the eight default Pakhtoon legends to the current list?')) return;
@@ -394,18 +416,20 @@ export default function Admin() {
   };
 
   const startNewProfile = (type) => {
+    startTransition(() => {
     setEditingProfile({ type, id: null });
     setProfileDraft(type === 'cabinet'
       ? { name: '', position: '', photo: '' }
       : { title: '', summary: '', image: '', status: 'draft' });
-  };
+    });  };
 
   const startProfileEdit = (type, record) => {
+    startTransition(() => {
     setEditingProfile({ type, ...record });
     setProfileDraft(type === 'cabinet'
       ? { name: record.name || '', position: record.position || '', photo: record.photo || '' }
       : { title: record.title || '', summary: record.summary || record.content || '', image: record.image || record.photo || '', status: record.status || 'published' });
-  };
+    });  };
 
   const saveProfile = async (event) => {
     event.preventDefault();
@@ -480,13 +504,15 @@ export default function Admin() {
   };
 
   const startNewOperational = (type) => {
+    startTransition(() => {
     setEditingRecord({ type, id: null });
     setRecordDraft({
       title: '', name: '', donor: '', phone: '', amount: '', date: '', venue: '', description: '', status: type === 'elections' ? 'open' : type === 'ads' ? 'draft' : 'pending', link: '', image: '',
     });
-  };
+    });  };
 
   const startOperationalEdit = (type, record) => {
+    startTransition(() => {
     setEditingRecord({ type, ...record });
     setRecordDraft({
       title: record.title || '',
@@ -501,7 +527,7 @@ export default function Admin() {
       link: record.link || '',
       image: record.image || record.photo || '',
     });
-  };
+    });  };
 
   const saveOperationalRecord = async (event) => {
     event.preventDefault();
@@ -525,7 +551,30 @@ export default function Admin() {
   if (!authReady) return <div className="flex min-h-screen items-center justify-center bg-[#f4f7f6] pt-20"><LoaderCircle className="animate-spin text-gold" size={26} /></div>;
 
   if (!authorised) {
-    return <div className="min-h-screen bg-[#f4f7f6] pt-20"><main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center px-4 py-12 sm:px-6"><section className="w-full overflow-hidden rounded-3xl border border-white/10 bg-forest-dark text-white shadow-2xl"><div className="border-b border-white/10 bg-gradient-to-r from-forest-dark to-[#0c5042] px-7 py-8"><div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gold text-forest-dark"><ShieldCheck size={26} /></div><p className="text-xs font-bold uppercase tracking-[.22em] text-gold">Protected workspace</p><h1 className="mt-3 font-serif text-3xl font-bold">OPC Administrator Portal</h1><p className="mt-3 text-sm leading-6 text-white/70">Membership data, profile photos, and events are protected. Sign in with an authorised Google account to continue.</p></div><div className="px-7 py-7">{authError && <div className="mb-5 flex gap-3 rounded-xl border border-red-300/25 bg-red-500/10 px-4 py-3 text-sm text-red-100"><AlertTriangle size={17} /><span>{authError}</span></div>}<button type="button" onClick={handleSignIn} disabled={signingIn} className="inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gold px-5 py-3.5 font-bold text-forest-dark disabled:opacity-70">{signingIn ? <LoaderCircle className="animate-spin" size={19} /> : <LogIn size={19} />}{signingIn ? 'Signing in securely…' : 'Sign in with Google'}</button><p className="mt-5 text-center text-xs leading-5 text-white/45">Access is restricted to authorised OPC administrators. Member records are not made public.</p></div></section></main></div>;
+    return <div className="min-h-screen bg-[#f4f7f6] pt-20"><main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center px-4 py-12 sm:px-6"><section className="w-full overflow-hidden rounded-3xl border border-white/10 bg-forest-dark text-white shadow-2xl"><div className="border-b border-white/10 bg-gradient-to-r from-forest-dark to-[#0c5042] px-7 py-8"><div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gold text-forest-dark"><ShieldCheck size={26} /></div><p className="text-xs font-bold uppercase tracking-[.22em] text-gold">Protected workspace</p><h1 className="mt-3 font-serif text-3xl font-bold">OPC Administrator Portal</h1><p className="mt-3 text-sm leading-6 text-white/70">Membership data, profile photos, and events are protected. Sign in with an authorised Google account to continue.</p></div>
+<div className="px-7 py-7">
+  {authError && <div className="mb-5 flex gap-3 rounded-xl border border-red-300/25 bg-red-500/10 px-4 py-3 text-sm text-red-100"><AlertTriangle size={17} /><span>{authError}</span></div>}
+  <form onSubmit={handleEmailSignIn} className="mb-6 flex flex-col gap-4">
+    <input type="email" placeholder="Admin Email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 outline-none focus:border-gold focus:ring-1 focus:ring-gold" />
+    <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 outline-none focus:border-gold focus:ring-1 focus:ring-gold" />
+    <button type="submit" disabled={signingIn} className="inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gold px-5 py-3.5 font-bold text-forest-dark disabled:opacity-70">
+      {signingIn ? <LoaderCircle className="animate-spin" size={19} /> : <LogIn size={19} />}
+      {signingIn ? 'Signing in securely…' : 'Sign In'}
+    </button>
+  </form>
+  <div className="relative mb-6 flex items-center py-2">
+    <div className="flex-grow border-t border-white/10"></div>
+    <span className="shrink-0 px-4 text-xs font-semibold uppercase tracking-widest text-white/40">Or</span>
+    <div className="flex-grow border-t border-white/10"></div>
+  </div>
+  <button type="button" onClick={handleSignIn} disabled={signingIn} className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 px-5 py-3.5 font-bold text-white hover:bg-white/10 disabled:opacity-70">
+    <svg viewBox="0 0 24 24" width="19" height="19" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    Sign in with Google
+  </button>
+  <p className="mt-5 text-center text-xs leading-5 text-white/45">Access is restricted to authorised OPC administrators. Member records are not made public.</p>
+</div>
+</section>
+  </main></div>;
   }
 
   return (
@@ -535,7 +584,7 @@ export default function Admin() {
 
         <main className="mt-7 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7 lg:p-9">
           {dataError && <div className="mb-7 flex gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><AlertTriangle size={17} /><span>{dataError}</span></div>}
-          <AnimatePresence mode="wait"><motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: .2 }}>
+          <AnimatePresence mode="wait"><motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: .2 }}><ErrorBoundary fallback={<div className="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-200 mt-4">Failed to load this tab. Please try another section.</div>}>
             <div className="mb-8"><p className="text-xs font-bold uppercase tracking-[.2em] text-gold">Administrator workspace</p><h1 className="mt-2 text-3xl font-bold text-gray-800">{activeTab}</h1></div>
 
             {activeTab === 'Overview' && <div className="grid grid-cols-1 gap-5 md:grid-cols-3"><Metric label="Approved Members" value={approvedMembers.length} help="Active and card-ready members" /><Metric label="Pending Approval" value={pendingMembers.length} help="Applications awaiting review" accent="orange" /><Metric label="Published Events" value={events.filter((event) => event.status === 'published').length} help="Visible community events" accent="green" /></div>}
@@ -559,7 +608,7 @@ export default function Admin() {
             {activeTab === 'Elections' && <OperationalSection label="Election records" type="elections" records={elections} onEdit={startOperationalEdit} onDelete={deleteOperationalRecord} onStatus={updateOperationalStatus} onAdd={startNewOperational} />}
             {activeTab === 'Ads' && <OperationalSection label="Sponsored ads" type="ads" records={ads} onEdit={startOperationalEdit} onDelete={deleteOperationalRecord} onStatus={updateOperationalStatus} onAdd={startNewOperational} />}
             {activeTab === 'Comments' && <CommentsSection comments={comments} onStatus={updateCommentStatus} onDelete={deleteComment} />}
-          </motion.div></AnimatePresence>
+          </ErrorBoundary></motion.div></AnimatePresence>
         </main>
       </div>
 

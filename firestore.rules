@@ -11,6 +11,7 @@ service cloud.firestore {
         'abuhamdan144@gmail.com',
         'admin@opc.org',
         'admin@opc.com',
+        'adminopc@opc.com',
         'malakabbas47@gmail.com'
       ];
     }

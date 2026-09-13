@@ -20,6 +20,7 @@ import CursorTrail from './components/CursorTrail';
 import WhatsAppFloat from './components/WhatsAppFloat';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import Loader from './components/Loader';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function FullPortalView() {
   return (
@@ -64,14 +65,16 @@ function App() {
       
       {(!loading || isAdminRoute) && (
         <div className="min-h-screen w-full">
-          <Routes>
-            <Route path="/" element={<HTMLDesignPreview />} />
-            <Route path="/portal" element={<Navigate to="/" replace />} />
-            <Route path="/membership" element={<Membership />} />
-            <Route path="/card" element={<MemberCard />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<HTMLDesignPreview />} />
+              <Route path="/portal" element={<Navigate to="/" replace />} />
+              <Route path="/membership" element={<Membership />} />
+              <Route path="/card" element={<MemberCard />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            </Routes>
+          </ErrorBoundary>
           <Toaster position="top-right" />
         </div>
       )}
