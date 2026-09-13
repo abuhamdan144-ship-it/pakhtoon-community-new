@@ -47,6 +47,7 @@ function FullPortalView() {
 
 function App() {
   const [loading, setLoading] = useState(true);
+  const isAdminRoute = window.location.pathname === '/admin';
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,7 +62,7 @@ function App() {
         {loading && <Loader key="loader" />}
       </AnimatePresence>
       
-      {!loading && (
+      {(!loading || isAdminRoute) && (
         <div className="min-h-screen w-full">
           <Routes>
             <Route path="/" element={<HTMLDesignPreview />} />

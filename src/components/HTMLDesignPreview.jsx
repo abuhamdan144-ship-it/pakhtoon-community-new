@@ -1684,6 +1684,7 @@ export default function HTMLDesignPreview() {
           </ul>
           <div className="opc-nav-actions">
             <Link to="/card" className="opc-btn opc-btn-ghost">Member Card</Link>
+            <Link to="/admin" className="opc-btn opc-btn-ghost">Admin</Link>
             <Link to="/membership" className="opc-btn opc-btn-gold">Join OPC</Link>
           </div>
           <button className="opc-mobile-menu-btn" onClick={() => setMobileNavOpen(true)}>☰</button>
@@ -1703,6 +1704,7 @@ export default function HTMLDesignPreview() {
         <a href="#welfare" onClick={(e) => { e.preventDefault(); scrollTo('welfare'); }}>Welfare</a>
         <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <Link to="/card" className="opc-btn opc-btn-ghost" style={{ textAlign: 'center' }}>Member Card</Link>
+          <Link to="/admin" className="opc-btn opc-btn-ghost" style={{ textAlign: 'center' }}>Admin</Link>
           <Link to="/membership" className="opc-btn opc-btn-gold" style={{ textAlign: 'center' }}>Join OPC</Link>
         </div>
       </div>
