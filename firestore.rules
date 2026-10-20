@@ -30,13 +30,14 @@ service cloud.firestore {
     function validPendingMember(data) {
       return validString(data.name, 1, 100)
         && validString(data.father, 1, 100)
-        && validString(data.omanId, 1, 50)
-        && validString(data.omanLocation, 1, 100)
+        && (validString(data.cnic, 1, 50) || validString(data.omanId, 1, 50))
         && validString(data.phone, 1, 30)
         && validString(data.district, 1, 100)
         && validString(data.address, 1, 500)
         && data.status == 'pending'
         && data.createdAt != null
+        && data.uid == request.auth.uid
+        && data.email == request.auth.token.email
         && data.photo is string
         && data.photo.size() <= 800000;
     }
@@ -61,10 +62,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // New applications may be submitted anonymously as pending records; all reads and
-    // later changes require an authorised administrator.
+    // A signed-in member may create a pending application and read only their own record.
     match /members/{memberId} {
-      allow create: if validPendingMember(request.resource.data);
+      allow create: if signedIn() && validPendingMember(request.resource.data);
+      allow get, list: if signedIn() && resource.data.uid == request.auth.uid;
       allow read, update, delete: if isAdmin();
     }
 
@@ -76,15 +77,32 @@ service cloud.firestore {
     allow read, write: if isAdmin();
     }
 
-    // All operational and financial records remain administrator-only.
+    // Financial records remain administrator-only.
     match /donations/{documentId} {
       allow read, write: if isAdmin();
     }
     match /incidents/{documentId} {
-      allow read, write: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.memberId == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt != null;
+      allow get, list: if signedIn() && resource.data.memberId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
     match /elections/{documentId} {
-      allow read, write: if isAdmin();
+      allow get, list: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /elections/{electionId}/votes/{voteId} {
+      allow create: if signedIn()
+        && voteId == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && exists(/databases/$(database)/documents/members/$(request.resource.data.memberId))
+        && get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.status == 'approved';
+      allow get: if signedIn() && voteId == request.auth.uid;
+      allow list, update, delete: if isAdmin();
     }
     match /ads/{documentId} {
       allow read, write: if isAdmin();
@@ -92,6 +110,10 @@ service cloud.firestore {
     match /settings/publicStats {
       allow get: if true;
       allow read, write: if isAdmin();
+    }
+    match /settings/embassy {
+      allow get: if true;
+      allow write: if isAdmin();
     }
     match /settings/{documentId} {
       allow read, write: if isAdmin();

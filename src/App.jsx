@@ -21,6 +21,7 @@ import WhatsAppFloat from './components/WhatsAppFloat';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import Loader from './components/Loader';
 import ErrorBoundary from './components/ErrorBoundary';
+import MemberPortal from './components/MemberPortal';
 
 function FullPortalView() {
   return (
@@ -69,7 +70,7 @@ function App() {
             <Routes>
               <Route path="/" element={<HTMLDesignPreview />} />
               <Route path="/portal" element={<Navigate to="/" replace />} />
-              <Route path="/membership" element={<Membership />} />
+              <Route path="/membership" element={<MemberPortal />} />
               <Route path="/card" element={<MemberCard />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -83,4 +84,3 @@ function App() {
 }
 
 export default App;
-
