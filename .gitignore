@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Android signing material must stay outside the repository.
+android/keystore.properties
+android/app/*.keystore
+.android-secrets/
