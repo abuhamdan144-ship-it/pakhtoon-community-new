@@ -40,11 +40,9 @@ jobs:
         run: npx cap sync android
 
       - name: Decode release keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-upload.keystore
 
       - name: Create signing properties
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: android
         run: |
           cat > keystore.properties <<EOF
