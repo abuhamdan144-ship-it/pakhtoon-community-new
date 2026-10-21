@@ -30,6 +30,7 @@ const EMPTY_FORM = {
 };
 
 const digitsOnly = value => String(value || '').replace(/\D/g, '');
+const authPassword = value => String(value || '').length === 4 ? `PC${value}` : String(value || '');
 const usernameEmail = value => {
   const raw = String(value || '').trim();
   if (raw.includes('@')) return raw.toLowerCase();
@@ -75,12 +76,12 @@ function AuthPanel({ onAuthenticated }) {
       if (mode === 'login') {
         const authEmail = identity.includes('@') ? identity.trim().toLowerCase() : (await getDoc(doc(db, 'memberLogins', loginKey(identity)))).data()?.email;
         if (!authEmail) throw new Error('No member was found with that name or mobile number.');
-        await signInWithEmailAndPassword(auth, authEmail, password);
+        await signInWithEmailAndPassword(auth, authEmail, authPassword(password));
       } else {
         if (!form.name || !form.father || !form.cnic || !form.phone) throw new Error('Please complete the required member details.');
         const mobileDigits = digitsOnly(form.phone);
         if (mobileDigits.length < 4) throw new Error('Please enter a valid mobile number.');
-        const initialPassword = mobileDigits.slice(-4);
+        const initialPassword = authPassword(mobileDigits.slice(-4));
         const authEmail = usernameEmail(form.phone);
         const credential = await createUserWithEmailAndPassword(auth, authEmail, initialPassword);
         const memberRef = await addDoc(collections.members, { ...form, email: authEmail, loginName: form.name.trim().toLowerCase(), loginPhone: mobileDigits, uid: credential.user.uid, status: 'pending', initialPasswordChanged: false, createdAt: serverTimestamp() });
