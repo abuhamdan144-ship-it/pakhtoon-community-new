@@ -62,6 +62,16 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Login aliases contain only the synthetic auth email and UID needed to resolve
+    // a member's name or mobile username; account creation is member-owned.
+    match /memberLogins/{loginId} {
+      allow get: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      allow update, delete: if isAdmin();
+    }
+
     // A signed-in member may create a pending application and read only their own record.
     match /members/{memberId} {
       allow create: if signedIn() && validPendingMember(request.resource.data);
