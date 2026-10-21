@@ -44,6 +44,9 @@ jobs:
       - name: Decode release keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/release-upload.keystore
 
+      - name: Validate release keystore
+        run: keytool -list -keystore android/release-upload.keystore -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" -alias "${{ secrets.ANDROID_KEY_ALIAS }}" >/dev/null
+
       - name: Create signing properties
         working-directory: android
         run: |
@@ -51,7 +54,7 @@ jobs:
           storeFile=release-upload.keystore
           storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           EOF
 
       - name: Require release signing secrets
