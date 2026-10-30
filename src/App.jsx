@@ -19,6 +19,7 @@ import ScrollProgress from './components/ScrollProgress';
 import CursorTrail from './components/CursorTrail';
 import WhatsAppFloat from './components/WhatsAppFloat';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import ChildSafetyStandards from './components/ChildSafetyStandards';
 import Loader from './components/Loader';
 import ErrorBoundary from './components/ErrorBoundary';
 import MemberPortal from './components/MemberPortal';
@@ -74,6 +75,7 @@ function App() {
               <Route path="/card" element={<MemberCard />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/child-safety-standards" element={<ChildSafetyStandards />} />
             </Routes>
           </ErrorBoundary>
           <Toaster position="top-right" />
