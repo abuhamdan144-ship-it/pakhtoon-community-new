@@ -4,7 +4,7 @@ import {
   AlertTriangle, CalendarDays, CheckCircle2, Download, Edit3, FileText, ImagePlus, LoaderCircle, LogIn, LogOut, MessageCircle, Newspaper, Plus, Save, ShieldCheck, Trash2, Users, XCircle,
 } from 'lucide-react';
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { addDoc, deleteDoc, doc, onSnapshot, runTransaction, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { collections } from '../firebase/collections';
 import { defaultHeroLegends } from '../data/heroLegends';
@@ -39,6 +39,12 @@ const asDate = (value) => {
   if (typeof value === 'string') return value.slice(0, 10);
   if (value?.toDate) return value.toDate().toISOString().slice(0, 10);
   return '';
+};
+
+const timestampMillis = (value) => {
+  if (value?.toDate) return value.toDate().getTime();
+  const parsed = Date.parse(value || '');
+  return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const normalizePhone = (value = '') => String(value).replace(/[\s()-]/g, '');
@@ -143,7 +149,7 @@ export default function Admin() {
   const filteredMembers = members.filter((member) => {
     const term = memberQuery.trim().toLowerCase();
     if (!term) return true;
-    return [member.name, member.membershipId, member.phone, member.omanId, member.omanLocation, member.district, member.status].some((value) => String(value || '').toLowerCase().includes(term));
+    return [member.name, member.father, member.membershipId, member.phone, member.omanId, member.cnic, member.omanLocation, member.district, member.status, member.email, member.uid, member.loginName, member.loginPhone].some((value) => String(value || '').toLowerCase().includes(term));
   });
 
   useEffect(() => {
@@ -168,8 +174,9 @@ export default function Admin() {
     const unsubscribers = [];
     const needsMembers = activeTab === 'Overview' || activeTab === 'Members';
     const needsEvents = activeTab === 'Overview' || activeTab === 'Events';
-    if (needsMembers) unsubscribers.push(onSnapshot(query(collections.members, orderBy('createdAt', 'desc')), (snapshot) => {
+    if (needsMembers) unsubscribers.push(onSnapshot(collections.members, (snapshot) => {
       const records = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+      records.sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt));
       setMembers(records);
       if (activeTab === 'Members') setDoc(doc(collections.settings, 'publicStats'), { totalMembers: records.length, approvedMembers: records.filter((member) => member.status === 'approved').length, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
     }, () => setDataError('Your administrator account cannot read membership records.')));
