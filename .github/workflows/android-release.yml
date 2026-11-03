@@ -41,44 +41,56 @@ jobs:
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
+      - name: Require release signing secrets
+        run: |
+          test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
+
       - name: Decode release keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/release-upload.keystore
 
       - name: Validate release keystore
         env:
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PREFERRED_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          keytool -list -keystore android/release-upload.keystore \
-            -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" -keypass "$KEY_PASSWORD" >/dev/null
+          if ! keytool -list -keystore android/release-upload.keystore -storepass "$STORE_PASSWORD" >/dev/null 2>&1; then
+            echo "Unable to open the release keystore; check the Base64 file and keystore password." >&2
+            exit 1
+          fi
+          key_alias="$PREFERRED_KEY_ALIAS"
+          if [ -z "$key_alias" ] || ! keytool -list -keystore android/release-upload.keystore \
+            -storepass "$STORE_PASSWORD" -alias "$key_alias" >/dev/null 2>&1; then
+            key_alias="$(keytool -list -keystore android/release-upload.keystore -storepass "$STORE_PASSWORD" \
+              | awk -F, '/PrivateKeyEntry/{print $1; exit}' | xargs)"
+          fi
+          test -n "$key_alias" || { echo "No private-key alias found in the release keystore." >&2; exit 1; }
           actual_sha1="$(keytool -list -v -keystore android/release-upload.keystore \
-            -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" -keypass "$KEY_PASSWORD" \
+            -storepass "$STORE_PASSWORD" -alias "$key_alias" \
             | awk -F': ' '/SHA1:/{print $2; exit}')"
-          expected_sha1='55:F6:2D:E9:74:32:E6:6C:E9:79:06:C1:01:75:79:4A:34:2F:9C:07'
+          expected_sha1='BA:E4:D7:11:D6:20:0B:8A:88:E1:00:FB:EE:82:B7:2A:DD:10:61:8A'
+          test -n "$actual_sha1" || { echo "Could not read the keystore certificate fingerprint." >&2; exit 1; }
           test "$actual_sha1" = "$expected_sha1" || {
             echo "Android upload certificate does not match the Play Console certificate." >&2
             echo "Expected SHA1: $expected_sha1" >&2
             echo "Actual SHA1: $actual_sha1" >&2
             exit 1
           }
+          echo "KEY_ALIAS=$key_alias" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=${KEY_PASSWORD:-$STORE_PASSWORD}" >> "$GITHUB_ENV"
 
       - name: Create signing properties
         working-directory: android
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           cat > keystore.properties <<EOF
           storeFile=release-upload.keystore
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
           EOF
-
-      - name: Require release signing secrets
-        run: |
-          test -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
-          test -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
-          test -n "${{ secrets.ANDROID_KEY_ALIAS }}" || (echo "Missing ANDROID_KEY_ALIAS" && exit 1)
-          test -n "${{ secrets.ANDROID_KEY_PASSWORD }}" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
 
       - name: Build signed App Bundle
         working-directory: android
