@@ -55,7 +55,7 @@ jobs:
           actual_sha1="$(keytool -list -v -keystore android/release-upload.keystore \
             -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" -keypass "$KEY_PASSWORD" \
             | awk -F': ' '/SHA1:/{print $2; exit}')"
-          expected_sha1='BA:E4:D7:11:D6:20:0B:8A:88:E1:00:FB:EE:82:B7:2A:DD:10:61:8A'
+          expected_sha1='55:F6:2D:E9:74:32:E6:6C:E9:79:06:C1:01:75:79:4A:34:2F:9C:07'
           test "$actual_sha1" = "$expected_sha1" || {
             echo "Android upload certificate does not match the Play Console certificate." >&2
             echo "Expected SHA1: $expected_sha1" >&2
