@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Download, Image as ImageIcon, KeyRound, Mail, Search, Send, ShieldCheck } from 'lucide-react';
 
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db, app } from '../firebase/config';
+import { app } from '../firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
@@ -34,24 +33,12 @@ export default function MemberCard() {
     
     setLoading(true);
     try {
-      const memberCardsRef = collection(db, 'memberCards');
-      let q;
-      if (lookup.toLowerCase().startsWith('opc-om-')) {
-        q = query(memberCardsRef, where('membershipId', '==', lookup.toUpperCase()), where('cardPin', '==', pin));
-      } else if (/^\+?\d+$/.test(lookup.replace(/\s+/g, ''))) {
-        q = query(memberCardsRef, where('phone', '==', lookup.replace(/\D/g, '')), where('cardPin', '==', pin));
-      } else {
-        q = query(memberCardsRef, where('nameKey', '==', lookup.toLowerCase()), where('cardPin', '==', pin));
-      }
-      
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
-        throw new Error('No approved membership card matched these details.');
-      }
-      
-      const record = snapshot.docs[0].data();
-      record.approved = true; 
+      // Card lookup is intentionally performed by the callable function. Direct
+      // unauthenticated Firestore reads are denied by the production rules.
+      const functions = getFunctions(app, 'us-central1');
+      const lookupMemberCardByPin = httpsCallable(functions, 'lookupMemberCardByPin');
+      const result = await lookupMemberCardByPin({ lookup, pin });
+      const record = { ...result.data, approved: true };
       setMember(record);
       toast.success('Your approved membership card is ready.');
     } catch (error) {

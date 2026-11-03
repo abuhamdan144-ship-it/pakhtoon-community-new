@@ -55,7 +55,7 @@ exports.lookupMemberCardByPin = (0, https_1.onCall)({ region: "us-central1" }, a
             ? phoneMatches(lookup, String(candidate.phone || ""))
             : nameKey(lookup) === nameKey(String(candidate.nameKey || candidate.name || ""));
         const expectedPin = String(candidate.cardPin || normalisePhone(String(candidate.phone || "")).slice(-4));
-        return lookupMatches && expectedPin === pin;
+        return lookupMatches && expectedPin.length === 4 && expectedPin === pin;
     });
     if (!card) {
         throw new https_1.HttpsError("not-found", "No approved membership card matched these details.");
