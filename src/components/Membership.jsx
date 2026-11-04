@@ -115,7 +115,7 @@ export default function Membership() {
 
         <section className="mx-auto mb-10 max-w-3xl rounded-2xl border border-gold/30 bg-forest-dark p-5 text-white shadow-lg sm:p-6" aria-labelledby="member-card-search-title">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="text-xs font-bold uppercase tracking-[.18em] text-gold">Already approved?</p><h2 id="member-card-search-title" className="mt-1 font-serif text-xl font-bold">Search your membership card</h2><p className="mt-1 text-sm leading-5 text-white/70">Start with your registered name or mobile number. We will verify your phone by SMS before showing the card.</p></div>
+            <div><p className="text-xs font-bold uppercase tracking-[.18em] text-gold">Already approved?</p><h2 id="member-card-search-title" className="mt-1 font-serif text-xl font-bold">Search your membership card</h2><p className="mt-1 text-sm leading-5 text-white/70">Enter your registered name or mobile number, then use the last 4 digits of your mobile number as your password.</p></div>
             <Search className="hidden shrink-0 text-gold sm:block" size={30} />
           </div>
           <form onSubmit={openCardSearch} className="mt-4 flex flex-col gap-3 sm:flex-row">
