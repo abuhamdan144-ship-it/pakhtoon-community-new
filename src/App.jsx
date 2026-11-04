@@ -23,6 +23,7 @@ import ChildSafetyStandards from './components/ChildSafetyStandards';
 import Loader from './components/Loader';
 import ErrorBoundary from './components/ErrorBoundary';
 import MemberPortal from './components/MemberPortal';
+import { Capacitor } from '@capacitor/core';
 
 function FullPortalView() {
   return (
@@ -51,11 +52,12 @@ function FullPortalView() {
 function App() {
   const [loading, setLoading] = useState(true);
   const isAdminRoute = window.location.pathname === '/admin';
+  const isNativeApp = Capacitor.isNativePlatform();
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 250);
+    }, isNativeApp ? 1800 : 250);
     return () => clearTimeout(timer);
   }, []);
 
@@ -69,7 +71,7 @@ function App() {
         <div className="min-h-screen w-full">
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<HTMLDesignPreview />} />
+              <Route path="/" element={isNativeApp ? <MemberPortal /> : <HTMLDesignPreview />} />
               <Route path="/portal" element={<Navigate to="/" replace />} />
               <Route path="/membership" element={<MemberPortal />} />
               <Route path="/card" element={<MemberCard />} />
