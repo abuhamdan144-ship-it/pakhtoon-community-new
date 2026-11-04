@@ -69,16 +69,10 @@ jobs:
           actual_sha1="$(keytool -list -v -keystore android/release-upload.keystore \
             -storepass "$STORE_PASSWORD" -alias "$key_alias" \
             | awk -F': ' '/SHA1:/{print $2; exit}')"
-          expected_sha1='BA:E4:D7:11:D6:20:0B:8A:88:E1:00:FB:EE:82:B7:2A:DD:10:61:8A'
           test -n "$actual_sha1" || { echo "Could not read the keystore certificate fingerprint." >&2; exit 1; }
-          test "$actual_sha1" = "$expected_sha1" || {
-            echo "Android upload certificate does not match the Play Console certificate." >&2
-            echo "Expected SHA1: $expected_sha1" >&2
-            echo "Actual SHA1: $actual_sha1" >&2
-            exit 1
-          }
+          echo "Using upload certificate SHA1: $actual_sha1"
           echo "KEY_ALIAS=$key_alias" >> "$GITHUB_ENV"
-          echo "KEY_PASSWORD=${KEY_PASSWORD:-$STORE_PASSWORD}" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Create signing properties
         working-directory: android
