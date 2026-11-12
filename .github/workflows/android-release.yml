@@ -88,11 +88,18 @@ jobs:
 
       - name: Build signed App Bundle
         working-directory: android
-        run: ./gradlew bundleRelease
+        run: ./gradlew bundleRelease assembleRelease
 
       - name: Upload App Bundle artifact
         uses: actions/upload-artifact@v4
         with:
           name: pakhtoon-community-android-bundle
           path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: Upload signed APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pakhtoon-community-android-apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
