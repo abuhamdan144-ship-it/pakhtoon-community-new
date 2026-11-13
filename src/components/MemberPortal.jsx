@@ -147,7 +147,10 @@ export default function MemberPortal() {
   const [elections, setElections] = useState([]);
   const [news, setNews] = useState([]);
   const [embassy, setEmbassy] = useState(DEFAULT_EMBASSY);
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    return ['dashboard', 'vote', 'report', 'embassy', 'news'].includes(requestedTab) ? requestedTab : 'dashboard';
+  });
   const [report, setReport] = useState({ type: 'injured', name: '', contact: '', description: '' });
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);

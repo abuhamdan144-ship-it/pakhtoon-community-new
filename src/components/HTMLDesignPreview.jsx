@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import opcLogo from '../assets/images/pukhtoon_community_logo_1785867933974.jpg';
 import HeroLegendsCoverflow from './HeroLegendsCoverflow';
 import { defaultHeroLegends } from '../data/heroLegends';
@@ -24,6 +24,7 @@ const cabinetPositionRank = (position = '') => {
 };
 
 export default function HTMLDesignPreview() {
+  const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -46,6 +47,17 @@ export default function HTMLDesignPreview() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (location.hash) {
+        document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (location.pathname === '/') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [location.pathname, location.hash]);
 
   // Load only the public-safe cabinet profile fields. Phone numbers and email addresses are never rendered on this page.
   useEffect(() => {
