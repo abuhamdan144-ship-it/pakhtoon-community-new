@@ -71,7 +71,7 @@ function App() {
         <div className="min-h-screen w-full">
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={isNativeApp ? <MemberCard /> : <HTMLDesignPreview />} />
+              <Route path="/" element={<HTMLDesignPreview />} />
               <Route path="/portal" element={<Navigate to="/" replace />} />
               <Route path="/membership" element={<MemberPortal />} />
               <Route path="/card" element={<MemberCard />} />
