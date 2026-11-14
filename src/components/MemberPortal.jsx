@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, runTransaction,
   serverTimestamp, setDoc, where
@@ -9,10 +10,12 @@ import {
 } from 'firebase/auth';
 import {
   AlertTriangle, Building2, CheckCircle2, LogIn, LogOut, Newspaper,
-  PhoneCall, ShieldCheck, UserPlus, Vote, WalletCards
+  Download, Image as ImageIcon, PhoneCall, ShieldCheck, UserPlus, Vote, WalletCards
 } from 'lucide-react';
 import { auth, db } from '../firebase/config';
 import { collections } from '../firebase/collections';
+import { jsPDF } from 'jspdf';
+import { buildCardFront, buildCardBack, buildCardImageCombined } from './MemberCardBuilder';
 
 const DEFAULT_EMBASSY = {
   name: 'Embassy of Pakistan, Muscat',
@@ -121,6 +124,80 @@ function AuthPanel({ onAuthenticated }) {
   </div>;
 }
 
+function MemberCardPreview({ member }) {
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const approved = String(member.status || '').toLowerCase() === 'approved';
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreview(null);
+    setError('');
+    Promise.all([buildCardFront(member), buildCardBack(member)])
+      .then(([front, back]) => {
+        if (!cancelled) setPreview({ front: front.toDataURL('image/png'), back: back.toDataURL('image/png') });
+      })
+      .catch(() => { if (!cancelled) setError('Card preview is temporarily unavailable.'); });
+    return () => { cancelled = true; };
+  }, [member]);
+
+  const saveBlob = (blob, extension) => {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${member.membershipId || 'opc-membership-card'}.${extension}`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const download = async (format) => {
+    if (!approved || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      if (format === 'pdf') {
+        const front = await buildCardFront(member);
+        const back = await buildCardBack(member);
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1200, 756], compress: true });
+        pdf.addImage(front.toDataURL('image/png', 0.9), 'PNG', 0, 0, 1200, 756);
+        pdf.addPage([1200, 756], 'landscape');
+        pdf.addImage(back.toDataURL('image/png', 0.9), 'PNG', 0, 0, 1200, 756);
+        pdf.save(`${member.membershipId || 'opc-membership-card'}.pdf`);
+      } else {
+        saveBlob(await buildCardImageCombined(member), 'png');
+      }
+    } catch (downloadError) {
+      setError(downloadError?.message || 'Unable to download the membership card.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="rounded-3xl bg-white p-5 shadow-xl sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h2 className="text-xl font-black">Membership card preview</h2><p className="mt-1 text-sm text-slate-600">Live preview from your member profile.</p></div>
+        <span className={`rounded-full px-3 py-1 text-xs font-black ${approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>{approved ? 'APPROVED' : 'PENDING APPROVAL'}</span>
+      </div>
+      {preview ? (
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={preview.front} alt="Live preview of membership card front" className="block h-auto w-full" /><figcaption className="px-3 py-2 text-center text-xs font-bold text-slate-500">Front</figcaption></figure>
+          <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={preview.back} alt="Live preview of membership card back" className="block h-auto w-full" /><figcaption className="px-3 py-2 text-center text-xs font-bold text-slate-500">Back</figcaption></figure>
+        </div>
+      ) : <p className="mt-5 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">{error || 'Preparing your live card preview…'}</p>}
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button type="button" disabled={!approved || busy} onClick={() => download('pdf')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e2e25] px-4 py-3 text-sm font-black text-[#d4af37] disabled:cursor-not-allowed disabled:opacity-50"><Download size={17} />{busy ? 'Preparing…' : 'Download PDF'}</button>
+        <button type="button" disabled={!approved || busy} onClick={() => download('png')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#0e2e25]/20 px-4 py-3 text-sm font-black text-[#0e2e25] disabled:cursor-not-allowed disabled:opacity-50"><ImageIcon size={17} />Download image</button>
+      </div>
+      {!approved && <p className="mt-3 text-xs font-semibold text-amber-800">Downloads become available after administrator approval. The preview is not a valid membership card yet.</p>}
+      {error && preview && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+    </section>
+  );
+}
+
 function ChangePassword({ user }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -141,19 +218,24 @@ function ChangePassword({ user }) {
 }
 
 export default function MemberPortal() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [member, setMember] = useState(null);
   const [elections, setElections] = useState([]);
   const [news, setNews] = useState([]);
   const [embassy, setEmbassy] = useState(DEFAULT_EMBASSY);
-  const [tab, setTab] = useState(() => {
+  const [tab, setTabState] = useState(() => {
     const requestedTab = new URLSearchParams(window.location.search).get('tab');
     return ['dashboard', 'vote', 'report', 'embassy', 'news'].includes(requestedTab) ? requestedTab : 'dashboard';
   });
   const [report, setReport] = useState({ type: 'injured', name: '', contact: '', description: '' });
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const setTab = nextTab => {
+    setTabState(nextTab);
+    navigate(`/membership?tab=${nextTab}`, { replace: true });
+  };
 
   useEffect(() => onAuthStateChanged(auth, next => { setUser(next); setAuthReady(true); }), []);
   useEffect(() => {
@@ -195,10 +277,10 @@ export default function MemberPortal() {
   if (!authReady) return <div className="min-h-screen bg-[#faf6ed] p-10 text-center text-[#0e2e25]">Loading member portal…</div>;
   return <main className="min-h-screen bg-[#faf6ed] px-4 py-12 text-[#0e2e25] sm:px-6">
     <div className="mx-auto max-w-7xl"><div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.25em] text-[#1b4d3e]">Pakhtoon Community Oman</p><h1 className="mt-2 font-serif text-4xl font-black">Member Portal</h1><p className="mt-2 text-sm text-slate-600">Registration, membership card, voting, welfare, embassy services, and news.</p></div>{user && <button onClick={() => signOut(auth)} className="flex items-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold"><LogOut size={16} /> Sign out</button>}</div>
-      {!user ? <AuthPanel onAuthenticated={() => {}} /> : !member ? <div className="rounded-3xl bg-white p-8 text-center shadow-xl"><h2 className="text-2xl font-black">Account connected</h2><p className="mt-2 text-slate-600">Your member record is being prepared. If you registered before, please contact the administrator to link your account.</p></div> : <>
+      {!user ? <AuthPanel onAuthenticated={() => setTab('dashboard')} /> : !member ? <div className="rounded-3xl bg-white p-8 text-center shadow-xl"><h2 className="text-2xl font-black">Account connected</h2><p className="mt-2 text-slate-600">Your member record is being prepared. If you registered before, please contact the administrator to link your account.</p></div> : <>
         <div className="mb-6 flex flex-wrap gap-2">{[['dashboard','Member details',WalletCards],['vote','Voting',Vote],['report','Reports',AlertTriangle],['embassy','Contacts',Building2],['news','News & events',Newspaper]].map(([id,label,Icon]) => <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black ${tab === id ? 'bg-[#0e2e25] text-[#d4af37]' : 'bg-white text-slate-600 shadow-sm'}`}><Icon size={16} />{label}</button>)}</div>
         {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</div>}
-        {tab === 'dashboard' && <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><div><div className="grid gap-5 xl:grid-cols-2"><Card member={member} /><CardBack member={member} /></div><div className="mt-5 rounded-2xl bg-white p-5 shadow"><h2 className="mb-4 flex items-center gap-2 text-lg font-black"><CheckCircle2 className="text-emerald-600" size={20} /> Member details</h2><div className="grid gap-3 text-sm sm:grid-cols-2"><p><b>Username:</b> {member.name || member.phone}</p><p><b>Phone:</b> {member.phone || '—'}</p><p><b>Oman ID:</b> {member.omanId || member.cnic || '—'}</p><p><b>Address:</b> {member.address || '—'}</p><p><b>Status:</b> {String(member.status || 'pending').toUpperCase()}</p><p><b>Membership ID:</b> {member.membershipId || 'Pending approval'}</p></div></div></div><div className="rounded-3xl bg-[#0e2e25] p-7 text-[#faf6ed] shadow-xl"><h2 className="font-serif text-2xl font-black">Member actions</h2><p className="mt-3 text-sm leading-7 text-[#faf6ed]/70">{approved ? 'Your account is approved. You can vote and submit requests.' : 'Your registration is awaiting administrator approval. Your card and voting access will activate after approval.'}</p><button onClick={() => setTab('report')} className="mt-6 flex items-center gap-2 rounded-xl bg-[#d4af37] px-4 py-3 text-sm font-black text-[#0e2e25]"><PhoneCall size={17} /> Emergency contact & report</button><ChangePassword user={user} /></div></div>}
+        {tab === 'dashboard' && <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><div className="space-y-5"><section className="rounded-2xl bg-white p-5 shadow"><h2 className="mb-4 flex items-center gap-2 text-lg font-black"><CheckCircle2 className="text-emerald-600" size={20} /> Member profile</h2><div className="grid gap-3 text-sm sm:grid-cols-2"><p><b>Full name:</b> {member.name || '—'}</p><p><b>Father name:</b> {member.father || '—'}</p><p><b>Phone:</b> {member.phone || '—'}</p><p><b>Oman ID:</b> {member.omanId || member.cnic || '—'}</p><p><b>Address:</b> {member.address || '—'}</p><p><b>Status:</b> {String(member.status || 'pending').toUpperCase()}</p><p><b>Membership ID:</b> {member.membershipId || 'Pending approval'}</p></div></section><MemberCardPreview member={member} /></div><div className="rounded-3xl bg-[#0e2e25] p-7 text-[#faf6ed] shadow-xl"><h2 className="font-serif text-2xl font-black">Member actions</h2><p className="mt-3 text-sm leading-7 text-[#faf6ed]/70">{approved ? 'Your account is approved. You can vote and submit requests.' : 'Your registration is awaiting administrator approval. Your card and voting access will activate after approval.'}</p><button onClick={() => setTab('report')} className="mt-6 flex items-center gap-2 rounded-xl bg-[#d4af37] px-4 py-3 text-sm font-black text-[#0e2e25]"><PhoneCall size={17} /> Emergency contact & report</button><ChangePassword user={user} /></div></div>}
         {tab === 'vote' && <section className="space-y-5"><h2 className="font-serif text-3xl font-black">Community voting</h2>{!approved && <p className="rounded-xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">Voting is available only to approved members.</p>}{activeElections.length === 0 ? <div className="rounded-2xl bg-white p-6 text-slate-600 shadow">No open elections at this time.</div> : activeElections.map(election => <div key={election.id} className="rounded-3xl bg-[#0e2e25] p-6 text-white shadow-xl"><h3 className="text-xl font-black text-[#d4af37]">{election.title}</h3><div className="mt-4 grid gap-3 sm:grid-cols-2">{(election.candidates || []).map(candidate => <button key={candidate.id} disabled={!approved || busy} onClick={() => vote(election, candidate)} className="rounded-xl border border-[#d4af37]/40 bg-[#1b4d3e] p-4 text-left hover:border-[#d4af37] disabled:opacity-50"><span className="font-bold">{candidate.name}</span><span className="mt-1 block text-xs text-[#faf6ed]/60">{candidate.votes || 0} votes · Vote securely</span></button>)}</div></div>)}</section>}
         {tab === 'report' && <section className="max-w-2xl"><h2 className="font-serif text-3xl font-black">Community reports</h2><a href={`tel:${embassy.emergency || '+96899859757'}`} className="mt-4 flex items-center gap-3 rounded-2xl bg-red-700 p-4 font-black text-white shadow"><PhoneCall /> Emergency hotline: {embassy.emergency || '+968 9985 9757'}</a><form onSubmit={submitReport} className="mt-5 space-y-3 rounded-3xl bg-white p-6 shadow-xl"><input required placeholder="Person or item name" value={report.name} onChange={e => setReport({...report,name:e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-3" /><input required placeholder="Contact phone" value={report.contact} onChange={e => setReport({...report,contact:e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-3" /><select value={report.type} onChange={e => setReport({...report,type:e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-3"><option value="dead">Dead</option><option value="injured">Injured</option><option value="lost">Lost</option><option value="found">Found</option></select><textarea required rows="5" placeholder="Describe the situation, location, and support needed" value={report.description} onChange={e => setReport({...report,description:e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-3" /><button disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0e2e25] px-4 py-3 font-black text-[#d4af37]">{busy ? 'Submitting…' : 'Submit report'}</button></form></section>}
         {tab === 'embassy' && <section><h2 className="font-serif text-3xl font-black">Embassy details and services</h2><div className="mt-5 grid gap-5 lg:grid-cols-2"><div className="rounded-3xl bg-[#0e2e25] p-7 text-[#faf6ed] shadow-xl"><Building2 className="text-[#d4af37]" size={34} /><h3 className="mt-4 text-2xl font-black text-[#d4af37]">{embassy.name}</h3><div className="mt-4 space-y-2 text-sm text-[#faf6ed]/80"><p>{embassy.address}</p><p>Phone: {embassy.phone}</p><p>Email: {embassy.email}</p><p>Hours: {embassy.hours}</p><a className="font-bold text-[#d4af37] underline" href={embassy.website} target="_blank" rel="noreferrer">Official website</a></div></div><div className="grid gap-3 sm:grid-cols-2">{['Passport renewal and emergency travel documents','NICOP and identity services','Visa and consular guidance','Labour and legal assistance','Document loss and police report guidance','Emergency repatriation coordination'].map(service => <div key={service} className="rounded-2xl bg-white p-5 shadow"><ShieldCheck className="text-emerald-700" size={22} /><p className="mt-3 text-sm font-bold">{service}</p></div>)}</div></div></section>}

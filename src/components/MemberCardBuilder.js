@@ -166,14 +166,15 @@ export async function buildCardFront(member) {
   let commText = '—  C O M M U N I T Y  —';
   context.fillText(commText, rightCenter, 510);
 
-  // Bottom right Status
+  // Bottom right status; a pending profile must never appear to be an approved credential.
+  const isApproved = String(member.status || '').toLowerCase() === 'approved' || member.approved === true;
   context.fillStyle = '#ffffff';
   context.font = 'bold 32px Arial, sans-serif';
-  context.fillText('APPROVED MEMBER', 880, 650);
+  context.fillText(isApproved ? 'APPROVED MEMBER' : 'PENDING APPROVAL', 880, 650);
 
   context.fillStyle = '#d4af37';
   context.font = '22px Arial, sans-serif';
-  context.fillText('— VALID FOR LIFETIME —', 880, 690);
+  context.fillText(isApproved ? '— VALID FOR LIFETIME —' : '— PREVIEW ONLY —', 880, 690);
 
   return canvas;
 }

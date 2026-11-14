@@ -34,7 +34,7 @@ function NativeFeatureTabs() {
   const portalTab = new URLSearchParams(search).get('tab');
   const items = [
     { to: '/', label: 'Home', key: 'home', Icon: Home },
-    { to: '/card', label: 'Card', key: 'card', Icon: CreditCard },
+    { to: '/membership?tab=dashboard', label: 'Card', key: 'card', Icon: CreditCard },
     { to: '/membership?tab=vote', label: 'Vote', key: 'vote', Icon: Vote },
     { to: '/#news', label: 'Events', key: 'events', Icon: CalendarDays },
     { to: '/emergency', label: 'Emergency', key: 'emergency', Icon: PhoneCall },
@@ -44,7 +44,7 @@ function NativeFeatureTabs() {
   const isActive = (key) => {
     if (key === 'home') return pathname === '/' && !hash;
     if (key === 'events') return pathname === '/' && hash === '#news';
-    if (key === 'card') return pathname === '/card';
+    if (key === 'card') return pathname === '/membership' && (!portalTab || portalTab === 'dashboard');
     if (key === 'emergency') return pathname === '/emergency';
     if (key === 'vote' || key === 'report') return pathname === '/membership' && portalTab === key;
     return false;
